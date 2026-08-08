@@ -30,8 +30,9 @@ services:
       TZ: UTC
     volumes:
       - polaris-db-data:/var/lib/postgresql/data
-      # Executado apenas na primeira criação do volume. Precisa ser idempotente.
-      - ./src/db/schema.sql:/docker-entrypoint-initdb.d/10-schema.sql:ro
+      # O esquema NÃO é montado em docker-entrypoint-initdb.d de propósito: aquele diretório só
+      # roda na primeira criação do volume, o que deixaria bancos existentes para trás em silêncio.
+      # Depois de subir o container, aplique o esquema com: python -m src.db.migrate
     ports:
       # Porta configurável para não colidir com um PostgreSQL já instalado na máquina.
       - "${POLARIS_DB_PORT:-5432}:5432"

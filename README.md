@@ -115,19 +115,26 @@ The system is organized into **three layers**:
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-username/polaris-dss.git
+git clone https://github.com/cfrans/polaris-dss.git
 cd polaris-dss
 
 # Set up environment variables
 cp .env.example .env
 # Edit .env with your credentials
 
-# Start the Polaris audit database (the schema is applied automatically)
+# Start the Polaris audit database
 docker compose up -d
 
 # Install Python dependencies
 pip install -r requirements.txt
+
+# Apply the database schema
+python -m src.db.migrate
 ```
+
+The schema is managed as versioned migrations, applied once each and recorded with their checksum —
+see [`src/db/migrations/README.md`](src/db/migrations/README.md). Run `python -m src.db.migrate`
+after pulling changes; it is a no-op when there is nothing pending.
 
 ### Zabbix is optional
 

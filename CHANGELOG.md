@@ -8,6 +8,23 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 ## [Não lançado]
 
 ### Adicionado
+- Migrações versionadas do esquema do banco (`python -m src.db.migrate`). Cada arquivo é aplicado
+  uma única vez, dentro de uma transação, e registrado em `schema_migrations` com o seu checksum.
+  Migração já aplicada cujo arquivo tenha sido editado depois faz a execução abortar, garantindo que
+  o esquema que gerou os dados de um experimento seja exatamente reconstruível.
+- `--status` e `--dry-run` no aplicador de migrações.
+
+### Modificado
+- O esquema deixou de ser um arquivo único reaplicado e passou a ser a migração
+  `001_esquema_inicial.sql`. `CREATE TABLE IF NOT EXISTS` cria a tabela ausente mas **não altera**
+  uma existente: reaplicar o arquivo num banco já criado rodava sem erro e não fazia nada.
+- O esquema não é mais montado em `docker-entrypoint-initdb.d`, que só executa na primeira criação
+  do volume e deixaria bancos existentes para trás em silêncio. A aplicação passa a ser explícita,
+  com o mesmo caminho para banco novo e banco existente.
+
+## [0.2.0] — 2026-08-08
+
+### Adicionado
 - Motor de inferência completo, executável sem Zabbix, sem banco e sem interface: carga e validação
   da base de conhecimento, casamento de alertas por expressão regular e limiar, ordenação
   determinística de regras candidatas e cálculo do índice de confiança.
@@ -22,19 +39,10 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
   recomendar investigação manual, em vez de repetir a mesma remediação.
 - Interface de linha de comando (`python -m src.engine.cli`) que aplica a base de conhecimento a um
   alerta e imprime o diagnóstico, as evidências, os fatores, a ação sugerida e o plano de reversão.
-- Tabela `experiment_run` no esquema do banco, com cenário, braço, rodada e marcos temporais; e
-  views de KPI comparando remediação manual e assistida, incluindo a decomposição do MTTR.
-- Suíte de testes com 55 casos cobrindo validação da base, casamento de regras, critérios de
-  desempate, os exemplos resolvidos do modelo de confiança e rejeição de parâmetros perigosos.
-
-### Corrigido
-- `schema.json` não validava o `rules.json`: declarava o topo como *array*, exigia um campo
-  inexistente e desconhecia os parâmetros de regra. Nenhuma regra passaria pela validação.
-- `config.py` interrompia a importação do módulo por exigir uma variável ausente do `.env.example`,
-  e resolvia o caminho da base de conhecimento a partir do diretório de trabalho.
-- Base de conhecimento: `nome_servico` estava declarado como condição, e não como parâmetro de
-  remediação; regras sem verificador de restabelecimento; ausência de `versao_kb`.
-- Dependências duplicadas de driver PostgreSQL e versão do FastAPI divergente da anunciada.
+- Tabela `experiment_run` com cenário, braço, rodada e marcos temporais; e views de KPI comparando
+  remediação manual e assistida, incluindo a decomposição do MTTR.
+- Suíte de testes cobrindo validação da base, casamento de regras, critérios de desempate, os
+  exemplos resolvidos do modelo de confiança e rejeição de parâmetros perigosos.
 
 ### Segurança
 - Valores de parâmetro de regra passam por *allowlist* de caracteres e rejeição de travessia de
@@ -42,18 +50,28 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 - Placeholder sem parâmetro correspondente falha na carga da base de conhecimento, e não na hora de
   executar a remediação.
 
+## [0.1.1] — 2026-08-08
+
+### Corrigido
+- `schema.json` não validava o `rules.json`: declarava o topo como *array*, exigia um campo
+  inexistente e desconhecia os parâmetros de regra. Nenhuma das três regras passaria pela validação.
+- `config.py` interrompia a importação do módulo por exigir uma variável ausente do `.env.example`,
+  e resolvia o caminho da base de conhecimento a partir do diretório de trabalho.
+- Base de conhecimento: `nome_servico` estava declarado como condição, e não como parâmetro de
+  remediação; regras sem verificador de restabelecimento; ausência de `versao_kb`.
+- Dependências duplicadas de driver PostgreSQL e versão do FastAPI divergente da anunciada.
+
 ### Modificado
-- O Zabbix passou a ser **opcional**, isolado no profile `zabbix` do Compose. Por padrão,
-  `docker compose up -d` sobe apenas o banco de auditoria do Polaris; para um Zabbix local de
-  laboratório, use `docker compose --profile zabbix up -d`. Ambientes que já operam Zabbix apontam o
-  Polaris para a instância existente via `ZABBIX_URL`.
-- O banco de auditoria (`polaris-db`) ficou independente do banco do Zabbix, que agora tem instância
-  própria. Antes as duas aplicações compartilhavam a mesma instância PostgreSQL, o que impedia o uso
-  com um Zabbix externo.
-- A porta publicada pelo banco passou a ser configurável (`POLARIS_DB_PORT`), evitando colisão com um
-  PostgreSQL já instalado na máquina.
-- O schema de auditoria é aplicado automaticamente na criação do volume, dispensando a execução
-  manual de `psql`.
+- Zabbix passou a ser **opcional**, isolado no profile `zabbix` do Compose. Por padrão,
+  `docker compose up -d` sobe apenas o banco de auditoria do Polaris. Ambientes que já operam Zabbix
+  apontam o Polaris para a instância existente via `ZABBIX_URL`.
+- O banco de auditoria ficou independente do banco do Zabbix, que agora tem instância própria. Antes
+  as duas aplicações compartilhavam a mesma instância, o que impedia o uso com um Zabbix externo.
+- A porta publicada pelo banco passou a ser configurável (`POLARIS_DB_PORT`), evitando colisão com
+  um PostgreSQL já instalado na máquina.
+
+### Removido
+- `infra/init-db.sh`, desnecessário desde que o banco de auditoria passou a subir com base própria.
 
 ## [0.1.0] — 2026-08-08
 
@@ -63,5 +81,10 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 - `README.md`, `LICENSE` (MIT), `.gitignore`, `.env.example`, `requirements.txt`.
 - Rascunho da base de conhecimento com três regras heurísticas (R001 disco, R002 CPU,
   R003 serviço) e JSON Schema de validação.
-- Rascunho do schema PostgreSQL de auditoria com views de KPI (`vw_kpi_mttr`, `vw_kpi_accuracy`).
+- Rascunho do esquema PostgreSQL de auditoria com views de KPI.
 - `docker-compose.yml` com PostgreSQL, Zabbix Server, Zabbix Web e Zabbix Agent.
+
+[Não lançado]: https://github.com/cfrans/polaris-dss/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/cfrans/polaris-dss/compare/v0.1.1...v0.2.0
+[0.1.1]: https://github.com/cfrans/polaris-dss/compare/v0.1.0...v0.1.1
+[0.1.0]: https://github.com/cfrans/polaris-dss/releases/tag/v0.1.0
