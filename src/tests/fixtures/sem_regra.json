@@ -1,0 +1,8 @@
+{
+  "id_evento": "80234",
+  "tipo_alerta": "oom_killer",
+  "hostname": "vm-alvo-01",
+  "severidade": "critica",
+  "texto": "Out of memory: Killed process 4127 (java)",
+  "ts_deteccao": "2026-10-14T21:40:02Z"
+}

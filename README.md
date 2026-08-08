@@ -122,17 +122,55 @@ cd polaris-dss
 cp .env.example .env
 # Edit .env with your credentials
 
-# Start the infrastructure (Zabbix + PostgreSQL)
+# Start the Polaris audit database (the schema is applied automatically)
 docker compose up -d
 
 # Install Python dependencies
 pip install -r requirements.txt
-
-# Initialize the Polaris audit database
-psql -h localhost -U postgres -d polaris_audit -f src/db/schema.sql
 ```
 
-### Running
+### Zabbix is optional
+
+Polaris is designed as an **intelligence layer on top of monitoring you already run**. If you have a
+Zabbix server, don't start another one — just point Polaris at it via `ZABBIX_URL` in `.env`.
+
+If you need a local Zabbix for testing, it ships in an opt-in Compose profile:
+
+```bash
+docker compose --profile zabbix up -d    # adds Zabbix Server, Web and Agent, with its own database
+```
+
+> **Note on the remediation target.** Polaris and PostgreSQL run fine in containers, but the *host
+> being remediated* should be a real Linux VM: a stock container has no `systemd` (so service
+> restarts fail), filling a container's disk fills the host's disk, and process control inside a
+> container acts on the wrong namespace.
+
+### Running the inference engine standalone
+
+The engine is a pure module: it needs neither Zabbix, nor a database, nor the web interface. You can
+feed it an alert and read the full explained suggestion straight from the terminal — useful for
+authoring rules and for understanding what the system does before deploying anything.
+
+```bash
+python -m src.engine.cli src/tests/fixtures/disk_full.json
+
+# Full explainability trace as JSON (this is what gets stored in the audit log)
+python -m src.engine.cli src/tests/fixtures/cpu_high.json --json
+
+# Simulate audit history to exercise the rule-history and recurrence factors:
+# 14 past executions, 14 successful, 2 recent recurrences on this host
+python -m src.engine.cli src/tests/fixtures/service_down.json --historico 14 14 2
+```
+
+That last one is worth running: the recurrence factor drops confidence from 92% to 55%, and the
+system stops recommending the restart — it reports that the previous remediation did not hold and
+that the root cause is likely different from the one diagnosed.
+
+```bash
+pytest
+```
+
+### Running the full stack
 
 ```bash
 # Start the Polaris API server
@@ -140,7 +178,8 @@ uvicorn src.api.server:app --reload --port 8000
 
 # Access:
 # - Polaris HITL Interface: http://localhost:8000
-# - Zabbix Web Frontend:    http://localhost:8080 (Admin/zabbix)
+# - API docs (Swagger):     http://localhost:8000/docs
+# - Zabbix Web Frontend:    http://localhost:8080 (only with the `zabbix` profile — Admin/zabbix)
 ```
 
 ---
@@ -166,15 +205,16 @@ polaris-dss/
 │   │   └── schema.sql          # Audit table + KPI views
 │   ├── scripts/                # Remediation shell scripts
 │   └── tests/                  # Unit & integration tests
-├── infra/                      # Infrastructure setup
-│   └── init-db.sh              # PostgreSQL init script
+├── infra/                      # Infrastructure setup (Zabbix templates, triggers)
 ├── experiment/                 # Experiment execution & data
 │   ├── scenarios/              # Fault injection scripts
+│   ├── verify/                 # Health verifiers (define end-of-round)
 │   ├── baseline/               # Manual remediation data
 │   ├── hitl/                   # HITL workflow data
 │   └── analysis/               # Results analysis scripts
 ├── docker-compose.yml
 ├── requirements.txt
+├── CHANGELOG.md
 ├── .env.example
 └── README.md
 ```

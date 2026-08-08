@@ -1,0 +1,10 @@
+{
+  "id_evento": "80232",
+  "tipo_alerta": "cpu_high",
+  "hostname": "vm-alvo-01",
+  "metrica": "system.cpu.util",
+  "valor": 92.4,
+  "severidade": "media",
+  "texto": "CPU utilization is too high on vm-alvo-01",
+  "ts_deteccao": "2026-10-14T19:03:11Z"
+}

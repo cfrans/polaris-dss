@@ -1,0 +1,36 @@
+{
+  "versao": "1.0.0",
+  "piso_confianca": 0.05,
+  "bandas": {
+    "alta": 0.90,
+    "media": 0.70
+  },
+  "F1": {
+    "dupla": 1.00,
+    "somente_metrica": 0.90,
+    "somente_texto": 0.85
+  },
+  "F2": {
+    "margem_corte": 0.5,
+    "acima": 1.00,
+    "abaixo": 0.95
+  },
+  "F3": {
+    "n_minimo": 5,
+    "janela_dias": 90,
+    "taxa_boa": 0.90,
+    "taxa_regular": 0.70,
+    "mult_boa": 1.00,
+    "mult_regular": 0.90,
+    "mult_ruim": 0.75
+  },
+  "F4": {
+    "janela_minutos": 30,
+    "k1": 0.85,
+    "k2_ou_mais": 0.60
+  },
+  "F5": {
+    "habilitado": false,
+    "dentro_janela": 0.50
+  }
+}

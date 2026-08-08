@@ -1,0 +1,10 @@
+{
+  "id_evento": "80231",
+  "tipo_alerta": "disk_full",
+  "hostname": "vm-alvo-01",
+  "metrica": "vfs.fs.size[/mnt/polaris_test,pused]",
+  "valor": 98.2,
+  "severidade": "alta",
+  "texto": "Filesystem /mnt/polaris_test is critically low on free disk space (used > 95%). kernel: EXT4-fs (loop0): No space left on device",
+  "ts_deteccao": "2026-10-14T18:22:01Z"
+}

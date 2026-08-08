@@ -1,0 +1,10 @@
+{
+  "id_evento": "80233",
+  "tipo_alerta": "service_down",
+  "hostname": "vm-alvo-01",
+  "metrica": "proc.num[nginx]",
+  "valor": 0,
+  "severidade": "critica",
+  "texto": "nginx: service nginx is not running on vm-alvo-01. Active: inactive (dead)",
+  "ts_deteccao": "2026-10-14T20:15:47Z"
+}
