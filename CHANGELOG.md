@@ -7,6 +7,8 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 
 ## [Não lançado]
 
+## [0.3.0] — 2026-08-08
+
 ### Adicionado
 - Camada de persistência da auditoria: criação do incidente, marcação de exibição, registro da
   decisão humana e do resultado da execução, com os cinco marcos temporais do ciclo de vida.
@@ -100,7 +102,8 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 - Rascunho do esquema PostgreSQL de auditoria com views de KPI.
 - `docker-compose.yml` com PostgreSQL, Zabbix Server, Zabbix Web e Zabbix Agent.
 
-[Não lançado]: https://github.com/cfrans/polaris-dss/compare/v0.2.0...HEAD
+[Não lançado]: https://github.com/cfrans/polaris-dss/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/cfrans/polaris-dss/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/cfrans/polaris-dss/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/cfrans/polaris-dss/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/cfrans/polaris-dss/releases/tag/v0.1.0

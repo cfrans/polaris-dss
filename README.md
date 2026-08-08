@@ -177,6 +177,21 @@ that the root cause is likely different from the one diagnosed.
 pytest
 ```
 
+### Running a full incident cycle against the database
+
+With the database up, you can exercise the entire lifecycle — ingestion, display, human decision,
+execution and completion — with a simulated executor, before any target machine exists:
+
+```bash
+python -m src.db.ciclo                  # full cycle: ingest, display, approve, execute
+python -m src.db.ciclo --rejeitar       # rejection path
+python -m src.db.ciclo --sem-aprovacao  # verifies that execution without approval is refused
+```
+
+The last one matters most: it proves the system's core invariant. Before executing anything, the
+service re-reads the recorded approval from the database and refuses to act without it — it does not
+trust the caller's word that a human approved.
+
 ### Running the full stack
 
 ```bash
