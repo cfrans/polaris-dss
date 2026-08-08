@@ -1,0 +1,33 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Rules Schema",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "properties": {
+      "id": { "type": "string" },
+      "nome": { "type": "string" },
+      "condicao": {
+        "type": "object",
+        "properties": {
+          "tipo_alerta": { "type": "string" },
+          "regex_log": { "type": "string" },
+          "limiar": { "type": "number" }
+        },
+        "required": ["tipo_alerta", "regex_log", "limiar"]
+      },
+      "diagnostico": { "type": "string" },
+      "remediacao": {
+        "type": "object",
+        "properties": {
+          "comando": { "type": "string" },
+          "rollback": { "type": "string" },
+          "timeout_segundos": { "type": "integer" }
+        },
+        "required": ["comando", "rollback", "timeout_segundos"]
+      },
+      "confianca_base": { "type": "number", "minimum": 0, "maximum": 1 }
+    },
+    "required": ["id", "nome", "condicao", "diagnostico", "remediacao", "confianca_base"]
+  }
+}

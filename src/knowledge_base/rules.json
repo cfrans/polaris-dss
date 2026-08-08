@@ -1,0 +1,53 @@
+{
+  "regras": [
+    {
+      "id": "R001",
+      "nome": "Saturação de espaço em disco",
+      "condicao": {
+        "tipo_alerta": "disk_full",
+        "regex_log": ".*No space left on device.*",
+        "limiar_uso_pct": 95
+      },
+      "diagnostico": "Partição do sistema de arquivos atingiu o limite crítico de uso, comprometendo gravação de logs e funcionamento de serviços. O sistema detectou mensagens de 'No space left on device' nos logs, indicando que aplicações já estão sendo impactadas pela falta de espaço.",
+      "remediacao": {
+        "comando": "logrotate -f /etc/logrotate.conf && find /var/log -type f -name '*.gz' -mtime +7 -delete",
+        "rollback": "Operação de limpeza não destrutiva — apenas logs comprimidos com mais de 7 dias foram removidos. Nenhum rollback necessário.",
+        "timeout_segundos": 60
+      },
+      "confianca_base": 0.95
+    },
+    {
+      "id": "R002",
+      "nome": "Consumo anômalo de CPU",
+      "condicao": {
+        "tipo_alerta": "cpu_high",
+        "regex_log": ".*(load average:\\s*(1[5-9]|[2-9][0-9])|cpu.*([9][0-9]|100)%).*",
+        "limiar_uso_pct": 90
+      },
+      "diagnostico": "O uso de CPU encontra-se sustentadamente acima de 90%, indicando possível saturação de recursos. Isso é frequentemente causado por processos em loop infinito, consultas pesadas em banco de dados ou picos anômalos de requisições. A confiança desta regra é menor pois picos de CPU podem ter múltiplas causas legítimas.",
+      "remediacao": {
+        "comando": "TOP_PID=$(ps -eo pid,%cpu,comm --sort=-%cpu | awk 'NR==2 && $3!=\"systemd\" && $3!=\"sshd\" && $3!=\"postgres\" {print $1}') && if [ -n \"$TOP_PID\" ]; then kill -15 $TOP_PID && sleep 5 && kill -0 $TOP_PID 2>/dev/null && kill -9 $TOP_PID; fi",
+        "rollback": "Processo encerrado. Caso o processo fosse legítimo, será necessário reiniciá-lo manualmente pelo administrador.",
+        "timeout_segundos": 30
+      },
+      "confianca_base": 0.85
+    },
+    {
+      "id": "R003",
+      "nome": "Interrupção de serviço crítico",
+      "condicao": {
+        "tipo_alerta": "service_down",
+        "regex_log": ".*(service .+ is not running|Active:\\s*(inactive|failed)|Failed to start).*",
+        "nome_servico": "nginx",
+        "limiar_uso_pct": 1
+      },
+      "diagnostico": "Um serviço crítico do sistema encontra-se inativo ou em estado de falha, impactando diretamente a disponibilidade da aplicação e a experiência dos usuários finais. A ação de remediação padrão é reiniciar o serviço para restaurar sua operação normal.",
+      "remediacao": {
+        "comando": "systemctl restart {nome_servico}",
+        "rollback": "systemctl stop {nome_servico}",
+        "timeout_segundos": 120
+      },
+      "confianca_base": 0.92
+    }
+  ]
+}
