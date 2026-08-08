@@ -130,7 +130,7 @@ def executar(dsn: str | None = None, dry_run: bool = False, status: bool = False
     settings = get_settings()
     migracoes = descobrir()
 
-    with psycopg.connect(dsn or settings.database_url, autocommit=True) as conn:
+    with psycopg.connect(dsn or settings.database_url, autocommit=True, connect_timeout=5) as conn:
         with conn.cursor() as cur:
             cur.execute(TABELA_CONTROLE)
         registradas = aplicadas(conn)

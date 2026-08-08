@@ -8,6 +8,24 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 ## [Não lançado]
 
 ### Adicionado
+- Camada de persistência da auditoria: criação do incidente, marcação de exibição, registro da
+  decisão humana e do resultado da execução, com os cinco marcos temporais do ciclo de vida.
+- Imposição da invariante do trabalho em `engine/service.py`: a execução relê a aprovação já
+  persistida antes de agir e recusa incidente sem decisão humana registrada, em vez de confiar em
+  quem a chamou. A decisão é gravada e a transação concluída **antes** de qualquer execução.
+- Fatores de confiança F3 (histórico da regra) e F4 (recorrência no host) alimentados por consultas
+  reais ao `audit_log`, atrás da chave `POLARIS_CONFIDENCE_HISTORY`.
+- Ciclo completo executável contra o banco (`python -m src.db.ciclo`), com executor simulado e
+  verificação da recusa de execução não autorizada.
+- Funções de instrumentação do experimento: criação e conclusão de rodada, descarte com
+  justificativa e leitura das views de KPI.
+- Testes de integração da persistência, que são pulados quando não há PostgreSQL disponível.
+
+### Corrigido
+- Conexão ao banco passou a falhar em 5 segundos em vez de esperar o padrão do libpq, que fazia a
+  suíte de testes parecer travada em máquina sem Docker.
+
+### Adicionado
 - Migrações versionadas do esquema do banco (`python -m src.db.migrate`). Cada arquivo é aplicado
   uma única vez, dentro de uma transação, e registrado em `schema_migrations` com o seu checksum.
   Migração já aplicada cujo arquivo tenha sido editado depois faz a execução abortar, garantindo que
