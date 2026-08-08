@@ -1,3 +1,4 @@
+import os
 import json
 from pathlib import Path
 
@@ -63,3 +64,35 @@ def conn(_conexao):
         cur.execute(f"TRUNCATE {', '.join(TABELAS_VOLATEIS)} RESTART IDENTITY CASCADE")
     _conexao.commit()
     return _conexao
+
+
+def _cliente(debug: bool):
+    pytest.importorskip("httpx", reason="httpx não instalado")
+    from fastapi.testclient import TestClient
+
+    from src.engine.config import get_settings
+    from src.api.server import app
+
+    get_settings.cache_clear()
+    original = os.environ.get("POLARIS_DEBUG")
+    os.environ["POLARIS_DEBUG"] = "true" if debug else "false"
+    try:
+        with TestClient(app) as testclient:
+            yield testclient
+    finally:
+        if original is None:
+            os.environ.pop("POLARIS_DEBUG", None)
+        else:
+            os.environ["POLARIS_DEBUG"] = original
+        get_settings.cache_clear()
+
+
+@pytest.fixture
+def cliente(conn):
+    """Cliente da API com modo de depuração ligado, sobre um banco limpo."""
+    yield from _cliente(debug=True)
+
+
+@pytest.fixture
+def cliente_sem_debug(conn):
+    yield from _cliente(debug=False)

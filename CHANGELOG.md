@@ -7,6 +7,32 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 
 ## [Não lançado]
 
+## [0.4.0] — 2026-08-08
+
+### Adicionado
+- API REST em FastAPI cobrindo o ciclo do incidente: listagem, detalhe, marcação de exibição,
+  decisão humana, resultado, base de conhecimento, recarga da base e KPIs. Documentação interativa
+  em `/docs`.
+- Interface Human-in-the-Loop em HTML, CSS e JavaScript puros, sem etapa de build, servida pelo
+  mesmo processo da API. Apresenta o incidente com a banda de confiança em destaque, o diagnóstico,
+  **as evidências que dispararam a regra**, **cada fator que descontou a confiança com o respectivo
+  motivo**, o comando e o plano de reversão — o registro de explicabilidade chega ao operador
+  legível, e não como JSON bruto.
+- Banda de confiança baixa não oferece aprovação em um clique: exibe alerta e exige confirmação
+  adicional. Incidente recorrente ganha aviso próprio recomendando investigação manual. Nenhuma
+  banda executa automaticamente.
+- Endpoint de simulação de alertas (`POST /debug/simulate-alert`), disponível apenas com
+  `POLARIS_DEBUG` habilitado, que permite exercitar o sistema inteiro sem Zabbix.
+- `/health` passou a informar a versão da base de conhecimento, o estado do banco e o modo de
+  depuração.
+- Executor simulado no fluxo da API até a chegada do executor real.
+
+### Corrigido
+- A interface detectava o modo de depuração sondando o endpoint de simulação, o que criava um
+  incidente a cada carregamento da página e contaminaria a trilha de auditoria. A informação passou
+  a vir de `/health`.
+
+
 ## [0.3.0] — 2026-08-08
 
 ### Adicionado
@@ -102,7 +128,8 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 - Rascunho do esquema PostgreSQL de auditoria com views de KPI.
 - `docker-compose.yml` com PostgreSQL, Zabbix Server, Zabbix Web e Zabbix Agent.
 
-[Não lançado]: https://github.com/cfrans/polaris-dss/compare/v0.3.0...HEAD
+[Não lançado]: https://github.com/cfrans/polaris-dss/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/cfrans/polaris-dss/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/cfrans/polaris-dss/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/cfrans/polaris-dss/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/cfrans/polaris-dss/compare/v0.1.0...v0.1.1

@@ -331,3 +331,10 @@ def kpis(conn) -> dict[str, list[dict]]:
             cur.execute(f"SELECT * FROM {view}")
             resultado[chave] = cur.fetchall()
     return resultado
+
+
+def proximo_id_simulado(conn) -> int:
+    """Sequência simples para dar identificador único a alertas simulados no modo de depuração."""
+    with conn.cursor() as cur:
+        cur.execute("SELECT COALESCE(MAX(id), 0) + 1 AS proximo FROM audit_log")
+        return cur.fetchone()["proximo"]

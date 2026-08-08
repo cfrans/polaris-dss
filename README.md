@@ -192,6 +192,26 @@ The last one matters most: it proves the system's core invariant. Before executi
 service re-reads the recorded approval from the database and refuses to act without it — it does not
 trust the caller's word that a human approved.
 
+### The Human-in-the-Loop interface
+
+```bash
+uvicorn src.api.server:app --reload --port 8000
+# http://localhost:8000       operator interface
+# http://localhost:8000/docs  interactive API documentation
+```
+
+Set `POLARIS_DEBUG=true` in `.env` to enable the **Simulate incident** button, which injects alerts
+without Zabbix — enough to exercise the whole system before any monitoring is wired up.
+
+The incident card shows the confidence band, the diagnosis, **the evidence that triggered the
+rule**, and **every factor that discounted the confidence, each with its reason**. That is the
+explainability claim made concrete: the trace reaches the operator as readable text, not as a JSON
+blob hidden behind a toggle.
+
+A low confidence band does not offer one-click approval — it shows a warning and requires a second
+confirmation. A recurring incident gets its own warning recommending manual investigation instead of
+reapplying the same fix. No band ever executes on its own.
+
 ### Running the full stack
 
 ```bash

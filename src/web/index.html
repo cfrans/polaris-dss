@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Polaris DSS — Suporte à Decisão</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="topo">
+  <div class="marca">
+    <span class="estrela" aria-hidden="true">&#9733;</span>
+    <div>
+      <h1>Polaris DSS</h1>
+      <p class="subtitulo">Suporte à decisão para remediação de incidentes</p>
+    </div>
+  </div>
+  <div class="estado">
+    <span id="estado-kb" class="pilula">base —</span>
+    <span id="estado-db" class="pilula">banco —</span>
+    <button id="btn-simular" class="btn btn-secundario oculto" type="button">
+      Simular incidente
+    </button>
+  </div>
+</header>
+
+<main class="painel">
+
+  <section class="coluna-lista" aria-label="Incidentes pendentes">
+    <div class="cabecalho-coluna">
+      <h2>Pendentes</h2>
+      <span id="contador" class="contador">0</span>
+    </div>
+    <ul id="lista" class="lista"></ul>
+    <p id="lista-vazia" class="vazio">Nenhum incidente aguardando decisão.</p>
+  </section>
+
+  <section class="coluna-detalhe" aria-label="Detalhe do incidente">
+
+    <div id="placeholder" class="placeholder">
+      <span class="estrela-grande" aria-hidden="true">&#9733;</span>
+      <p>Selecione um incidente para analisar a sugestão.</p>
+    </div>
+
+    <article id="detalhe" class="detalhe oculto">
+
+      <div class="detalhe-topo">
+        <div>
+          <span id="d-regra" class="tag-regra"></span>
+          <h2 id="d-nome"></h2>
+          <p id="d-host" class="host"></p>
+        </div>
+        <div id="d-confianca-bloco" class="confianca">
+          <span id="d-confianca" class="confianca-valor"></span>
+          <span id="d-banda" class="confianca-banda"></span>
+          <span id="d-base" class="confianca-base"></span>
+        </div>
+      </div>
+
+      <div id="aviso-banda" class="aviso oculto"></div>
+
+      <div class="secao">
+        <h3>Diagnóstico</h3>
+        <p id="d-diagnostico" class="diagnostico"></p>
+      </div>
+
+      <div class="secao">
+        <h3>Evidências que dispararam a regra</h3>
+        <ul id="d-evidencias" class="evidencias"></ul>
+      </div>
+
+      <div class="secao">
+        <h3>Como a confiança foi calculada</h3>
+        <p class="nota">
+          A confiança-base é o teto atribuído pelo especialista à regra. O motor apenas desconta
+          quando a evidência é parcial ou o histórico é adverso. Não é uma probabilidade.
+        </p>
+        <ul id="d-fatores" class="fatores"></ul>
+      </div>
+
+      <div id="bloco-descartadas" class="secao oculto">
+        <h3>Outras regras compatíveis</h3>
+        <ul id="d-descartadas" class="descartadas"></ul>
+      </div>
+
+      <div class="secao">
+        <h3>Ação sugerida</h3>
+        <div class="acao">
+          <div class="acao-linha">
+            <span class="acao-rotulo">comando</span>
+            <code id="d-comando"></code>
+          </div>
+          <div class="acao-linha">
+            <span class="acao-rotulo">reversão</span>
+            <span id="d-rollback" class="acao-texto"></span>
+          </div>
+          <div class="acao-linha">
+            <span class="acao-rotulo">limite</span>
+            <span id="d-timeout" class="acao-texto"></span>
+          </div>
+        </div>
+      </div>
+
+      <div id="decisao" class="decisao">
+        <p class="lembrete">
+          Nada foi executado. A remediação depende da sua aprovação, que fica registrada em auditoria.
+        </p>
+        <div class="botoes">
+          <button id="btn-aprovar" class="btn btn-aprovar" type="button">Aprovar e executar</button>
+          <button id="btn-rejeitar" class="btn btn-rejeitar" type="button">Rejeitar</button>
+        </div>
+        <p id="confirmacao" class="confirmacao oculto"></p>
+      </div>
+
+      <div id="resultado" class="resultado oculto">
+        <h3>Resultado</h3>
+        <div id="resultado-corpo"></div>
+      </div>
+
+      <footer class="rodape-detalhe">
+        <span id="d-versoes"></span>
+      </footer>
+
+    </article>
+  </section>
+
+</main>
+
+<script src="app.js"></script>
+</body>
+</html>
