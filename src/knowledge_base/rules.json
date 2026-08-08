@@ -1,53 +1,85 @@
 {
+  "versao_kb": "1.0.0",
   "regras": [
     {
       "id": "R001",
       "nome": "Saturação de espaço em disco",
+      "habilitada": true,
+      "severidade_minima": "media",
       "condicao": {
         "tipo_alerta": "disk_full",
-        "regex_log": ".*No space left on device.*",
-        "limiar_uso_pct": 95
+        "metrica": "vfs.fs.size[/mnt/polaris_test,pused]",
+        "operador": ">=",
+        "limiar_uso_pct": 95,
+        "regex_log": ".*(No space left on device|Disk space is critically low).*",
+        "parametros": {
+          "ponto_montagem": "/mnt/polaris_test"
+        }
       },
-      "diagnostico": "Partição do sistema de arquivos atingiu o limite crítico de uso, comprometendo gravação de logs e funcionamento de serviços. O sistema detectou mensagens de 'No space left on device' nos logs, indicando que aplicações já estão sendo impactadas pela falta de espaço.",
+      "diagnostico": "A partição atingiu o limite crítico de uso, o que compromete a gravação de logs e pode interromper serviços que dependem de escrita em disco. A ação sugerida libera espaço removendo arquivos de log já comprimidos e forçando a rotação dos logs ativos. A operação não remove dados de aplicação. Caso a partição volte a encher em seguida, o consumo tem origem fora do diretório de logs e requer investigação manual.",
       "remediacao": {
-        "comando": "logrotate -f /etc/logrotate.conf && find /var/log -type f -name '*.gz' -mtime +7 -delete",
-        "rollback": "Operação de limpeza não destrutiva — apenas logs comprimidos com mais de 7 dias foram removidos. Nenhum rollback necessário.",
-        "timeout_segundos": 60
+        "comando": "disk_cleanup.sh {ponto_montagem}",
+        "rollback": "Operação não destrutiva de dados de aplicação: são removidos apenas arquivos de log comprimidos com mais de sete dias. Não há reversão possível nem necessária.",
+        "script": "disk_cleanup.sh",
+        "verificador": "verify_disk.sh {ponto_montagem}",
+        "timeout_segundos": 60,
+        "requer_sudo": true,
+        "destrutiva": false
       },
-      "confianca_base": 0.95
+      "confianca_base": 0.95,
+      "referencia": "Cenário (a) do experimento — seção 3.3 da monografia"
     },
     {
       "id": "R002",
       "nome": "Consumo anômalo de CPU",
+      "habilitada": true,
+      "severidade_minima": "media",
       "condicao": {
         "tipo_alerta": "cpu_high",
-        "regex_log": ".*(load average:\\s*(1[5-9]|[2-9][0-9])|cpu.*([9][0-9]|100)%).*",
-        "limiar_uso_pct": 90
+        "metrica": "system.cpu.util",
+        "operador": ">=",
+        "limiar_uso_pct": 90,
+        "regex_log": ".*(High CPU utilization|load average is too high).*",
+        "processos_alvo_permitidos": ["stress-ng", "stress", "stress-ng-cpu"]
       },
-      "diagnostico": "O uso de CPU encontra-se sustentadamente acima de 90%, indicando possível saturação de recursos. Isso é frequentemente causado por processos em loop infinito, consultas pesadas em banco de dados ou picos anômalos de requisições. A confiança desta regra é menor pois picos de CPU podem ter múltiplas causas legítimas.",
+      "diagnostico": "O uso de CPU encontra-se sustentadamente acima do limiar, indicando saturação de processamento. A causa mais comum é um processo em laço ou uma carga anômala isolada, mas picos de CPU também têm causas legítimas, como rotinas de backup e compilação. Por isso a confiança-base desta regra é menor que a das demais. A ação sugerida encerra o processo de maior consumo, e somente se ele constar da lista de processos autorizados na regra. O processo identificado é apresentado antes da aprovação.",
       "remediacao": {
-        "comando": "TOP_PID=$(ps -eo pid,%cpu,comm --sort=-%cpu | awk 'NR==2 && $3!=\"systemd\" && $3!=\"sshd\" && $3!=\"postgres\" {print $1}') && if [ -n \"$TOP_PID\" ]; then kill -15 $TOP_PID && sleep 5 && kill -0 $TOP_PID 2>/dev/null && kill -9 $TOP_PID; fi",
-        "rollback": "Processo encerrado. Caso o processo fosse legítimo, será necessário reiniciá-lo manualmente pelo administrador.",
-        "timeout_segundos": 30
+        "comando": "kill_target_process.sh stress-ng,stress,stress-ng-cpu",
+        "rollback": "O processo encerrado não é reiniciado automaticamente. Caso fosse legítimo, o administrador precisa reiniciá-lo manualmente.",
+        "script": "kill_target_process.sh",
+        "verificador": "verify_cpu.sh",
+        "timeout_segundos": 45,
+        "requer_sudo": true,
+        "destrutiva": true
       },
-      "confianca_base": 0.85
+      "confianca_base": 0.85,
+      "referencia": "Cenário (b) do experimento — seção 3.3 da monografia"
     },
     {
       "id": "R003",
       "nome": "Interrupção de serviço crítico",
+      "habilitada": true,
+      "severidade_minima": "alta",
       "condicao": {
         "tipo_alerta": "service_down",
-        "regex_log": ".*(service .+ is not running|Active:\\s*(inactive|failed)|Failed to start).*",
-        "nome_servico": "nginx",
-        "limiar_uso_pct": 1
+        "metrica": "proc.num[nginx]",
+        "operador": "==",
+        "regex_log": ".*(service .+ is not running|Active:\\s*(inactive|failed)|Failed to start|is down).*",
+        "parametros": {
+          "nome_servico": "nginx"
+        }
       },
-      "diagnostico": "Um serviço crítico do sistema encontra-se inativo ou em estado de falha, impactando diretamente a disponibilidade da aplicação e a experiência dos usuários finais. A ação de remediação padrão é reiniciar o serviço para restaurar sua operação normal.",
+      "diagnostico": "O serviço nginx encontra-se inativo ou em estado de falha neste host, o que interrompe o atendimento de requisições HTTP e torna a aplicação indisponível aos usuários finais. A ação sugerida reinicia o serviço para restabelecer o atendimento. Caso o serviço volte a cair logo em seguida, a causa-raiz é anterior ao serviço — configuração inválida, porta ocupada ou dependência indisponível — e exige investigação manual.",
       "remediacao": {
         "comando": "systemctl restart {nome_servico}",
         "rollback": "systemctl stop {nome_servico}",
-        "timeout_segundos": 120
+        "verificador": "verify_service.sh {nome_servico}",
+        "timeout_segundos": 120,
+        "requer_sudo": true,
+        "destrutiva": false
       },
-      "confianca_base": 0.92
+      "confianca_base": 0.92,
+      "referencia": "Cenário (c) do experimento — seção 3.3 da monografia"
     }
   ]
 }

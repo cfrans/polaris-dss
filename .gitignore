@@ -67,3 +67,11 @@ Thumbs.db
 .coverage
 htmlcov/
 .pytest_cache/
+
+# Arquivos de instrucao para agentes de IA: vivem no workspace privado, nunca aqui
+AGENTS.md
+CLAUDE.md
+GEMINI.md
+.claude/
+.gemini/
+.cursorrules

@@ -1,67 +1,119 @@
-version: '3.8'
+# Polaris DSS — ambiente local
+#
+# Por padrão sobe APENAS o banco de auditoria do Polaris:
+#     docker compose up -d
+#
+# O stack do Zabbix é OPCIONAL e vive no profile "zabbix". A maioria dos ambientes que adotariam
+# este sistema já possui um Zabbix em operação — nesse caso, não suba o daqui: aponte o Polaris para
+# o Zabbix existente via ZABBIX_URL no .env. Para subir um Zabbix local de laboratório:
+#     docker compose --profile zabbix up -d
+#
+# ATENÇÃO: o ALVO da remediação não é um container. Os três cenários exigem systemd (reinício de
+# serviço), controle de processos por PID e uma partição que possa encher — nada disso funciona
+# corretamente em container padrão, e saturar o disco de um container satura o disco do hospedeiro.
+# Use uma VM Linux real como host monitorado, com uma partição dedicada para o cenário de disco.
+
+name: polaris
 
 services:
-  # PostgreSQL database for both Zabbix and Polaris Audit
-  postgres-server:
+  # ---------------------------------------------------------------------------
+  # Banco de auditoria do Polaris — sempre sobe. Independente do banco do Zabbix.
+  # ---------------------------------------------------------------------------
+  polaris-db:
     image: postgres:16
-    container_name: postgres-server
+    container_name: polaris-db
     environment:
-      - POSTGRES_USER=${DB_USER:-postgres}
-      - POSTGRES_PASSWORD=${DB_PASSWORD:-postgres}
-      - POSTGRES_DB=zabbix
-      - PGDATA=/var/lib/postgresql/data/pgdata
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+      POSTGRES_DB: ${DB_NAME_AUDIT:-polaris_audit}
+      PGDATA: /var/lib/postgresql/data/pgdata
+      TZ: UTC
     volumes:
-      - postgres-data:/var/lib/postgresql/data
-      - ./infra/init-db.sh:/docker-entrypoint-initdb.d/init-db.sh:ro
+      - polaris-db-data:/var/lib/postgresql/data
+      # Executado apenas na primeira criação do volume. Precisa ser idempotente.
+      - ./src/db/schema.sql:/docker-entrypoint-initdb.d/10-schema.sql:ro
     ports:
-      - "5432:5432"
+      # Porta configurável para não colidir com um PostgreSQL já instalado na máquina.
+      - "${POLARIS_DB_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME_AUDIT:-polaris_audit}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     networks:
       - polaris-network
     restart: unless-stopped
 
-  # Zabbix Server
+  # ---------------------------------------------------------------------------
+  # Zabbix de laboratório — profile "zabbix" (não sobe por padrão)
+  # ---------------------------------------------------------------------------
+  zabbix-db:
+    image: postgres:16
+    container_name: zabbix-db
+    profiles: ["zabbix"]
+    environment:
+      POSTGRES_USER: ${ZBX_DB_USER:-zabbix}
+      POSTGRES_PASSWORD: ${ZBX_DB_PASSWORD:-zabbix}
+      POSTGRES_DB: zabbix
+      PGDATA: /var/lib/postgresql/data/pgdata
+      TZ: UTC
+    volumes:
+      - zabbix-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${ZBX_DB_USER:-zabbix} -d zabbix"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - polaris-network
+    restart: unless-stopped
+
   zabbix-server:
     image: zabbix/zabbix-server-pgsql:ubuntu-7.0-latest
     container_name: zabbix-server
+    profiles: ["zabbix"]
     environment:
-      - DB_SERVER_HOST=postgres-server
-      - POSTGRES_USER=${DB_USER:-postgres}
-      - POSTGRES_PASSWORD=${DB_PASSWORD:-postgres}
-      - POSTGRES_DB=zabbix
+      DB_SERVER_HOST: zabbix-db
+      POSTGRES_USER: ${ZBX_DB_USER:-zabbix}
+      POSTGRES_PASSWORD: ${ZBX_DB_PASSWORD:-zabbix}
+      POSTGRES_DB: zabbix
     ports:
       - "10051:10051"
     depends_on:
-      - postgres-server
+      zabbix-db:
+        condition: service_healthy
     networks:
       - polaris-network
     restart: unless-stopped
 
-  # Zabbix Web Frontend
   zabbix-web:
     image: zabbix/zabbix-web-nginx-pgsql:ubuntu-7.0-latest
     container_name: zabbix-web
+    profiles: ["zabbix"]
     environment:
-      - DB_SERVER_HOST=postgres-server
-      - POSTGRES_USER=${DB_USER:-postgres}
-      - POSTGRES_PASSWORD=${DB_PASSWORD:-postgres}
-      - POSTGRES_DB=zabbix
-      - ZBX_SERVER_HOST=zabbix-server
-      - PHP_TZ=America/Sao_Paulo
+      DB_SERVER_HOST: zabbix-db
+      POSTGRES_USER: ${ZBX_DB_USER:-zabbix}
+      POSTGRES_PASSWORD: ${ZBX_DB_PASSWORD:-zabbix}
+      POSTGRES_DB: zabbix
+      ZBX_SERVER_HOST: zabbix-server
+      PHP_TZ: America/Sao_Paulo
     ports:
-      - "8080:8080"
+      - "${ZBX_WEB_PORT:-8080}:8080"
     depends_on:
       - zabbix-server
     networks:
       - polaris-network
     restart: unless-stopped
 
-  # Zabbix Agent (monitoring the host/docker environment)
+  # Agent que monitora o próprio ambiente de containers. Útil para validar a instalação do Zabbix,
+  # mas NÃO é o alvo do experimento — o alvo é a VM Linux, com seu próprio zabbix-agent2.
   zabbix-agent:
     image: zabbix/zabbix-agent2:ubuntu-7.0-latest
     container_name: zabbix-agent
+    profiles: ["zabbix"]
     environment:
-      - ZBX_SERVER_HOST=zabbix-server
-      - ZBX_HOSTNAME=polaris-host
+      ZBX_SERVER_HOST: zabbix-server
+      ZBX_HOSTNAME: polaris-docker-host
     ports:
       - "10050:10050"
     depends_on:
@@ -75,4 +127,5 @@ networks:
     driver: bridge
 
 volumes:
-  postgres-data:
+  polaris-db-data:
+  zabbix-db-data:
