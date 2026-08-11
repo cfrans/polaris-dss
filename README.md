@@ -99,7 +99,7 @@ The system is organized into **three layers**:
 | Monitoring | Zabbix 7.0 LTS | Telemetry & alert detection |
 | Database | PostgreSQL 16+ (JSONB) | Audit logging & MTTR tracking |
 | Frontend | HTML / CSS / JavaScript | HITL web interface |
-| Infrastructure | Docker Compose | Development & testing environment |
+| Infrastructure | Docker Compose (Debian 12 base) | Containerized API & DB services (`python:3.12-slim`) |
 | Knowledge Base | JSON | Heuristic rules storage |
 
 ---
