@@ -46,6 +46,33 @@ services:
     restart: unless-stopped
 
   # ---------------------------------------------------------------------------
+  # API REST e Interface HITL do Polaris — FastAPI + Uvicorn
+  # ---------------------------------------------------------------------------
+  polaris-api:
+    build: .
+    container_name: polaris-api
+    environment:
+      DB_HOST: polaris-db
+      DB_PORT: 5432
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres}
+      DB_NAME_AUDIT: ${DB_NAME_AUDIT:-polaris_audit}
+      ZABBIX_URL: ${ZABBIX_URL:-http://192.168.0.150}
+      TARGET_SSH_HOST: ${TARGET_SSH_HOST:-192.168.0.152}
+      TARGET_SSH_USER: ${TARGET_SSH_USER:-polaris}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    ports:
+      - "${POLARIS_API_PORT:-8000}:8000"
+    volumes:
+      - ~/.ssh:/root/.ssh:ro
+    depends_on:
+      polaris-db:
+        condition: service_healthy
+    networks:
+      - polaris-network
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
   # Zabbix de laboratório — profile "zabbix" (não sobe por padrão)
   # ---------------------------------------------------------------------------
   zabbix-db:

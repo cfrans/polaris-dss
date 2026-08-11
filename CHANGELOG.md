@@ -7,6 +7,10 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 
 ## [Não lançado]
 
+### Adicionado
+- Conteinerização completa da aplicação (`polaris-api`) via `Dockerfile`, permitindo orquestração unificada de banco e API com um único `docker compose up -d`.
+
+
 ## [0.4.0] — 2026-08-08
 
 ### Adicionado
