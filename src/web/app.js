@@ -343,9 +343,108 @@ function escapar(texto) {
   return div.innerHTML;
 }
 
+
+/* ---------- diagnóstico ---------- */
+
+const ROTULO_ESTADO = {
+  ok: "ok",
+  aviso: "atenção",
+  falha: "falha",
+  nao_configurado: "não configurado",
+};
+
+function abrirDiagnostico() {
+  document.querySelector(".painel").classList.add("oculto");
+  $("tela-diagnostico").classList.remove("oculto");
+  carregarDiagnostico();
+}
+
+function fecharDiagnostico() {
+  $("tela-diagnostico").classList.add("oculto");
+  document.querySelector(".painel").classList.remove("oculto");
+}
+
+async function carregarDiagnostico() {
+  const lista = $("diag-verificacoes");
+  lista.innerHTML = `<li class="diag-item"><span class="diag-estado">…</span>
+    <span><span class="diag-nome">verificando dependências</span></span><span></span></li>`;
+
+  let dados;
+  try {
+    dados = await api("/api/v1/diagnostico");
+  } catch (erro) {
+    lista.innerHTML = "";
+    mostrarAvisoDiag(`Não foi possível executar o diagnóstico: ${escapar(erro.message)}`);
+    return;
+  }
+
+  lista.innerHTML = "";
+  for (const v of dados.verificacoes) {
+    const li = document.createElement("li");
+    li.className = `diag-item est-${v.estado}`;
+    li.innerHTML = `
+      <span class="diag-estado">${ROTULO_ESTADO[v.estado] ?? v.estado}</span>
+      <span>
+        <span class="diag-nome">${escapar(v.nome)}</span>
+        <span class="diag-detalhe">${escapar(v.detalhe)}</span>
+      </span>
+      <span class="diag-latencia">${v.latencia_ms == null ? "" : v.latencia_ms + " ms"}</span>
+    `;
+    lista.appendChild(li);
+  }
+
+  const corpo = $("diag-config");
+  corpo.innerHTML = "";
+  for (const c of dados.configuracao) {
+    const tr = document.createElement("tr");
+    const classe = !c.definido ? "vazio-valor" : c.sensivel ? "mascarado" : "";
+    tr.innerHTML = `<td>${escapar(c.chave)}</td><td class="${classe}">${escapar(c.valor)}</td>`;
+    corpo.appendChild(tr);
+  }
+
+  const { falha = 0, aviso = 0 } = dados.resumo;
+  if (falha) {
+    mostrarAvisoDiag(`<strong>${falha} verificação(ões) falhando.</strong> O sistema não alcança
+      alguma dependência — os itens marcados acima explicam o quê e sugerem o que fazer.`);
+  } else if (aviso) {
+    mostrarAvisoDiag(`<strong>${aviso} ponto(s) de atenção.</strong> Nada impede o funcionamento,
+      mas há configuração incompleta.`);
+  } else {
+    $("diag-aviso").classList.add("oculto");
+  }
+}
+
+function mostrarAvisoDiag(html) {
+  const aviso = $("diag-aviso");
+  aviso.innerHTML = html;
+  aviso.classList.remove("oculto");
+}
+
+async function recarregarBase() {
+  const botao = $("btn-recarregar-base");
+  botao.disabled = true;
+  try {
+    const r = await api("/api/v1/regras/reload", { method: "POST" });
+    mostrarAvisoDiag(`Base de regras recarregada: v${r.versao_kb}, ${r.regras} regra(s).`);
+    await atualizarSaude();
+    await carregarDiagnostico();
+  } catch (erro) {
+    // Base inválida mantém a anterior ativa: o erro informa sem derrubar o sistema.
+    mostrarAvisoDiag(`<strong>Base de regras inválida.</strong> ${escapar(erro.message)}
+      A base anterior continua em vigor.`);
+  } finally {
+    botao.disabled = false;
+  }
+}
+
 /* ---------- início ---------- */
 
+
 $("btn-simular").addEventListener("click", simular);
+$("btn-diagnostico").addEventListener("click", abrirDiagnostico);
+$("btn-fechar-diagnostico").addEventListener("click", fecharDiagnostico);
+$("btn-reverificar").addEventListener("click", carregarDiagnostico);
+$("btn-recarregar-base").addEventListener("click", recarregarBase);
 
 atualizarSaude();
 carregarLista();

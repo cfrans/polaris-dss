@@ -22,6 +22,9 @@
     <button id="btn-simular" class="btn btn-secundario oculto" type="button">
       Simular incidente
     </button>
+    <button id="btn-diagnostico" class="btn btn-secundario" type="button">
+      Diagnóstico
+    </button>
   </div>
 </header>
 
@@ -126,6 +129,40 @@
   </section>
 
 </main>
+
+<section id="tela-diagnostico" class="tela-diag oculto" aria-label="Diagnóstico do sistema">
+
+  <div class="diag-topo">
+    <div>
+      <h2>Diagnóstico e configuração</h2>
+      <p class="diag-sub">
+        Estado de cada dependência do sistema. Segredos são exibidos apenas como "definido" —
+        nunca o valor.
+      </p>
+    </div>
+    <div class="diag-acoes">
+      <button id="btn-reverificar" class="btn btn-secundario" type="button">Verificar novamente</button>
+      <button id="btn-recarregar-base" class="btn btn-secundario" type="button">Recarregar base de regras</button>
+      <button id="btn-fechar-diagnostico" class="btn btn-secundario" type="button">Fechar</button>
+    </div>
+  </div>
+
+  <div id="diag-aviso" class="aviso oculto"></div>
+
+  <div class="secao">
+    <h3>Verificações</h3>
+    <ul id="diag-verificacoes" class="diag-lista"></ul>
+  </div>
+
+  <div class="secao">
+    <h3>Configuração em vigor</h3>
+    <table class="diag-config">
+      <thead><tr><th>Variável</th><th>Valor</th></tr></thead>
+      <tbody id="diag-config"></tbody>
+    </table>
+  </div>
+
+</section>
 
 <script src="app.js"></script>
 </body>

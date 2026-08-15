@@ -8,6 +8,16 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 ## [Não lançado]        <!-- alvo: v0.5.0 telemetria · v0.6.0 remediação -->
 
 ### Adicionado
+- Tela de diagnóstico e configuração na interface, e o endpoint `GET /api/v1/diagnostico` que a
+  alimenta. Verifica banco de auditoria, esquema aplicado, base de conhecimento, API do Zabbix e
+  host alvo por SSH, cada um com estado e latência próprios. Dependência não configurada aparece
+  como tal, e não como falha.
+- A tela exibe a configuração em vigor com os **segredos mascarados**: informa que um valor está
+  definido e o seu tamanho, nunca o valor.
+- Botão para recarregar a base de regras a partir da própria tela; base inválida é recusada com o
+  erro de validação, e a base anterior permanece ativa.
+- A verificação do esquema compara as migrações em disco com as registradas no banco, o que revela
+  o caso em que o container executa uma imagem anterior à migração criada.
 - Executor remoto de remediação sobre SSH, com timeout por regra, captura de saída padrão, erro e
   código de retorno, e confirmação do restabelecimento pelo verificador do cenário. A lógica é
   independente do transporte, o que permite exercitá-la sem host remoto.

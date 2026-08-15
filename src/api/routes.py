@@ -16,6 +16,7 @@ from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request
 
 from ..db import queries
 from ..db.connection import conectar
+from ..engine.diagnostico import executar as executar_diagnostico
 from ..engine.knowledge_base import KnowledgeBaseError
 from ..engine.knowledge_base import load as carregar_kb
 from ..engine.models import Alert
@@ -293,6 +294,16 @@ def recarregar_regras(request: Request) -> dict[str, Any]:
                     versao_ativa=request.app.state.kb.versao_kb) from exc
     request.app.state.kb = nova
     return {"status": "recarregada", "versao_kb": nova.versao_kb, "regras": len(nova.regras)}
+
+
+@router.get("/api/v1/diagnostico", tags=["diagnóstico"])
+def diagnostico(request: Request) -> dict[str, Any]:
+    """Verifica banco, esquema, base de conhecimento, API do Zabbix e host alvo.
+
+    É a primeira tela a abrir quando algo não funciona: em vez de descobrir por tentativa qual
+    dependência caiu, cada uma responde por si com estado e latência. Segredos aparecem mascarados.
+    """
+    return executar_diagnostico(getattr(request.app.state, "kb", None)).to_dict()
 
 
 @router.get("/api/v1/kpis", tags=["kpis"])

@@ -248,3 +248,65 @@ body {
   margin-top: 1.5rem; padding-top: 0.85rem; border-top: 1px solid var(--borda);
   color: var(--texto-suave); font-size: 0.78rem;
 }
+
+/* ---------- tela de diagnóstico ---------- */
+
+.tela-diag {
+  margin: 1.25rem 1.75rem 3rem;
+  background: var(--fundo-painel);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+  padding: 1.5rem 1.75rem;
+}
+
+.diag-topo {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  gap: 1.5rem; flex-wrap: wrap; margin-bottom: 1.5rem;
+}
+.diag-topo h2 { font-size: 1.35rem; }
+.diag-sub { color: var(--texto-suave); font-size: 0.9rem; margin-top: 0.25rem; max-width: 60ch; }
+.diag-acoes { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+
+.diag-lista { list-style: none; display: flex; flex-direction: column; gap: 0.5rem; }
+
+.diag-item {
+  display: grid;
+  grid-template-columns: 130px 1fr auto;
+  gap: 0.9rem; align-items: baseline;
+  background: var(--fundo-cartao); border: 1px solid var(--borda);
+  border-left: 4px solid var(--borda);
+  border-radius: 6px; padding: 0.7rem 0.95rem;
+}
+@media (max-width: 700px) { .diag-item { grid-template-columns: 1fr; } }
+
+.diag-item.est-ok              { border-left-color: var(--alta); }
+.diag-item.est-aviso           { border-left-color: var(--media); }
+.diag-item.est-falha           { border-left-color: var(--baixa); }
+.diag-item.est-nao_configurado { border-left-color: var(--borda); }
+
+.diag-estado {
+  font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em;
+  border-radius: 4px; padding: 0.15rem 0.5rem; text-align: center; white-space: nowrap;
+}
+.est-ok .diag-estado              { background: var(--alta);  color: #062a1c; }
+.est-aviso .diag-estado           { background: var(--media); color: #2e2103; }
+.est-falha .diag-estado           { background: var(--baixa); color: #2e0a07; }
+.est-nao_configurado .diag-estado { background: transparent; color: var(--texto-suave);
+                                    border: 1px solid var(--borda); }
+
+.diag-nome { font-weight: 600; display: block; margin-bottom: 0.15rem; }
+.diag-detalhe { color: var(--texto-suave); font-size: 0.88rem; }
+.diag-latencia { color: var(--texto-suave); font-size: 0.8rem; font-variant-numeric: tabular-nums; }
+
+.diag-config { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+.diag-config th {
+  text-align: left; color: var(--texto-suave); font-size: 0.72rem;
+  text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600;
+  padding: 0.4rem 0.6rem; border-bottom: 1px solid var(--borda);
+}
+.diag-config td { padding: 0.4rem 0.6rem; border-bottom: 1px solid var(--borda); }
+.diag-config td:first-child {
+  font-family: "Cascadia Code", Consolas, monospace; color: var(--acento); white-space: nowrap;
+}
+.diag-config .vazio-valor { color: var(--texto-suave); font-style: italic; }
+.diag-config .mascarado { color: var(--media); }
