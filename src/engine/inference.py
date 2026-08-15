@@ -55,8 +55,8 @@ def match_rules(alert: Alert, regras: tuple[Rule, ...] | list[Rule]) -> list[Mat
 def rank_matches(avaliados: list[tuple[Match, float]]) -> list[tuple[Match, float]]:
     """Ordena candidatas: maior confiança, depois ação menos invasiva, depois ordem de declaração.
 
-    O terceiro critério existe para garantir saída determinística mesmo com empate total — sem ele,
-    duas execuções sobre a mesma entrada poderiam divergir, o que contradiz a premissa do trabalho.
+    O terceiro critério garante saída determinística mesmo em empate total: sem ele, duas execuções
+    sobre a mesma entrada poderiam divergir.
     """
     return sorted(
         avaliados,

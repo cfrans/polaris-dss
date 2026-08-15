@@ -1,5 +1,4 @@
-# O contexto de build NÃO respeita o .gitignore — sem este arquivo, o `COPY . .` do Dockerfile
-# empacota tudo o que estiver no diretório, inclusive o .env com credenciais, numa camada da imagem.
+# Arquivos que não entram na imagem. O contexto de build não considera o `.gitignore`.
 
 # Segredos e configuração local
 .env

@@ -33,8 +33,8 @@ registro persistido, e não confiando em quem chamou.
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # A base de conhecimento é carregada uma vez e mantida em memória; base inválida derruba a
-    # inicialização em vez de deixar o sistema no ar com cobertura menor do que a esperada.
+    # A base de conhecimento é carregada uma vez e mantida em memória. Base inválida derruba a
+    # inicialização: subir com cobertura menor que a declarada seria pior que não subir.
     app.state.settings = get_settings()
     app.state.config = load_config()
     try:

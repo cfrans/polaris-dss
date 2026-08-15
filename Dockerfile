@@ -1,16 +1,14 @@
 FROM python:3.12-slim
 
-# Cliente SSH para inspeção manual do alvo durante o desenvolvimento. A execução de remediação usa
-# paramiko, que lê a chave diretamente e não impõe as verificações de permissão do OpenSSH — o que
-# evita depender do modo do arquivo montado, que varia entre Windows, macOS e Linux.
+# Cliente SSH para inspeção manual do host alvo. A remediação em si usa paramiko, que lê a chave
+# diretamente e dispensa as verificações de modo de arquivo do OpenSSH.
 RUN apt-get update \
     && apt-get install -y --no-install-recommends openssh-client \
     && rm -rf /var/lib/apt/lists/*
 
-# Usuário sem privilégios. Os comandos privilegiados são executados no host alvo, nunca dentro deste
-# container; mantê-lo como root contradiria o princípio de menor privilégio que o trabalho defende.
-# O UID 1000 coincide com o primeiro usuário comum em Linux e macOS, o que mantém legível a chave
-# SSH montada a partir do host.
+# A aplicação roda sem privilégios: os comandos privilegiados são executados no host alvo, nunca
+# dentro deste container. O UID 1000 coincide com o primeiro usuário comum em Linux e macOS,
+# mantendo legível a chave SSH montada a partir do host.
 RUN useradd --create-home --uid 1000 --shell /usr/sbin/nologin polaris
 
 WORKDIR /app

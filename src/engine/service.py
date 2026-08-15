@@ -1,13 +1,12 @@
 """Orquestração do ciclo de vida de um incidente.
 
-É aqui que a invariante central do trabalho é imposta, e não na interface nem no banco:
+Impõe a invariante do sistema, e não a interface nem o banco:
 
     nenhuma remediação é executada sem um registro de aprovação humana já persistido.
 
-A ordem em `decidir` — gravar, concluir a transação, e só então liberar a execução — é o que torna
-a invariante verificável. Se o processo morrer entre a gravação e a execução, o banco mostra
-aprovação sem execução: estado recuperável e auditável. A ordem inversa permitiria execução sem
-registro, o que contradiz a tese.
+A ordem em `decidir` é significativa: grava, conclui a transação e só então libera a execução. Se o
+processo for interrompido entre a gravação e a execução, o banco mostra aprovação sem execução —
+estado recuperável e auditável.
 """
 
 from __future__ import annotations

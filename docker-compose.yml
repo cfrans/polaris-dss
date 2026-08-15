@@ -8,10 +8,9 @@
 # o Zabbix existente via ZABBIX_URL no .env. Para subir um Zabbix local de laboratório:
 #     docker compose --profile zabbix up -d
 #
-# ATENÇÃO: o ALVO da remediação não é um container. Os três cenários exigem systemd (reinício de
-# serviço), controle de processos por PID e uma partição que possa encher — nada disso funciona
-# corretamente em container padrão, e saturar o disco de um container satura o disco do hospedeiro.
-# Use uma VM Linux real como host monitorado, com uma partição dedicada para o cenário de disco.
+# O host alvo da remediação não sobe aqui. Ele precisa de systemd, espaço de nomes de processos
+# próprio e uma partição dedicada que possa ser saturada: use uma VM Linux ou um container de
+# sistema (LXC), e aponte TARGET_SSH_HOST para ele.
 
 name: polaris
 
@@ -30,9 +29,8 @@ services:
       TZ: UTC
     volumes:
       - polaris-db-data:/var/lib/postgresql/data
-      # O esquema NÃO é montado em docker-entrypoint-initdb.d de propósito: aquele diretório só
-      # roda na primeira criação do volume, o que deixaria bancos existentes para trás em silêncio.
-      # Depois de subir o container, aplique o esquema com: python -m src.db.migrate
+      # O esquema é aplicado explicitamente após o container subir:
+      #     docker compose exec polaris-api python -m src.db.migrate
     ports:
       # Porta configurável para não colidir com um PostgreSQL já instalado na máquina.
       - "${POLARIS_DB_PORT:-5432}:5432"
@@ -59,8 +57,7 @@ services:
       DB_PASSWORD: ${DB_PASSWORD:-postgres}
       DB_NAME_AUDIT: ${DB_NAME_AUDIT:-polaris_audit}
 
-      # Telemetria. Sem padrão de endereço: cada ambiente aponta para o seu Zabbix no .env, e o
-      # caminho /api_jsonrpc.php é parte da URL do endpoint JSON-RPC.
+      # Telemetria. A URL deve incluir o caminho /api_jsonrpc.php do endpoint JSON-RPC.
       ZABBIX_URL: ${ZABBIX_URL:-}
       ZABBIX_USER: ${ZABBIX_USER:-}
       ZABBIX_PASSWORD: ${ZABBIX_PASSWORD:-}
@@ -72,9 +69,8 @@ services:
       POLARIS_DEBUG: ${POLARIS_DEBUG:-false}
 
       # Fatores de confiança dependentes do histórico de auditoria (F3 e F4).
-      # ATENÇÃO: desligue durante a coleta oficial, para que todas as rodadas de um mesmo cenário
-      # enfrentem condições idênticas de decisão. Sem esta variável repassada ao container, o
-      # ajuste feito no .env não teria efeito algum e a amostra ficaria comprometida em silêncio.
+      # Desligue durante a coleta de dados, para que todas as rodadas de um mesmo cenário
+      # enfrentem condições idênticas de decisão.
       POLARIS_CONFIDENCE_HISTORY: ${POLARIS_CONFIDENCE_HISTORY:-true}
 
       # Host alvo da remediação.
@@ -86,9 +82,7 @@ services:
     ports:
       - "${POLARIS_API_PORT:-8000}:8000"
     volumes:
-      # Apenas a chave dedicada à remediação, somente leitura. Montar `~/.ssh` inteiro daria ao
-      # container todas as chaves privadas do operador — o oposto do menor privilégio que o sistema
-      # exige do host alvo.
+      # Somente a chave dedicada à remediação, em leitura apenas.
       - ${TARGET_SSH_KEY_PATH:-./secrets/polaris_ed25519}:/run/secrets/polaris_ssh_key:ro
     depends_on:
       polaris-db:
