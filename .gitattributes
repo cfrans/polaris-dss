@@ -1,0 +1,14 @@
+# Normalização de fim de linha. O projeto é editado em Windows e macOS, e executado em Linux.
+
+* text=auto
+
+# Scripts executados no host alvo precisam terminar em LF: com CRLF, o Linux não encontra o
+# interpretador e responde "bad interpreter: /usr/bin/env bash^M".
+*.sh text eol=lf
+
+# Arquivos consumidos por ferramentas que não toleram CR.
+*.yml  text eol=lf
+*.yaml text eol=lf
+*.sql  text eol=lf
+Dockerfile text eol=lf
+.dockerignore text eol=lf
