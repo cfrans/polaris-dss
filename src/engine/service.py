@@ -36,9 +36,14 @@ class ResultadoExecucao:
 
 
 class Executor(Protocol):
-    """Contrato do executor de remediação. A implementação real chega em v0.6.0."""
+    """Contrato do executor de remediação.
 
-    def __call__(self, comando: str, timeout_segundos: int) -> ResultadoExecucao: ...
+    `verificador` é o comando que confirma o restabelecimento; sem ele, o incidente não pode ser
+    fechado como sucesso.
+    """
+
+    def __call__(self, comando: str, verificador: str | None = None,
+                 timeout_segundos: int = 60) -> ResultadoExecucao: ...
 
 
 @dataclass(frozen=True, slots=True)
@@ -51,13 +56,32 @@ class ExecutorSimulado:
 
     saudavel: bool = True
 
-    def __call__(self, comando: str, timeout_segundos: int) -> ResultadoExecucao:
+    def __call__(self, comando: str, verificador: str | None = None,
+                 timeout_segundos: int = 60) -> ResultadoExecucao:
         return ResultadoExecucao(
             status="sucesso" if self.saudavel else "falha",
             exit_code=0 if self.saudavel else 1,
             saida=f"[simulado] comando não executado: {comando}",
             saudavel=self.saudavel,
         )
+
+
+def executor_padrao() -> Executor:
+    """Devolve o executor real quando há host alvo configurado, e o simulado caso contrário.
+
+    A ausência de `TARGET_SSH_HOST` é o que mantém o sistema inofensivo em ambiente de
+    desenvolvimento: sem host configurado, aprovar um incidente registra a decisão e não toca em
+    máquina nenhuma.
+    """
+    s = get_settings()
+    if not (s.target_ssh_host and s.target_ssh_key_path):
+        return ExecutorSimulado()
+
+    from .remediation import ExecutorRemoto, runner_ssh
+
+    return ExecutorRemoto(
+        runner=runner_ssh(s.target_ssh_host, s.target_ssh_user, s.target_ssh_key_path)
+    )
 
 
 @dataclass(frozen=True, slots=True)
@@ -118,7 +142,8 @@ def decidir(
     return registrado
 
 
-def executar(conn, incidente_id: int, executor: Executor) -> ResultadoExecucao:
+def executar(conn, incidente_id: int, executor: Executor,
+             timeout_segundos: int = 60) -> ResultadoExecucao:
     """Executa a remediação, mas só depois de reler a aprovação já persistida.
 
     A releitura é deliberada: o executor não confia no que quem chamou afirma ter feito, e sim no
@@ -139,7 +164,11 @@ def executar(conn, incidente_id: int, executor: Executor) -> ResultadoExecucao:
             f"não em 'executando'"
         )
 
-    resultado = executor(incidente["comando_executado"], timeout_segundos=60)
+    resultado = executor(
+        incidente["comando_executado"],
+        verificador=incidente.get("comando_verificacao"),
+        timeout_segundos=timeout_segundos,
+    )
 
     # t5 só é gravado com a saúde confirmada: código de retorno zero não é prova de
     # restabelecimento, e fechar por ele superestimaria a taxa de acerto das heurísticas.

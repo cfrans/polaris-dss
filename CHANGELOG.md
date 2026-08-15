@@ -5,9 +5,21 @@ Todas as mudanças relevantes deste projeto são documentadas neste arquivo.
 O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o versionamento segue
 [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
-## [Não lançado]        <!-- alvo: v0.5.0, integração com a telemetria -->
+## [Não lançado]        <!-- alvo: v0.5.0 telemetria · v0.6.0 remediação -->
 
 ### Adicionado
+- Executor remoto de remediação sobre SSH, com timeout por regra, captura de saída padrão, erro e
+  código de retorno, e confirmação do restabelecimento pelo verificador do cenário. A lógica é
+  independente do transporte, o que permite exercitá-la sem host remoto.
+- Scripts de remediação e de verificação para os três cenários. O de limpeza de disco recusa
+  qualquer caminho fora dos previstos e libera folga antes de rotacionar, já que com o sistema de
+  arquivos cheio o `logrotate` não consegue escrever. O de encerramento de processo identifica o
+  candidato pela segunda amostra do `top` — a média desde o início do processo, que o `ps` reporta,
+  apontaria o processo errado — e só age se o nome constar da lista autorizada.
+- Registro do comando de verificação na trilha de auditoria, ao lado do comando de remediação: a
+  trilha guarda o que foi executado, e regra editada depois não altera o registro do passado.
+- Seleção automática do executor: sem `TARGET_SSH_HOST` configurado, o sistema usa o executor
+  simulado e não toca em máquina alguma.
 - Recepção de eventos do Zabbix em `POST /webhook/zabbix`, autenticada por `X-Polaris-Token` com
   comparação em tempo constante. Evento reentregue devolve o incidente existente em vez de duplicar,
   e evento sem regra compatível é registrado como `no_match` — reconhecer que não há heurística

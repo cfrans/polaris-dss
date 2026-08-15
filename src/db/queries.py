@@ -79,15 +79,15 @@ def criar_incidente(
             INSERT INTO audit_log (id_evento, hostname, severidade,
                                    regra_disparada, confianca_calculada, banda_confianca,
                                    explicabilidade, versao_kb, versao_motor,
-                                   comando_executado, status_execucao,
+                                   comando_executado, comando_verificacao, status_execucao,
                                    ts_deteccao, experiment_run_id)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'pendente', %s, %s)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'pendente', %s, %s)
             RETURNING id
             """,
             (alert.id_evento, alert.hostname, alert.severidade,
              sugestao.rule.id, trace.confianca_final, trace.banda.value,
              Jsonb(trace.to_dict()), trace.versao_kb, trace.versao_motor,
-             sugestao.comando, alert.ts_deteccao, experiment_run_id),
+             sugestao.comando, sugestao.verificador, alert.ts_deteccao, experiment_run_id),
         )
         return Ingestao(incidente_id=cur.fetchone()["id"])
 

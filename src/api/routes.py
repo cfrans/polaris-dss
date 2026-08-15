@@ -22,9 +22,9 @@ from ..engine.models import Alert
 from ..engine.zabbix_client import normalizar_webhook
 from ..engine.service import (
     ExecucaoNaoAutorizadaError,
-    ExecutorSimulado,
     decidir,
     executar,
+    executor_padrao,
     exibir,
     ingerir,
 )
@@ -195,7 +195,7 @@ def marcar_exibicao(incidente_id: int, conn=Depends(get_conn)) -> dict[str, Any]
 @router.post("/api/v1/incidentes/{incidente_id}/decisao", response_model=DecisaoResponse,
              status_code=202, tags=["incidentes"])
 def registrar_decisao(
-    incidente_id: int, corpo: DecisaoRequest, conn=Depends(get_conn)
+    request: Request, incidente_id: int, corpo: DecisaoRequest, conn=Depends(get_conn)
 ) -> DecisaoResponse:
     """Ponto em que o Human-in-the-Loop acontece.
 
@@ -221,9 +221,12 @@ def registrar_decisao(
     if not corpo.aprovado:
         return DecisaoResponse(status="rejeitado", incidente_id=incidente_id)
 
-    # Executor simulado até o marco v0.6.0: registra o que executaria, sem tocar em nada.
+    # Sem TARGET_SSH_HOST configurado, `executor_padrao` devolve o executor simulado e nada é
+    # executado no host alvo.
+    regra = request.app.state.kb.por_id(registro["regra_disparada"] or "")
+    timeout = regra.remediacao.timeout_segundos if regra else 60
     try:
-        executar(conn, incidente_id, ExecutorSimulado())
+        executar(conn, incidente_id, executor_padrao(), timeout_segundos=timeout)
     except ExecucaoNaoAutorizadaError as exc:
         raise _erro(409, "execucao_nao_autorizada", str(exc)) from exc
 

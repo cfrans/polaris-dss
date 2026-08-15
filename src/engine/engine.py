@@ -53,6 +53,8 @@ def analisar(
         comando=vencedora.rule.render(vencedora.rule.remediacao.comando),
         rollback=vencedora.rule.render(vencedora.rule.remediacao.rollback),
         trace=trace,
+        verificador=(vencedora.rule.render(vencedora.rule.remediacao.verificador)
+                     if vencedora.rule.remediacao.verificador else None),
     )
 
 

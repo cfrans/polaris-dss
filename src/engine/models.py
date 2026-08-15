@@ -230,6 +230,7 @@ class Suggestion:
     comando: str
     rollback: str
     trace: ConfidenceTrace
+    verificador: str | None = None
 
     @property
     def confianca(self) -> float:
