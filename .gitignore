@@ -75,3 +75,7 @@ GEMINI.md
 .claude/
 .gemini/
 .cursorrules
+
+# Chaves de servico: geradas localmente, nunca versionadas
+secrets/*
+!secrets/README.md

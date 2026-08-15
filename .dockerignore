@@ -1,0 +1,44 @@
+# O contexto de build NÃO respeita o .gitignore — sem este arquivo, o `COPY . .` do Dockerfile
+# empacota tudo o que estiver no diretório, inclusive o .env com credenciais, numa camada da imagem.
+
+# Segredos e configuração local
+.env
+.env.*
+!.env.example
+secrets/
+*.pem
+*.key
+id_rsa*
+id_ed25519*
+
+# Histórico e metadados do repositório
+.git
+.gitignore
+.github
+
+# Artefatos de execução e teste
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+.venv/
+venv/
+ENV/
+
+# Dados primários da pesquisa: não pertencem à imagem da aplicação
+experiment/baseline/
+experiment/hitl/
+experiment/dumps/
+experiment/analysis/
+
+# Editores e sistema operacional
+.idea/
+.vscode/
+.obsidian/
+.DS_Store
+Thumbs.db
+
+# Documentação que não é necessária em runtime
+CHANGELOG.md
+LICENSE

@@ -122,19 +122,28 @@ cd polaris-dss
 cp .env.example .env
 # Edit .env with your credentials
 
-# Start the Polaris audit database
-docker compose up -d
+# Generate the service SSH key used to reach the remediation target
+ssh-keygen -t ed25519 -N "" -f secrets/polaris_ed25519 -C "polaris-dss"
 
-# Install Python dependencies
-pip install -r requirements.txt
+# Build and start the stack: audit database + API + HITL interface
+docker compose up -d --build
 
 # Apply the database schema
-python -m src.db.migrate
+docker compose exec polaris-api python -m src.db.migrate
 ```
 
-The schema is managed as versioned migrations, applied once each and recorded with their checksum —
-see [`src/db/migrations/README.md`](src/db/migrations/README.md). Run `python -m src.db.migrate`
-after pulling changes; it is a no-op when there is nothing pending.
+Only that one key is mounted into the API container, read-only — never your whole `~/.ssh`. Authorize
+its public half on the target host's `polaris` account. See [`secrets/README.md`](secrets/README.md).
+
+The schema is **not** applied automatically: `CREATE TABLE IF NOT EXISTS` creates a missing table but
+does not alter an existing one, and PostgreSQL's `docker-entrypoint-initdb.d` only runs on first
+volume creation — either path would silently leave an existing database behind. Migrations are
+versioned, applied once each and recorded with their checksum; see
+[`src/db/migrations/README.md`](src/db/migrations/README.md). Run the migrate command after pulling
+changes too — it is a no-op when there is nothing pending.
+
+To work on the engine outside containers, install the dependencies locally with
+`pip install -r requirements.txt`.
 
 ### Zabbix is optional
 

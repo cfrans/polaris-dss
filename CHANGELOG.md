@@ -8,8 +8,28 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 ## [Não lançado]
 
 ### Adicionado
-- Conteinerização completa da aplicação (`polaris-api`) via `Dockerfile`, permitindo orquestração unificada de banco e API com um único `docker compose up -d`.
+- Conteinerização da aplicação (`polaris-api`) via `Dockerfile`, permitindo subir banco, API e
+  interface com `docker compose up -d --build`. O esquema do banco continua sendo aplicado
+  explicitamente, com `docker compose exec polaris-api python -m src.db.migrate`.
+- `.dockerignore`, sem o qual o contexto de build empacotaria o `.env` com credenciais dentro de uma
+  camada da imagem: o `.gitignore` não é considerado por builds Docker.
+- Verificação de saúde do container da API e execução sob usuário sem privilégios.
 
+### Segurança
+- O container passou a receber apenas a chave SSH dedicada à remediação, montada em somente leitura,
+  em vez do diretório `~/.ssh` inteiro do operador. Expor todas as chaves privadas do usuário
+  contradiz o princípio de menor privilégio que o sistema exige do host alvo.
+- A imagem deixou de rodar como root.
+- Removidos endereços de rede interna dos valores padrão do Compose.
+
+### Corrigido
+- O container da API não recebia `POLARIS_CONFIDENCE_HISTORY`, `POLARIS_DEBUG`,
+  `POLARIS_WEBHOOK_TOKEN`, `ZABBIX_USER`, `ZABBIX_PASSWORD` nem `TARGET_SSH_KEY_PATH`. A ausência da
+  primeira era a mais grave: os fatores de confiança dependentes de histórico permaneceriam ativos
+  durante a coleta de dados mesmo com a variável desligada no `.env`, comprometendo a comparabilidade
+  entre rodadas sem emitir qualquer sinal.
+- `ZABBIX_URL` tinha valor padrão sem o caminho `/api_jsonrpc.php`, o que impediria a comunicação
+  com a API JSON-RPC.
 
 ## [0.4.0] — 2026-08-08
 
