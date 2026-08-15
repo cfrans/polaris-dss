@@ -5,9 +5,24 @@ Todas as mudanças relevantes deste projeto são documentadas neste arquivo.
 O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o versionamento segue
 [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
-## [Não lançado]
+## [Não lançado]        <!-- alvo: v0.5.0, integração com a telemetria -->
 
 ### Adicionado
+- Recepção de eventos do Zabbix em `POST /webhook/zabbix`, autenticada por `X-Polaris-Token` com
+  comparação em tempo constante. Evento reentregue devolve o incidente existente em vez de duplicar,
+  e evento sem regra compatível é registrado como `no_match` — reconhecer que não há heurística
+  formalizada é resultado, não falha.
+- Normalização de eventos do Zabbix 7.0: severidade em código ou rótulo, valor numérico extraído de
+  textos como `97.4 %` ou `up (1)`, data em epoch ou nos formatos das macros, e classificação do
+  incidente pela tag `polaris_tipo` com heurística por chave de item como reserva.
+- Cliente JSON-RPC (`ZabbixClient`) com autenticação por token de API ou por usuário e senha, e
+  consulta de problemas em aberto já enriquecida com o host de origem.
+- Laço de reconciliação (`python -m src.engine.reconciliacao`), que recupera eventos não entregues
+  pelo webhook e encerra incidentes cujo problema deixou de existir na origem.
+- Estado `encerrado_na_origem` na trilha de auditoria, distinto de remediação bem-sucedida: sem
+  decisão humana e sem execução, não entra na taxa de acerto das heurísticas.
+- `infra/zabbix/polaris-mediatype.yaml`, importável direto na interface do Zabbix, com as instruções
+  de configuração da mídia e da ação.
 - Conteinerização da aplicação (`polaris-api`) via `Dockerfile`, permitindo subir banco, API e
   interface com `docker compose up -d --build`. O esquema do banco continua sendo aplicado
   explicitamente, com `docker compose exec polaris-api python -m src.db.migrate`.

@@ -95,6 +95,24 @@ class ResultadoResponse(BaseModel):
     mttr_segundos: float | None = None
 
 
+class EventoZabbix(BaseModel):
+    """Corpo enviado pela Action do Zabbix. Todos os campos são opcionais menos o host.
+
+    Os nomes correspondem às macros usadas no media type (`infra/zabbix/polaris-mediatype.yaml`).
+    """
+
+    event_id: str | int | None = None
+    event_time: str | int | None = None
+    host: str = ""
+    host_ip: str | None = None
+    trigger: str | None = None
+    severity: str | int | None = None
+    item_key: str | None = None
+    item_value: str | int | float | None = None
+    tags: str | dict[str, str] | list[dict[str, str]] | None = None
+    texto: str | None = None
+
+
 class AlertaSimulado(BaseModel):
     """Entrada do endpoint de simulação, no formato interno já normalizado."""
 

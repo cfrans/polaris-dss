@@ -1,0 +1,82 @@
+zabbix_export:
+  version: '7.0'
+  media_types:
+    - name: Polaris DSS
+      type: WEBHOOK
+      parameters:
+        - name: polaris_url
+          value: 'http://polaris:8000/webhook/zabbix'
+        - name: polaris_token
+          value: '<defina o mesmo valor de POLARIS_WEBHOOK_TOKEN>'
+        - name: event_id
+          value: '{EVENT.ID}'
+        - name: event_time
+          value: '{EVENT.DATE} {EVENT.TIME}'
+        - name: host
+          value: '{HOST.HOST}'
+        - name: host_ip
+          value: '{HOST.IP}'
+        - name: trigger
+          value: '{TRIGGER.NAME}'
+        - name: severity
+          value: '{EVENT.SEVERITY}'
+        - name: item_key
+          value: '{ITEM.KEY1}'
+        - name: item_value
+          value: '{ITEM.VALUE1}'
+        - name: tags
+          value: '{EVENT.TAGS}'
+      script: |
+        var params = JSON.parse(value),
+            request = new HttpRequest(),
+            corpo = {
+              event_id: params.event_id,
+              event_time: params.event_time,
+              host: params.host,
+              host_ip: params.host_ip,
+              trigger: params.trigger,
+              severity: params.severity,
+              item_key: params.item_key,
+              item_value: params.item_value,
+              tags: params.tags
+            };
+
+        request.addHeader('Content-Type: application/json');
+        request.addHeader('X-Polaris-Token: ' + params.polaris_token);
+
+        var resposta = request.post(params.polaris_url, JSON.stringify(corpo)),
+            status = request.getStatus();
+
+        Zabbix.log(4, '[Polaris] HTTP ' + status + ' ' + resposta);
+
+        // 409 e 200 indicam evento já conhecido: reentrega não é erro, e repetir a tentativa
+        // apenas geraria ruído na fila de alertas do Zabbix.
+        if (status !== 200 && status !== 201 && status !== 409) {
+          throw 'Polaris respondeu HTTP ' + status + ': ' + resposta;
+        }
+        return resposta;
+      process_tags: 'YES'
+      show_event_menu: 'NO'
+      description: |
+        Encaminha eventos para o Polaris DSS, que analisa o incidente contra a base de conhecimento
+        e apresenta a remediação sugerida ao operador para aprovação.
+
+        Configuração:
+        1. Alerts > Media types > Import: selecione este arquivo.
+        2. Edite o media type e preencha `polaris_url` e `polaris_token`. O token deve ser
+           idêntico ao POLARIS_WEBHOOK_TOKEN do Polaris.
+        3. Users > selecione o usuário > Media: adicione a mídia "Polaris DSS".
+        4. Alerts > Actions > Trigger actions: crie uma ação com a operação
+           "Send message to users" via "Polaris DSS".
+
+        Para escolher quais hosts são assistidos, prefira condições por host group
+        (ex.: `Linux servers`) ou por tag (`polaris: enabled`) em vez de vincular host a host.
+
+        Classificação do incidente: o Polaris usa a tag `polaris_tipo` do evento quando presente
+        (`disk_full`, `cpu_high`, `service_down`). Sem ela, classifica pelo prefixo da chave do
+        item. Declarar a tag no trigger torna a classificação explícita e independente de heurística.
+      message_templates:
+        - event_source: TRIGGERS
+          operation_mode: PROBLEM
+          subject: 'Polaris: {EVENT.NAME}'
+          message: '{HOST.HOST} — {EVENT.SEVERITY} — {ITEM.KEY1} = {ITEM.VALUE1}'

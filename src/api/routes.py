@@ -9,15 +9,17 @@ executa rotas `def` numa pool de threads. Declará-las `async def` bloquearia o 
 
 from __future__ import annotations
 
+import secrets
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request
 
 from ..db import queries
 from ..db.connection import conectar
 from ..engine.knowledge_base import KnowledgeBaseError
 from ..engine.knowledge_base import load as carregar_kb
 from ..engine.models import Alert
+from ..engine.zabbix_client import normalizar_webhook
 from ..engine.service import (
     ExecucaoNaoAutorizadaError,
     ExecutorSimulado,
@@ -28,6 +30,7 @@ from ..engine.service import (
 )
 from .schemas import (
     AlertaSimulado,
+    EventoZabbix,
     DecisaoRequest,
     DecisaoResponse,
     IncidenteDetalhe,
@@ -52,6 +55,51 @@ def _erro(status: int, codigo: str, mensagem: str, **detalhes: Any) -> HTTPExcep
         status_code=status,
         detail={"erro": codigo, "mensagem": mensagem, "detalhes": detalhes},
     )
+
+
+# ---------------------------------------------------------------------------
+# Ingestão
+# ---------------------------------------------------------------------------
+
+
+@router.post("/webhook/zabbix", response_model=IngestaoResponse, status_code=201,
+             tags=["ingestão"])
+def webhook_zabbix(
+    request: Request,
+    corpo: EventoZabbix,
+    conn=Depends(get_conn),
+    x_polaris_token: str = Header(default=""),
+) -> IngestaoResponse:
+    """Recebe o evento empurrado pela Action do Zabbix.
+
+    Analisa, calcula a confiança e persiste como pendente. Não executa nada: a remediação depende
+    da decisão humana registrada em seguida.
+    """
+    esperado = request.app.state.settings.polaris_webhook_token
+    if not esperado:
+        raise _erro(503, "webhook_nao_configurado",
+                    "POLARIS_WEBHOOK_TOKEN não definido; a recepção de eventos está desabilitada.")
+    if not secrets.compare_digest(x_polaris_token, esperado):
+        raise _erro(401, "token_invalido", "Header X-Polaris-Token ausente ou inválido.")
+
+    alerta = normalizar_webhook(corpo.model_dump())
+    if not alerta.hostname:
+        raise _erro(400, "evento_incompleto", "O evento não informa o host de origem.")
+
+    ingestao = ingerir(conn, alerta, request.app.state.kb, request.app.state.config)
+
+    if ingestao.duplicado:
+        return IngestaoResponse(status="duplicate", incidente_id=ingestao.incidente_id)
+    if ingestao.sem_regra:
+        return IngestaoResponse(
+            status="no_match",
+            incidente_id=ingestao.incidente_id,
+            motivo=f"nenhuma regra compatível com tipo_alerta={alerta.tipo_alerta}",
+        )
+
+    s = ingestao.sugestao
+    return IngestaoResponse(status="created", incidente_id=ingestao.incidente_id,
+                            regra=s.rule.id, confianca=s.confianca, banda=s.banda.value)
 
 
 # ---------------------------------------------------------------------------

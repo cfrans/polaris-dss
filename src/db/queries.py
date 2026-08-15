@@ -338,3 +338,28 @@ def proximo_id_simulado(conn) -> int:
     with conn.cursor() as cur:
         cur.execute("SELECT COALESCE(MAX(id), 0) + 1 AS proximo FROM audit_log")
         return cur.fetchone()["proximo"]
+
+
+def incidentes_abertos(conn) -> list[dict]:
+    """Incidentes ainda aguardando decisão ou execução. Usado pela reconciliação."""
+    with conn.cursor() as cur:
+        cur.execute(
+            "SELECT id, id_evento, hostname, regra_disparada FROM audit_log "
+            "WHERE status_execucao = ANY(%s) ORDER BY ts_criacao",
+            (list(ESTADOS_ABERTOS),),
+        )
+        return cur.fetchall()
+
+
+def encerrar_por_origem(conn, incidente_id: int) -> None:
+    """Fecha um incidente cujo problema já não existe no Zabbix.
+
+    Distingue-se de uma remediação bem-sucedida: não houve decisão humana nem execução, então o
+    registro não pode contar como acerto de heurística no KPI 03.
+    """
+    with conn.cursor() as cur:
+        cur.execute(
+            "UPDATE audit_log SET status_execucao = 'encerrado_na_origem', ts_conclusao = NOW() "
+            "WHERE id = %s AND status_execucao = ANY(%s)",
+            (incidente_id, list(ESTADOS_ABERTOS)),
+        )

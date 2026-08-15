@@ -25,6 +25,7 @@ class Settings(BaseSettings):
     zabbix_url: str = ""
     zabbix_user: str = ""
     zabbix_password: str = ""
+    zabbix_token: str = ""
 
     db_host: str = "localhost"
     db_port: int = 5432
@@ -38,6 +39,8 @@ class Settings(BaseSettings):
     polaris_webhook_token: str = ""
     polaris_debug: bool = False
     polaris_confidence_history: bool = True
+    # Intervalo do laço de reconciliação, em segundos. Zero desliga o laço.
+    polaris_polling_segundos: int = 30
 
     target_ssh_host: str = ""
     target_ssh_user: str = "polaris"
