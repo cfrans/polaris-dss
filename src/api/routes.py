@@ -9,6 +9,7 @@ executa rotas `def` numa pool de threads. Declará-las `async def` bloquearia o 
 
 from __future__ import annotations
 
+import logging
 import secrets
 from typing import Any
 
@@ -20,7 +21,12 @@ from ..engine.diagnostico import executar as executar_diagnostico
 from ..engine.knowledge_base import KnowledgeBaseError
 from ..engine.knowledge_base import load as carregar_kb
 from ..engine.models import Alert
-from ..engine.zabbix_client import normalizar_webhook
+from ..engine.zabbix_client import (
+    ZabbixClient,
+    ZabbixError,
+    enriquecer_timestamp,
+    normalizar_webhook,
+)
 from ..engine.service import (
     ExecucaoNaoAutorizadaError,
     decidir,
@@ -44,6 +50,7 @@ from .schemas import (
 
 router = APIRouter()
 VERSAO_API = "0.4.0"
+LOGGER = logging.getLogger(__name__)
 
 
 def get_conn():
@@ -86,6 +93,21 @@ def webhook_zabbix(
     alerta = normalizar_webhook(corpo.model_dump())
     if not alerta.hostname:
         raise _erro(400, "evento_incompleto", "O evento não informa o host de origem.")
+
+    if alerta.ts_deteccao is None and alerta.id_evento:
+        settings = request.app.state.settings
+        if settings.zabbix_url:
+            cliente_zabbix = ZabbixClient(
+                url=settings.zabbix_url,
+                usuario=settings.zabbix_user,
+                senha=settings.zabbix_password,
+                token=settings.zabbix_token,
+            )
+            try:
+                alerta = enriquecer_timestamp(alerta, cliente_zabbix)
+            except ZabbixError as exc:
+                LOGGER.warning("não foi possível obter o timestamp do evento %s: %s",
+                               alerta.id_evento, exc)
 
     ingestao = ingerir(conn, alerta, request.app.state.kb, request.app.state.config)
 

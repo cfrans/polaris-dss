@@ -60,6 +60,11 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 - Removidos endereços de rede interna dos valores padrão do Compose.
 
 ### Corrigido
+- O horário enviado por `{EVENT.DATE} {EVENT.TIME}` chegava sem deslocamento de fuso e fazia o
+  Polaris registrar o horário de São Paulo como UTC, acrescentando três horas falsas à latência.
+  Como `{EVENT.TIMESTAMP}` existe somente a partir do Zabbix 7.2 e a stack usa a versão 7.0 LTS, o
+  webhook agora enriquece o evento consultando o campo `clock` autoritativo pela API a partir do
+  `event_id`. O payload R003 capturado no laboratório foi incorporado às fixtures e aos testes.
 - O container da API não recebia `POLARIS_CONFIDENCE_HISTORY`, `POLARIS_DEBUG`,
   `POLARIS_WEBHOOK_TOKEN`, `ZABBIX_USER`, `ZABBIX_PASSWORD` nem `TARGET_SSH_KEY_PATH`. A ausência da
   primeira era a mais grave: os fatores de confiança dependentes de histórico permaneceriam ativos

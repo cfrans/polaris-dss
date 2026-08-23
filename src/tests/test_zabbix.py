@@ -6,7 +6,9 @@ um cliente dublê. Os payloads reproduzem o que o media type de `infra/zabbix/` 
 
 from __future__ import annotations
 
+import json
 from datetime import datetime, timezone
+from pathlib import Path
 
 import pytest
 
@@ -14,12 +16,16 @@ from src.engine.zabbix_client import (
     ZabbixClient,
     ZabbixError,
     classificar,
+    enriquecer_timestamp,
     extrair_tags,
     interpretar_data,
     normalizar_webhook,
     traduzir_severidade,
     valor_numerico,
 )
+
+FIXTURES = Path(__file__).parent / "fixtures"
+REPO_ROOT = Path(__file__).resolve().parents[2]
 
 WEBHOOK_DISCO = {
     "event_id": "80231",
@@ -32,6 +38,10 @@ WEBHOOK_DISCO = {
     "item_value": "97.4 %",
     "tags": "polaris_tipo: disk_full, scope: capacity",
 }
+
+
+def carregar_payload(nome: str) -> dict:
+    return json.loads((FIXTURES / f"{nome}.json").read_text(encoding="utf-8"))
 
 
 def test_normaliza_evento_de_disco():
@@ -54,6 +64,55 @@ def test_evento_normalizado_casa_com_a_regra(kb, config, monkeypatch):
     sugestao = analisar(alerta, kb, config)
     assert sugestao is not None
     assert sugestao.rule.id == "R001"
+
+
+def test_normaliza_payload_real_de_servico(kb, config):
+    """Fixture real do 7.0 é enriquecida com o `clock` autoritativo retornado pela API."""
+    from src.engine.engine import analisar
+
+    alerta = normalizar_webhook(carregar_payload("zabbix_service_down"))
+
+    class ClienteEvento:
+        def timestamp_evento(self, id_evento):
+            assert id_evento == "65"
+            return datetime(2026, 8, 22, 23, 6, tzinfo=timezone.utc)
+
+    assert alerta.ts_deteccao is None
+    alerta = enriquecer_timestamp(alerta, ClienteEvento())
+
+    assert alerta.id_evento == "65"
+    assert alerta.tipo_alerta == "service_down"
+    assert alerta.hostname == "vm-alvo"
+    assert alerta.metrica == "proc.num[nginx]"
+    assert alerta.valor == pytest.approx(0)
+    assert alerta.severidade == "alta"
+    assert alerta.texto == "Service nginx is not running 0"
+    assert alerta.ts_deteccao == datetime(2026, 8, 22, 23, 6, tzinfo=timezone.utc)
+
+    sugestao = analisar(alerta, kb, config)
+    assert sugestao is not None
+    assert sugestao.rule.id == "R003"
+
+
+def test_media_type_nao_envia_horario_sem_fuso():
+    conteudo = (REPO_ROOT / "infra" / "zabbix" / "polaris-mediatype.yaml").read_text(
+        encoding="utf-8"
+    )
+    assert "name: event_time" not in conteudo
+    assert "{EVENT.TIMESTAMP}" not in conteudo
+    assert "value: '{EVENT.DATE} {EVENT.TIME}'" not in conteudo
+
+
+def test_cliente_busca_clock_autoritativo_do_evento(monkeypatch):
+    cliente = ZabbixClient(url="http://zabbix/api_jsonrpc.php", token="token")
+
+    def chamar(metodo, parametros):
+        assert metodo == "event.get"
+        assert parametros["eventids"] == ["69"]
+        return [{"eventid": "69", "clock": "1787443950"}]
+
+    monkeypatch.setattr(cliente, "_chamar", chamar)
+    assert cliente.timestamp_evento("69") == datetime.fromtimestamp(1787443950, tz=timezone.utc)
 
 
 @pytest.mark.parametrize("bruto,esperado", [

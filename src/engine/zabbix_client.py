@@ -13,7 +13,7 @@ O caminho primário de ingestão é o webhook; o cliente é a rede de proteção
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime, timezone
 from typing import Any
 
@@ -251,3 +251,25 @@ class ZabbixClient:
             })
             for p in self.problemas_abertos()
         ]
+
+    def timestamp_evento(self, id_evento: str) -> datetime | None:
+        """Obtém pela API o instante UTC autoritativo de um evento.
+
+        O Zabbix 7.0 não oferece uma macro de timestamp Unix do evento para Webhooks. Consultar o
+        campo `clock` evita interpretar `{EVENT.DATE} {EVENT.TIME}` sem informação de fuso.
+        """
+        eventos = self._chamar("event.get", {
+            "eventids": [str(id_evento)],
+            "output": ["eventid", "clock"],
+        }) or []
+        if not eventos:
+            return None
+        return interpretar_data(eventos[0].get("clock"))
+
+
+def enriquecer_timestamp(alerta: Alert, cliente: ZabbixClient) -> Alert:
+    """Preenche somente timestamps ausentes, preservando valores inequívocos já recebidos."""
+    if alerta.ts_deteccao is not None or not alerta.id_evento:
+        return alerta
+    timestamp = cliente.timestamp_evento(alerta.id_evento)
+    return replace(alerta, ts_deteccao=timestamp) if timestamp is not None else alerta

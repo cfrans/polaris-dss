@@ -1,0 +1,10 @@
+{
+  "event_id": "65",
+  "host": "vm-alvo",
+  "host_ip": "192.168.0.152",
+  "trigger": "Service nginx is not running",
+  "severity": "High",
+  "item_key": "proc.num[nginx]",
+  "item_value": "0",
+  "tags": "polaris:enabled, polaris_tipo:service_down"
+}
