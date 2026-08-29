@@ -5,6 +5,8 @@ Exigem PostgreSQL de pé, pela mesma razão dos testes de persistência; sem ele
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
+
 import pytest
 
 ALERTA_SERVICO = {
@@ -45,6 +47,46 @@ def test_interface_e_documentacao_sao_servidas(cliente):
     assert cliente.get("/app.js").status_code == 200
     assert cliente.get("/style.css").status_code == 200
     assert cliente.get("/docs").status_code == 200
+
+
+def test_reconciliacao_informa_que_ainda_aguarda_o_primeiro_ciclo(cliente):
+    dados = cliente.get("/api/v1/reconciliacao").json()
+    assert dados["habilitada"] is True
+    assert dados["operacional"] is False
+    assert dados["status"] == "aguardando_primeiro_ciclo"
+    assert dados["intervalo_segundos"] == 30
+    assert dados["ultimo_ciclo"] is None
+
+
+def test_reconciliacao_expoe_ultimo_ciclo_contagens_e_historico(cliente, conn):
+    from src.db import queries
+
+    agora = datetime.now(timezone.utc)
+    queries.registrar_reconciliacao(
+        conn,
+        status="sucesso",
+        intervalo_segundos=30,
+        ts_inicio=agora,
+        ts_conclusao=agora,
+        recuperados=2,
+        ja_conhecidos=3,
+        encerrados_na_origem=1,
+    )
+    conn.commit()
+
+    dados = cliente.get("/api/v1/reconciliacao").json()
+    assert dados["operacional"] is True
+    assert dados["status"] == "sucesso"
+    assert dados["ultimo_ciclo"]["recuperados"] == 2
+    assert dados["ultimo_ciclo"]["encerrados_na_origem"] == 1
+    assert len(dados["historico"]) == 1
+
+
+def test_interface_expoe_estado_e_historico_da_reconciliacao(cliente):
+    pagina = cliente.get("/").text
+    assert 'id="estado-reconciliacao"' in pagina
+    assert 'id="tela-reconciliacao"' in pagina
+    assert 'id="recon-historico"' in pagina
 
 
 def test_fluxo_completo_de_aprovacao(cliente):

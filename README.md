@@ -125,11 +125,14 @@ cp .env.example .env
 # Generate the service SSH key used to reach the remediation target
 ssh-keygen -t ed25519 -N "" -f secrets/polaris_ed25519 -C "polaris-dss"
 
-# Build and start the stack: audit database + API + HITL interface
-docker compose up -d --build
+# Build and start the audit database + API + HITL interface
+docker compose up -d --build polaris-db polaris-api
 
 # Apply the database schema
 docker compose exec polaris-api python -m src.db.migrate
+
+# Start the reconciler only after the schema is current
+docker compose up -d polaris-reconciler
 ```
 
 Only that one key is mounted into the API container, read-only — never your whole `~/.ssh`. Authorize
@@ -141,6 +144,11 @@ volume creation — either path would silently leave an existing database behind
 versioned, applied once each and recorded with their checksum; see
 [`src/db/migrations/README.md`](src/db/migrations/README.md). Run the migrate command after pulling
 changes too — it is a no-op when there is nothing pending.
+
+The reconciler runs as one process separate from the API workers. It polls the Zabbix API every
+`POLARIS_POLLING_SEGUNDOS` seconds (30 by default); set the value to `0` to disable it. The header
+badge and the reconciliation screen show whether cycles are current, the last result, incident
+counts by explicit status, and a sparse history of cycles that changed state or failed.
 
 To work on the engine outside containers, install the dependencies locally with
 `pip install -r requirements.txt`.

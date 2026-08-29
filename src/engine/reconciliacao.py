@@ -17,6 +17,7 @@ import argparse
 import sys
 import time
 from dataclasses import dataclass
+from datetime import datetime, timezone
 
 from ..db import queries
 from ..db.connection import conectar
@@ -67,6 +68,43 @@ def reconciliar(conn, cliente: ZabbixClient, kb, config: dict | None = None) -> 
     return Reconciliacao(recuperados, conhecidos, encerrados)
 
 
+def executar_ciclo(
+    conn,
+    cliente: ZabbixClient,
+    kb,
+    config: dict | None = None,
+    intervalo_segundos: int = 30,
+) -> Reconciliacao:
+    """Executa e registra um ciclo, inclusive quando a consulta ao Zabbix falha."""
+    inicio = datetime.now(timezone.utc)
+    try:
+        resultado = reconciliar(conn, cliente, kb, config)
+    except ZabbixError as exc:
+        queries.registrar_reconciliacao(
+            conn,
+            status="erro",
+            intervalo_segundos=intervalo_segundos,
+            ts_inicio=inicio,
+            ts_conclusao=datetime.now(timezone.utc),
+            mensagem_erro=str(exc),
+        )
+        conn.commit()
+        raise
+
+    queries.registrar_reconciliacao(
+        conn,
+        status="sucesso",
+        intervalo_segundos=intervalo_segundos,
+        ts_inicio=inicio,
+        ts_conclusao=datetime.now(timezone.utc),
+        recuperados=resultado.recuperados,
+        ja_conhecidos=resultado.ja_conhecidos,
+        encerrados_na_origem=resultado.encerrados,
+    )
+    conn.commit()
+    return resultado
+
+
 def cliente_do_ambiente() -> ZabbixClient:
     s = get_settings()
     if not s.zabbix_url:
@@ -81,7 +119,15 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--intervalo", type=int, default=None, help="segundos entre ciclos")
     args = parser.parse_args(argv)
 
-    intervalo = args.intervalo or get_settings().polaris_polling_segundos
+    intervalo = (
+        args.intervalo if args.intervalo is not None else get_settings().polaris_polling_segundos
+    )
+    if intervalo < 0:
+        parser.error("o intervalo não pode ser negativo")
+    if args.loop and intervalo == 0:
+        print("reconciliação periódica desativada (intervalo zero)")
+        return 0
+
     kb, cfg = load(), load_config()
 
     try:
@@ -91,13 +137,15 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     while True:
+        falhou = False
         try:
             with conectar() as conn:
-                print(reconciliar(conn, cliente, kb, cfg))
+                print(executar_ciclo(conn, cliente, kb, cfg, intervalo), flush=True)
         except ZabbixError as exc:
             print(f"ciclo falhou: {exc}", file=sys.stderr)
+            falhou = True
         if not args.loop:
-            return 0
+            return 2 if falhou else 0
         time.sleep(max(intervalo, 5))
 
 

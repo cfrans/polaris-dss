@@ -187,6 +187,11 @@ class ClienteDuble:
         return list(self._alertas)
 
 
+class ClienteFalha:
+    def alertas_abertos(self):
+        raise ZabbixError("falha fabricada na API")
+
+
 def test_reconciliacao_recupera_evento_perdido(conn, kb, config):
     from src.engine.reconciliacao import reconciliar
 
@@ -226,6 +231,54 @@ def test_reconciliacao_encerra_incidente_resolvido_na_origem(conn, kb, config):
     assert registro["status_execucao"] == "encerrado_na_origem"
     # Não houve decisão nem execução: não pode contar como acerto de heurística no KPI 03.
     assert registro["decisao_humana"] is None
+
+
+def test_ciclo_atualiza_estado_sem_encher_historico_com_sondagem_vazia(conn, kb, config):
+    from src.db import queries
+    from src.engine.reconciliacao import executar_ciclo
+
+    cliente = ClienteDuble([normalizar_webhook({**WEBHOOK_DISCO, "event_id": "rec-estado"})])
+    primeiro = executar_ciclo(conn, cliente, kb, config, intervalo_segundos=30)
+    segundo = executar_ciclo(conn, cliente, kb, config, intervalo_segundos=30)
+
+    assert primeiro.recuperados == 1
+    assert segundo.ja_conhecidos == 1
+    estado = queries.estado_reconciliacao(conn)
+    assert estado["status"] == "sucesso"
+    assert estado["ja_conhecidos"] == 1
+    assert len(queries.historico_reconciliacao(conn)) == 1
+
+
+def test_ciclo_registra_falha_e_a_preserva_no_historico(conn, kb, config):
+    from src.db import queries
+    from src.engine.reconciliacao import executar_ciclo
+
+    with pytest.raises(ZabbixError, match="falha fabricada"):
+        executar_ciclo(conn, ClienteFalha(), kb, config, intervalo_segundos=30)
+
+    estado = queries.estado_reconciliacao(conn)
+    assert estado["status"] == "erro"
+    assert estado["mensagem_erro"] == "falha fabricada na API"
+    assert queries.historico_reconciliacao(conn)[0]["status"] == "erro"
+
+    with pytest.raises(ZabbixError):
+        executar_ciclo(conn, ClienteFalha(), kb, config, intervalo_segundos=30)
+    assert len(queries.historico_reconciliacao(conn)) == 1
+
+
+def test_loop_com_intervalo_zero_desliga_sem_exigir_zabbix(capsys):
+    from src.engine.reconciliacao import main
+
+    assert main(["--loop", "--intervalo", "0"]) == 0
+    assert "desativada" in capsys.readouterr().out
+
+
+def test_compose_inicia_reconciliador_em_processo_separado():
+    conteudo = (REPO_ROOT / "docker-compose.yml").read_text(encoding="utf-8")
+    assert "polaris-reconciler:" in conteudo
+    assert '["python", "-m", "src.engine.reconciliacao", "--loop"]' in conteudo
+    assert "disable: true" in conteudo
+    assert "restart: on-failure" in conteudo
 
 
 def queries_pendentes(conn):

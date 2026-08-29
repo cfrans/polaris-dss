@@ -151,9 +151,9 @@ def test_recorrencia_conta_apenas_sucessos_no_mesmo_host(conn, kb, config, alert
         decidir(conn, ing.incidente_id, True, "tester")
         executar(conn, ing.incidente_id, ExecutorSimulado())
 
-    assert queries.recorrencia(conn, "vm-alvo-01", "R003").k == 2
+    assert queries.recorrencia(conn, "vm-alvo", "R003").k == 2
     assert queries.recorrencia(conn, "outro-host", "R003").k == 0
-    assert queries.recorrencia(conn, "vm-alvo-01", "R001").k == 0
+    assert queries.recorrencia(conn, "vm-alvo", "R001").k == 0
 
 
 def test_recorrencia_derruba_a_confianca_para_banda_baixa(conn, kb, config, alerta):

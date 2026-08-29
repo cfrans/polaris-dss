@@ -19,6 +19,9 @@
   <div class="estado">
     <span id="estado-kb" class="pilula">base —</span>
     <span id="estado-db" class="pilula">banco —</span>
+    <button id="estado-reconciliacao" class="pilula pilula-botao" type="button">
+      reconciliação —
+    </button>
     <button id="btn-simular" class="btn btn-secundario oculto" type="button">
       Simular incidente
     </button>
@@ -160,6 +163,47 @@
       <thead><tr><th>Variável</th><th>Valor</th></tr></thead>
       <tbody id="diag-config"></tbody>
     </table>
+  </div>
+
+</section>
+
+<section id="tela-reconciliacao" class="tela-diag oculto" aria-label="Reconciliação do Zabbix">
+
+  <div class="diag-topo">
+    <div>
+      <h2>Reconciliação do Zabbix</h2>
+      <p class="diag-sub">
+        Estado do processo que recupera eventos perdidos e encerra incidentes resolvidos na origem.
+        Esses encerramentos não são remediações executadas pelo Polaris.
+      </p>
+    </div>
+    <button id="btn-fechar-reconciliacao" class="btn btn-secundario" type="button">Fechar</button>
+  </div>
+
+  <div id="recon-aviso" class="aviso oculto"></div>
+
+  <div class="recon-resumo">
+    <div class="recon-cartao"><span>Estado</span><strong id="recon-status">—</strong></div>
+    <div class="recon-cartao"><span>Último ciclo</span><strong id="recon-ultima">—</strong></div>
+    <div class="recon-cartao"><span>Intervalo</span><strong id="recon-intervalo">—</strong></div>
+    <div class="recon-cartao"><span>Resultado do ciclo</span><strong id="recon-resultado">—</strong></div>
+  </div>
+
+  <div class="secao">
+    <h3>Incidentes por estado</h3>
+    <ul id="recon-contagens" class="recon-contagens"></ul>
+  </div>
+
+  <div class="secao">
+    <h3>Atividade recente</h3>
+    <p class="nota">São preservados ciclos com recuperação, encerramento ou erro. Sondagens sem
+      mudança apenas atualizam o horário do último ciclo.</p>
+    <div class="tabela-rolagem">
+      <table class="diag-config recon-historico-tabela">
+        <thead><tr><th>Conclusão</th><th>Estado</th><th>Recuperados</th><th>Conhecidos</th><th>Encerrados na origem</th><th>Detalhe</th></tr></thead>
+        <tbody id="recon-historico"></tbody>
+      </table>
+    </div>
   </div>
 
 </section>

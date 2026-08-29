@@ -8,6 +8,15 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 ## [Não lançado]        <!-- alvo: v0.5.0 telemetria · v0.6.0 remediação -->
 
 ### Adicionado
+- Serviço `polaris-reconciler` separado no Docker Compose, que operacionaliza um único laço de
+  reconciliação sem criar um processo por worker da API. O intervalo continua configurável por
+  `POLARIS_POLLING_SEGUNDOS`, e o valor zero desativa o serviço sem exigir acesso ao Zabbix.
+- Estado persistido do último ciclo e histórico enxuto de reconciliações com recuperação,
+  encerramento ou transição de erro. A interface apresenta badge operacional, horário e resultado
+  do último ciclo, contagens por estado e atividade recente; repetições sem mudança não acumulam
+  linhas no histórico.
+- Endpoint `GET /api/v1/reconciliacao` para consultar a configuração somente leitura, detectar ciclo
+  atrasado e alimentar a visualização operacional.
 - Tela de diagnóstico e configuração na interface, e o endpoint `GET /api/v1/diagnostico` que a
   alimenta. Verifica banco de auditoria, esquema aplicado, base de conhecimento, API do Zabbix e
   host alvo por SSH, cada um com estado e latência próprios. Dependência não configurada aparece
@@ -60,6 +69,10 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 - Removidos endereços de rede interna dos valores padrão do Compose.
 
 ### Corrigido
+- O teste de recorrência consultava `vm-alvo-01`, embora a fixture persistida use `vm-alvo`, e por
+  isso falhava apenas quando os testes de integração eram executados com PostgreSQL disponível.
+- `--intervalo 0` era substituído pelo valor do ambiente por causa da avaliação booleana e não
+  desativava o loop como documentado; a execução única também devolvia sucesso após falha do Zabbix.
 - O horário enviado por `{EVENT.DATE} {EVENT.TIME}` chegava sem deslocamento de fuso e fazia o
   Polaris registrar o horário de São Paulo como UTC, acrescentando três horas falsas à latência.
   Como `{EVENT.TIMESTAMP}` existe somente a partir do Zabbix 7.2 e a stack usa a versão 7.0 LTS, o

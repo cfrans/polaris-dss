@@ -175,7 +175,7 @@ def test_endpoint_responde_com_as_tres_secoes(cliente):
 
 def test_endpoint_detecta_migracao_pendente(cliente, conn):
     """Migração pendente costuma significar container rodando imagem anterior."""
-    ultima = "003"
+    ultima = "004"
     with conn.cursor() as cur:
         cur.execute("SELECT * FROM schema_migrations WHERE versao = %s", (ultima,))
         registro = cur.fetchone()

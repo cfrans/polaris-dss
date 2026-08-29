@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import logging
 import secrets
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request
@@ -38,6 +39,8 @@ from ..engine.service import (
 from .schemas import (
     AlertaSimulado,
     EventoZabbix,
+    EstadoReconciliacao,
+    CicloReconciliacao,
     DecisaoRequest,
     DecisaoResponse,
     IncidenteDetalhe,
@@ -331,6 +334,48 @@ def diagnostico(request: Request) -> dict[str, Any]:
 @router.get("/api/v1/kpis", tags=["kpis"])
 def kpis(conn=Depends(get_conn)) -> dict[str, Any]:
     return queries.kpis(conn)
+
+
+def _ciclo_reconciliacao(linha: dict) -> CicloReconciliacao:
+    return CicloReconciliacao(
+        status=linha["status"],
+        recuperados=linha["recuperados"],
+        ja_conhecidos=linha["ja_conhecidos"],
+        encerrados_na_origem=linha["encerrados_na_origem"],
+        mensagem_erro=linha["mensagem_erro"],
+        ts_inicio=linha["ts_inicio"],
+        ts_conclusao=linha["ts_conclusao"],
+    )
+
+
+@router.get("/api/v1/reconciliacao", response_model=EstadoReconciliacao,
+            tags=["reconciliação"])
+def estado_reconciliacao(request: Request, conn=Depends(get_conn)) -> EstadoReconciliacao:
+    """Expõe configuração, último ciclo, atividade significativa e contagens sem alterar estado."""
+    intervalo = request.app.state.settings.polaris_polling_segundos
+    estado = queries.estado_reconciliacao(conn)
+
+    if intervalo <= 0:
+        status = "desativada"
+    elif estado is None:
+        status = "aguardando_primeiro_ciclo"
+    elif estado["status"] == "erro":
+        status = "erro"
+    else:
+        tolerancia = timedelta(seconds=max(intervalo * 3, 60))
+        atrasada = datetime.now(timezone.utc) - estado["ts_conclusao"] > tolerancia
+        status = "atrasada" if atrasada else "sucesso"
+
+    return EstadoReconciliacao(
+        habilitada=intervalo > 0,
+        operacional=status == "sucesso",
+        status=status,
+        intervalo_segundos=intervalo,
+        ultimo_ciclo=_ciclo_reconciliacao(estado) if estado else None,
+        contagens_incidentes=queries.contagens_incidentes_por_status(conn),
+        historico=[_ciclo_reconciliacao(linha)
+                   for linha in queries.historico_reconciliacao(conn)],
+    )
 
 
 # ---------------------------------------------------------------------------

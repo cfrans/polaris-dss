@@ -60,6 +60,11 @@ body {
   white-space: nowrap;
 }
 .pilula.ruim { color: var(--baixa); border-color: var(--baixa); }
+.pilula.atencao { color: var(--media); border-color: var(--media); }
+.pilula-botao {
+  background: transparent; cursor: pointer; font: inherit;
+}
+.pilula-botao:hover { border-color: var(--acento); color: var(--texto); }
 
 /* ---------- layout ---------- */
 
@@ -310,3 +315,34 @@ body {
 }
 .diag-config .vazio-valor { color: var(--texto-suave); font-style: italic; }
 .diag-config .mascarado { color: var(--media); }
+
+/* ---------- reconciliação ---------- */
+
+.recon-resumo {
+  display: grid; grid-template-columns: repeat(4, minmax(150px, 1fr));
+  gap: 0.75rem; margin-bottom: 1.5rem;
+}
+@media (max-width: 850px) { .recon-resumo { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 520px) { .recon-resumo { grid-template-columns: 1fr; } }
+
+.recon-cartao {
+  display: flex; flex-direction: column; gap: 0.35rem;
+  background: var(--fundo-cartao); border: 1px solid var(--borda);
+  border-radius: 6px; padding: 0.85rem 1rem;
+}
+.recon-cartao span {
+  color: var(--texto-suave); font-size: 0.72rem; text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+.recon-cartao strong { font-size: 0.95rem; }
+
+.recon-contagens {
+  list-style: none; display: flex; flex-wrap: wrap; gap: 0.55rem;
+}
+.recon-contagens li {
+  background: var(--fundo-cartao); border: 1px solid var(--borda);
+  border-radius: 999px; padding: 0.35rem 0.75rem; font-size: 0.84rem;
+}
+.recon-contagens strong { color: var(--acento); margin-left: 0.3rem; }
+.tabela-rolagem { overflow-x: auto; }
+.recon-historico-tabela { min-width: 780px; }

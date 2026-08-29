@@ -47,6 +47,109 @@ async function atualizarSaude() {
   }
 }
 
+/* ---------- reconciliação ---------- */
+
+const ROTULO_RECONCILIACAO = {
+  sucesso: "operacional",
+  erro: "falha no último ciclo",
+  atrasada: "sem ciclo recente",
+  aguardando_primeiro_ciclo: "aguardando primeiro ciclo",
+  desativada: "desativada",
+};
+
+const formatarData = (valor) => valor
+  ? new Date(valor).toLocaleString("pt-BR")
+  : "—";
+
+function resumoCiclo(ciclo) {
+  if (!ciclo) return "nenhum ciclo registrado";
+  if (ciclo.status === "erro") return ciclo.mensagem_erro || "erro sem detalhe";
+  return `${ciclo.recuperados} recuperado(s), ${ciclo.ja_conhecidos} conhecido(s), `
+    + `${ciclo.encerrados_na_origem} encerrado(s) na origem`;
+}
+
+async function obterReconciliacao() {
+  return api("/api/v1/reconciliacao");
+}
+
+async function atualizarReconciliacao() {
+  const badge = $("estado-reconciliacao");
+  try {
+    const dados = await obterReconciliacao();
+    badge.textContent = `reconciliação ${ROTULO_RECONCILIACAO[dados.status] ?? dados.status}`;
+    badge.classList.toggle("ruim", dados.status === "erro" || dados.status === "atrasada");
+    badge.classList.toggle("atencao", dados.status === "aguardando_primeiro_ciclo");
+  } catch {
+    badge.textContent = "reconciliação indisponível";
+    badge.classList.add("ruim");
+  }
+}
+
+async function abrirReconciliacao() {
+  document.querySelector(".painel").classList.add("oculto");
+  $("tela-diagnostico").classList.add("oculto");
+  $("tela-reconciliacao").classList.remove("oculto");
+  await carregarReconciliacao();
+}
+
+function fecharReconciliacao() {
+  $("tela-reconciliacao").classList.add("oculto");
+  document.querySelector(".painel").classList.remove("oculto");
+}
+
+async function carregarReconciliacao() {
+  let dados;
+  try {
+    dados = await obterReconciliacao();
+  } catch (erro) {
+    const aviso = $("recon-aviso");
+    aviso.textContent = `Não foi possível consultar a reconciliação: ${erro.message}`;
+    aviso.classList.remove("oculto");
+    return;
+  }
+
+  $("recon-aviso").classList.add("oculto");
+  $("recon-status").textContent = ROTULO_RECONCILIACAO[dados.status] ?? dados.status;
+  $("recon-ultima").textContent = formatarData(dados.ultimo_ciclo?.ts_conclusao);
+  $("recon-intervalo").textContent = dados.habilitada
+    ? `${dados.intervalo_segundos} s`
+    : "desativado";
+  $("recon-resultado").textContent = resumoCiclo(dados.ultimo_ciclo);
+
+  const contagens = $("recon-contagens");
+  contagens.innerHTML = "";
+  const ordem = ["pendente", "executando", "sucesso", "falha", "timeout", "rejeitado",
+    "encerrado_na_origem", "no_match"];
+  for (const status of ordem) {
+    const total = dados.contagens_incidentes[status] ?? 0;
+    const li = document.createElement("li");
+    li.textContent = status.replaceAll("_", " ");
+    const valor = document.createElement("strong");
+    valor.textContent = total;
+    li.appendChild(valor);
+    contagens.appendChild(li);
+  }
+
+  const historico = $("recon-historico");
+  historico.innerHTML = "";
+  if (!dados.historico.length) {
+    historico.innerHTML = '<tr><td colspan="6" class="vazio-valor">Nenhuma atividade significativa registrada.</td></tr>';
+    return;
+  }
+  for (const ciclo of dados.historico) {
+    const tr = document.createElement("tr");
+    for (const valor of [
+      formatarData(ciclo.ts_conclusao), ciclo.status, ciclo.recuperados,
+      ciclo.ja_conhecidos, ciclo.encerrados_na_origem, ciclo.mensagem_erro || "—",
+    ]) {
+      const td = document.createElement("td");
+      td.textContent = valor;
+      tr.appendChild(td);
+    }
+    historico.appendChild(tr);
+  }
+}
+
 /* ---------- lista ---------- */
 
 async function carregarLista() {
@@ -355,6 +458,7 @@ const ROTULO_ESTADO = {
 
 function abrirDiagnostico() {
   document.querySelector(".painel").classList.add("oculto");
+  $("tela-reconciliacao").classList.add("oculto");
   $("tela-diagnostico").classList.remove("oculto");
   carregarDiagnostico();
 }
@@ -441,12 +545,16 @@ async function recarregarBase() {
 
 
 $("btn-simular").addEventListener("click", simular);
+$("estado-reconciliacao").addEventListener("click", abrirReconciliacao);
+$("btn-fechar-reconciliacao").addEventListener("click", fecharReconciliacao);
 $("btn-diagnostico").addEventListener("click", abrirDiagnostico);
 $("btn-fechar-diagnostico").addEventListener("click", fecharDiagnostico);
 $("btn-reverificar").addEventListener("click", carregarDiagnostico);
 $("btn-recarregar-base").addEventListener("click", recarregarBase);
 
 atualizarSaude();
+atualizarReconciliacao();
 carregarLista();
 setInterval(carregarLista, INTERVALO_LISTA_MS);
 setInterval(atualizarSaude, 15000);
+setInterval(atualizarReconciliacao, 15000);

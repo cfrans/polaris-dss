@@ -10,7 +10,12 @@ from src.engine.models import Alert
 
 FIXTURES = Path(__file__).parent / "fixtures"
 
-TABELAS_VOLATEIS = ("audit_log", "experiment_run")
+TABELAS_VOLATEIS = (
+    "audit_log",
+    "experiment_run",
+    "reconciliacao_historico",
+    "reconciliacao_estado",
+)
 
 
 @pytest.fixture(scope="session")

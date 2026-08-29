@@ -12,6 +12,7 @@ from __future__ import annotations
 from functools import lru_cache
 from pathlib import Path
 
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -40,7 +41,7 @@ class Settings(BaseSettings):
     polaris_debug: bool = False
     polaris_confidence_history: bool = True
     # Intervalo do laço de reconciliação, em segundos. Zero desliga o laço.
-    polaris_polling_segundos: int = 30
+    polaris_polling_segundos: int = Field(default=30, ge=0)
 
     target_ssh_host: str = ""
     target_ssh_user: str = "polaris"

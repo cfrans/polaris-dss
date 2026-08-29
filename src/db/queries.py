@@ -363,3 +363,95 @@ def encerrar_por_origem(conn, incidente_id: int) -> None:
             "WHERE id = %s AND status_execucao = ANY(%s)",
             (incidente_id, list(ESTADOS_ABERTOS)),
         )
+
+
+# ---------------------------------------------------------------------------
+# Observabilidade da reconciliação
+# ---------------------------------------------------------------------------
+
+
+def registrar_reconciliacao(
+    conn,
+    *,
+    status: str,
+    intervalo_segundos: int,
+    ts_inicio: datetime,
+    ts_conclusao: datetime,
+    recuperados: int = 0,
+    ja_conhecidos: int = 0,
+    encerrados_na_origem: int = 0,
+    mensagem_erro: str | None = None,
+) -> bool:
+    """Atualiza o último ciclo e persiste no histórico somente atividade relevante.
+
+    O primeiro ciclo, toda transição de estado, mudança da mensagem de erro e ciclos que recuperem
+    ou encerrem incidentes são históricos. Repetições idênticas apenas renovam o estado operacional.
+    """
+    with conn.cursor() as cur:
+        cur.execute("SELECT status, mensagem_erro FROM reconciliacao_estado WHERE id = 1")
+        anterior = cur.fetchone()
+        mudou_estado = anterior is None or anterior["status"] != status
+        mudou_erro = (
+            status == "erro"
+            and anterior is not None
+            and anterior["mensagem_erro"] != mensagem_erro
+        )
+        significativo = (
+            mudou_estado or mudou_erro or recuperados > 0 or encerrados_na_origem > 0
+        )
+
+        cur.execute(
+            """
+            INSERT INTO reconciliacao_estado (
+                id, status, intervalo_segundos, recuperados, ja_conhecidos,
+                encerrados_na_origem, mensagem_erro, ts_inicio, ts_conclusao
+            ) VALUES (1, %s, %s, %s, %s, %s, %s, %s, %s)
+            ON CONFLICT (id) DO UPDATE SET
+                status = EXCLUDED.status,
+                intervalo_segundos = EXCLUDED.intervalo_segundos,
+                recuperados = EXCLUDED.recuperados,
+                ja_conhecidos = EXCLUDED.ja_conhecidos,
+                encerrados_na_origem = EXCLUDED.encerrados_na_origem,
+                mensagem_erro = EXCLUDED.mensagem_erro,
+                ts_inicio = EXCLUDED.ts_inicio,
+                ts_conclusao = EXCLUDED.ts_conclusao
+            """,
+            (status, intervalo_segundos, recuperados, ja_conhecidos, encerrados_na_origem,
+             mensagem_erro, ts_inicio, ts_conclusao),
+        )
+
+        if significativo:
+            cur.execute(
+                """
+                INSERT INTO reconciliacao_historico (
+                    status, recuperados, ja_conhecidos, encerrados_na_origem,
+                    mensagem_erro, ts_inicio, ts_conclusao
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s)
+                """,
+                (status, recuperados, ja_conhecidos, encerrados_na_origem,
+                 mensagem_erro, ts_inicio, ts_conclusao),
+            )
+    return significativo
+
+
+def estado_reconciliacao(conn) -> dict | None:
+    with conn.cursor() as cur:
+        cur.execute("SELECT * FROM reconciliacao_estado WHERE id = 1")
+        return cur.fetchone()
+
+
+def historico_reconciliacao(conn, limite: int = 20) -> list[dict]:
+    with conn.cursor() as cur:
+        cur.execute(
+            "SELECT * FROM reconciliacao_historico ORDER BY ts_conclusao DESC LIMIT %s",
+            (limite,),
+        )
+        return cur.fetchall()
+
+
+def contagens_incidentes_por_status(conn) -> dict[str, int]:
+    with conn.cursor() as cur:
+        cur.execute(
+            "SELECT status_execucao, COUNT(*) AS total FROM audit_log GROUP BY status_execucao"
+        )
+        return {linha["status_execucao"]: linha["total"] for linha in cur.fetchall()}

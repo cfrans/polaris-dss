@@ -1,6 +1,6 @@
 # Polaris DSS — ambiente local
 #
-# Por padrão sobe APENAS o banco de auditoria do Polaris:
+# Por padrão sobe banco, API e reconciliador do Polaris:
 #     docker compose up -d
 #
 # O stack do Zabbix é OPCIONAL e vive no profile "zabbix". A maioria dos ambientes que adotariam
@@ -48,6 +48,7 @@ services:
   # ---------------------------------------------------------------------------
   polaris-api:
     build: .
+    image: polaris-dss:local
     container_name: polaris-api
     environment:
       # Banco de auditoria: sempre o serviço interno, na rede do Compose.
@@ -94,6 +95,39 @@ services:
     networks:
       - polaris-network
     restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # Reconciliação periódica — processo único, separado dos workers da API.
+  # ---------------------------------------------------------------------------
+  polaris-reconciler:
+    build: .
+    image: polaris-dss:local
+    command: ["python", "-m", "src.engine.reconciliacao", "--loop"]
+    environment:
+      DB_HOST: polaris-db
+      DB_PORT: 5432
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres}
+      DB_NAME_AUDIT: ${DB_NAME_AUDIT:-polaris_audit}
+
+      ZABBIX_URL: ${ZABBIX_URL:-}
+      ZABBIX_USER: ${ZABBIX_USER:-}
+      ZABBIX_PASSWORD: ${ZABBIX_PASSWORD:-}
+      ZABBIX_TOKEN: ${ZABBIX_TOKEN:-}
+
+      POLARIS_CONFIDENCE_HISTORY: ${POLARIS_CONFIDENCE_HISTORY:-true}
+      POLARIS_POLLING_SEGUNDOS: ${POLARIS_POLLING_SEGUNDOS:-30}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    depends_on:
+      polaris-db:
+        condition: service_healthy
+    networks:
+      - polaris-network
+    # A imagem compartilhada verifica a API HTTP; este processo não serve HTTP.
+    healthcheck:
+      disable: true
+    # Intervalo zero encerra normalmente e mantém o serviço desativado; falhas reais reiniciam.
+    restart: on-failure
 
   # ---------------------------------------------------------------------------
   # Zabbix de laboratório — profile "zabbix" (não sobe por padrão)

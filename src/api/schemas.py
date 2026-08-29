@@ -141,3 +141,23 @@ class Saude(BaseModel):
     versao: str
     versao_kb: str | None = None
     debug: bool = False
+
+
+class CicloReconciliacao(BaseModel):
+    status: str
+    recuperados: int = 0
+    ja_conhecidos: int = 0
+    encerrados_na_origem: int = 0
+    mensagem_erro: str | None = None
+    ts_inicio: datetime
+    ts_conclusao: datetime
+
+
+class EstadoReconciliacao(BaseModel):
+    habilitada: bool
+    operacional: bool
+    status: str
+    intervalo_segundos: int
+    ultimo_ciclo: CicloReconciliacao | None = None
+    contagens_incidentes: dict[str, int] = Field(default_factory=dict)
+    historico: list[CicloReconciliacao] = Field(default_factory=list)
