@@ -1,4 +1,4 @@
-FROM python:3.12-slim
+FROM python:3.12-slim-trixie
 
 # Cliente SSH para inspeção manual do host alvo. A remediação em si usa paramiko, que lê a chave
 # diretamente e dispensa as verificações de modo de arquivo do OpenSSH.

@@ -19,7 +19,7 @@ services:
   # Banco de auditoria do Polaris — sempre sobe. Independente do banco do Zabbix.
   # ---------------------------------------------------------------------------
   polaris-db:
-    image: postgres:16
+    image: postgres:16-trixie
     container_name: polaris-db
     environment:
       POSTGRES_USER: ${DB_USER:-postgres}
@@ -133,7 +133,7 @@ services:
   # Zabbix de laboratório — profile "zabbix" (não sobe por padrão)
   # ---------------------------------------------------------------------------
   zabbix-db:
-    image: postgres:16
+    image: postgres:16-trixie
     container_name: zabbix-db
     profiles: ["zabbix"]
     environment:

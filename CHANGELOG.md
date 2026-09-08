@@ -7,6 +7,15 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 
 ## [Não lançado]        <!-- alvo: v0.5.0 telemetria · v0.6.0 remediação -->
 
+### Alterado
+- Distribuição-base explícita Debian 13 Trixie: `python:3.12-slim-trixie` para API e
+  reconciliador e `postgres:16-trixie` para os bancos do Compose. As tags preservam a
+  distribuição, mas continuam recebendo atualizações de pacotes.
+- Build local ARM64 com as tags Trixie validado: Debian 13.6, quatro migrações e
+  180 testes aprovados com PostgreSQL descartável; API saudável e intervalo zero verificado.
+- [NÃO VERIFICADO] Implantação das tags explícitas no servidor e registro dos digests
+  usados na coleta; a validação local não substitui a conferência no laboratório.
+
 ### Adicionado
 - Serviço `polaris-reconciler` separado no Docker Compose, que operacionaliza um único laço de
   reconciliação sem criar um processo por worker da API. O intervalo continua configurável por
