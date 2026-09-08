@@ -7,14 +7,20 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 
 ## [Não lançado]        <!-- alvo: v0.5.0 telemetria · v0.6.0 remediação -->
 
+### Corrigido
+- Idempotência global por `EVENT.ID`, inclusive para alertas sem regra compatível. O
+  reconciliador deixa de gravar o mesmo `no_match` a cada ciclo; duplicatas históricas
+  permanecem preservadas na auditoria e a primeira ingestão vira a referência canônica.
+
 ### Alterado
 - Distribuição-base explícita Debian 13 Trixie: `python:3.12-slim-trixie` para API e
   reconciliador e `postgres:16-trixie` para os bancos do Compose. As tags preservam a
   distribuição, mas continuam recebendo atualizações de pacotes.
 - Build local ARM64 com as tags Trixie validado: Debian 13.6, quatro migrações e
   180 testes aprovados com PostgreSQL descartável; API saudável e intervalo zero verificado.
-- [NÃO VERIFICADO] Implantação das tags explícitas no servidor e registro dos digests
-  usados na coleta; a validação local não substitui a conferência no laboratório.
+- Implantação das tags Trixie no servidor confirmada pelo operador em 08/Set/2026:
+  API e banco saudáveis, quatro migrações aplicadas e Debian 13.6 identificado.
+  As imagens da coleta oficial ainda devem ser reconfirmadas quando ela ocorrer.
 
 ### Adicionado
 - Serviço `polaris-reconciler` separado no Docker Compose, que operacionaliza um único laço de

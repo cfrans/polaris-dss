@@ -32,11 +32,17 @@ class Ingestao:
 # ---------------------------------------------------------------------------
 
 
-def incidente_aberto_por_evento(conn, id_evento: str) -> int | None:
+def incidente_por_evento(conn, id_evento: str) -> int | None:
+    """Retorna o primeiro incidente associado ao EVENT.ID, em qualquer estado.
+
+    O bloqueio transacional serializa webhook e reconciliador para que duas entregas
+    simultâneas não atravessem juntas a consulta de idempotência.
+    """
     with conn.cursor() as cur:
+        cur.execute("SELECT pg_advisory_xact_lock(hashtextextended(%s, 0))", (id_evento,))
         cur.execute(
-            "SELECT id FROM audit_log WHERE id_evento = %s AND status_execucao = ANY(%s)",
-            (id_evento, list(ESTADOS_ABERTOS)),
+            "SELECT incidente_id AS id FROM evento_ingestao WHERE id_evento = %s",
+            (id_evento,),
         )
         linha = cur.fetchone()
     return linha["id"] if linha else None
@@ -53,7 +59,7 @@ def criar_incidente(
     Reentrega do mesmo evento pelo webhook devolve o incidente existente em vez de duplicar.
     """
     if alert.id_evento:
-        existente = incidente_aberto_por_evento(conn, alert.id_evento)
+        existente = incidente_por_evento(conn, alert.id_evento)
         if existente is not None:
             return Ingestao(incidente_id=existente, duplicado=True)
 
@@ -70,7 +76,12 @@ def criar_incidente(
                 (alert.id_evento, alert.hostname, alert.severidade,
                  alert.ts_deteccao, experiment_run_id),
             )
-            return Ingestao(incidente_id=cur.fetchone()["id"], sem_regra=True)
+            incidente_id = cur.fetchone()["id"]
+            cur.execute(
+                "INSERT INTO evento_ingestao (id_evento, incidente_id) VALUES (%s, %s)",
+                (alert.id_evento, incidente_id),
+            )
+            return Ingestao(incidente_id=incidente_id, sem_regra=True)
 
     trace = sugestao.trace
     with conn.cursor() as cur:
@@ -89,7 +100,12 @@ def criar_incidente(
              Jsonb(trace.to_dict()), trace.versao_kb, trace.versao_motor,
              sugestao.comando, sugestao.verificador, alert.ts_deteccao, experiment_run_id),
         )
-        return Ingestao(incidente_id=cur.fetchone()["id"])
+        incidente_id = cur.fetchone()["id"]
+        cur.execute(
+            "INSERT INTO evento_ingestao (id_evento, incidente_id) VALUES (%s, %s)",
+            (alert.id_evento, incidente_id),
+        )
+        return Ingestao(incidente_id=incidente_id)
 
 
 def marcar_exibicao(conn, incidente_id: int) -> bool:

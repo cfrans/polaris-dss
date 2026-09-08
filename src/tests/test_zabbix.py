@@ -215,6 +215,26 @@ def test_reconciliacao_nao_duplica_o_que_ja_existe(conn, kb, config):
     assert len(queries_pendentes(conn)) == 1
 
 
+def test_reconciliacao_nao_repete_evento_sem_regra(conn, kb, config):
+    from src.db import queries
+    from src.engine.reconciliacao import reconciliar
+
+    payload = {
+        **WEBHOOK_DISCO,
+        "event_id": "rec-sem-regra",
+        "item_key": "custom.unknown",
+        "tags": "scope: unknown",
+    }
+    cliente = ClienteDuble([normalizar_webhook(payload)])
+    primeiro = reconciliar(conn, cliente, kb, config)
+    segundo = reconciliar(conn, cliente, kb, config)
+
+    assert primeiro.recuperados == 1
+    assert segundo.recuperados == 0
+    assert segundo.ja_conhecidos == 1
+    assert len(queries.listar_incidentes(conn, status="no_match")) == 1
+
+
 def test_reconciliacao_encerra_incidente_resolvido_na_origem(conn, kb, config):
     """Problema que sumiu do Zabbix antes da decisão não pode ficar pendente para sempre."""
     from src.db import queries

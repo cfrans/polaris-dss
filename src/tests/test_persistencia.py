@@ -102,6 +102,29 @@ def test_alerta_sem_regra_e_registrado_como_no_match(conn, kb, config, alerta):
     assert queries.obter_incidente(conn, ing.incidente_id)["status_execucao"] == "no_match"
 
 
+def test_evento_sem_regra_reentregue_nao_duplica(conn, kb, config, alerta):
+    a = alerta("sem_regra", id_evento="ev-no-match-duplicado")
+    primeira = ingerir(conn, a, kb, config, usar_historico=False)
+    segunda = ingerir(conn, a, kb, config, usar_historico=False)
+
+    assert primeira.sem_regra is True
+    assert segunda.duplicado is True
+    assert segunda.incidente_id == primeira.incidente_id
+    assert len(queries.listar_incidentes(conn, status="no_match")) == 1
+
+
+def test_evento_concluido_reentregue_nao_cria_novo_incidente(conn, kb, config, alerta):
+    a = alerta("service_down", id_evento="ev-rejeitado-reentregue")
+    primeira = ingerir(conn, a, kb, config, usar_historico=False)
+    assert decidir(conn, primeira.incidente_id, False, "tester", "não executar") is True
+
+    segunda = ingerir(conn, a, kb, config, usar_historico=False)
+
+    assert segunda.duplicado is True
+    assert segunda.incidente_id == primeira.incidente_id
+    assert len(queries.listar_incidentes(conn, status=None)) == 1
+
+
 def test_falha_de_execucao_nao_fecha_o_incidente(conn, kb, config, alerta):
     """Sem confirmação de saúde não há t5: código de retorno não é prova de restabelecimento."""
     ing = ingerir(conn, alerta("service_down", id_evento="ev-falha"), kb, config,
