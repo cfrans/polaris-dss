@@ -165,9 +165,10 @@ docker compose --profile zabbix up -d    # adds Zabbix Server, Web and Agent, wi
 ```
 
 > **Note on the remediation target.** Polaris and PostgreSQL run fine in containers, but the *host
-> being remediated* should be a real Linux VM: a stock container has no `systemd` (so service
-> restarts fail), filling a container's disk fills the host's disk, and process control inside a
-> container acts on the wrong namespace.
+> being remediated* should be a real Linux VM or a system container (LXC with systemd and isolated mountpoint):
+> a stock application container (Docker) has no `systemd` (so service restarts fail), filling an
+> application container's disk fills the host's disk, and process control inside an application container acts on
+> the wrong namespace.
 
 ### Running the inference engine standalone
 
