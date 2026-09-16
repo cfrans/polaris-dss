@@ -164,6 +164,33 @@ If you need a local Zabbix for testing, it ships in an opt-in Compose profile:
 docker compose --profile zabbix up -d    # adds Zabbix Server, Web and Agent, with its own database
 ```
 
+### Scalable Zabbix onboarding
+
+Polaris does not require creating items and triggers separately on every monitored host. Import
+[`infra/zabbix/polaris-template-linux.yaml`](infra/zabbix/polaris-template-linux.yaml) in
+**Data collection → Templates → Import**, then link **Polaris DSS Linux** to the required Linux
+hosts using Zabbix mass update. The companion template supplies the three canonical incident
+scenarios without duplicating the official CPU problem. It expects **Linux by Zabbix agent** on
+each host and uses its **Linux: High CPU utilization** trigger for R002. The companion template adds
+explicitly tagged R001 and R003 triggers. Filesystem low-level discovery creates R001 for every
+eligible mounted filesystem; `/mnt/polaris_test` is only the controlled target used by the
+experiment. The bundled R001 remediation policy remains allowlisted to that controlled mountpoint,
+so discovering another filesystem does not grant a cleanup command for it.
+
+For hosts that already exist, select them in **Data collection → Hosts** and use **Mass update →
+Link templates**. For future hosts, configure a Zabbix discovery or autoregistration action with a
+**Link template** operation, so the template is attached when the host is enrolled rather than by
+an individual manual step.
+
+Import [`infra/zabbix/polaris-mediatype.yaml`](infra/zabbix/polaris-mediatype.yaml) once for the
+webhook transport. Configure the media type URL and token, associate it with the notification user,
+and create one trigger action. The action applies to every linked host; credentials are never
+stored in the template files. Use the custom expression `(A and B) or (C and D)`: `A` is tag name
+equal to `polaris`, `B` is value of tag `polaris` equal to `enabled`, `C` is template
+**Linux by Zabbix agent**, and `D` is event name containing `Linux: High CPU utilization`. The
+first branch covers the complementary R001 and R003 triggers; the second selects the official CPU
+event used by R002.
+
 > **Note on the remediation target.** Polaris and PostgreSQL run fine in containers, but the *host
 > being remediated* should be a real Linux VM or a system container (LXC with systemd and isolated mountpoint):
 > a stock application container (Docker) has no `systemd` (so service restarts fail), filling an

@@ -1,0 +1,127 @@
+zabbix_export:
+  version: '7.0'
+  template_groups:
+    - uuid: 846977d1dfed4968bc5f8bdb363285bc
+      name: 'Templates/Operating systems'
+  templates:
+    - uuid: 4ac0fff6c37a429c92eb0f9c48907b4e
+      template: 'Polaris DSS Linux'
+      name: 'Polaris DSS Linux'
+      description: |
+        Companion template for Linux hosts monitored by Polaris DSS.
+
+        Link it together with the official "Linux by Zabbix agent" template. The official
+        "Linux: High CPU utilization" trigger supplies R002; this companion template discovers
+        mounted filesystems for R001 and adds the nginx check for R003.
+      vendor:
+        name: 'Polaris DSS'
+        version: 1.0-1
+      groups:
+        - name: 'Templates/Operating systems'
+      items:
+        - uuid: aecc1596ffc641d0ae9f01ed9ba0ef24
+          name: 'Polaris: nginx processes'
+          key: 'proc.num[nginx]'
+          delay: 10s
+          history: 7d
+          trends: 365d
+          description: 'Number of nginx processes monitored by rule R003.'
+          tags:
+            - tag: component
+              value: service
+            - tag: polaris_rule
+              value: R003
+          triggers:
+            - uuid: 9151a78a4cbb49a0b269700e7e1553d3
+              expression: 'last(/Polaris DSS Linux/proc.num[nginx])=0'
+              recovery_mode: RECOVERY_EXPRESSION
+              recovery_expression: 'last(/Polaris DSS Linux/proc.num[nginx])>0'
+              name: 'Service nginx is not running'
+              opdata: 'Running processes: {ITEM.LASTVALUE1}'
+              priority: HIGH
+              description: 'Detects an unavailable nginx service for rule R003.'
+              tags:
+                - tag: polaris
+                  value: enabled
+                - tag: polaris_tipo
+                  value: service_down
+                - tag: scope
+                  value: availability
+      discovery_rules:
+        - uuid: 7c4a3e6f70c64665bd7ccfb097a4192c
+          name: 'Polaris: Mounted filesystem discovery'
+          key: vfs.fs.discovery
+          delay: 1h
+          filter:
+            evaltype: AND
+            conditions:
+              - macro: '{#FSNAME}'
+                value: '{$POLARIS.VFS.FSNAME.MATCHES}'
+                formulaid: A
+              - macro: '{#FSNAME}'
+                value: '{$POLARIS.VFS.FSNAME.NOT_MATCHES}'
+                operator: NOT_MATCHES_REGEX
+                formulaid: B
+              - macro: '{#FSTYPE}'
+                value: '{$POLARIS.VFS.FSTYPE.MATCHES}'
+                formulaid: C
+              - macro: '{#FSTYPE}'
+                value: '{$POLARIS.VFS.FSTYPE.NOT_MATCHES}'
+                operator: NOT_MATCHES_REGEX
+                formulaid: D
+          description: 'Discovers mounted filesystems for the generic R001 capacity trigger.'
+          item_prototypes:
+            - uuid: 889b7acfc45a475bb28db4d3669a49df
+              name: 'Polaris: FS [{#FSNAME}]: Space used, in %'
+              key: 'vfs.fs.size[{#FSNAME},pused]'
+              delay: 10s
+              history: 7d
+              trends: 365d
+              value_type: FLOAT
+              units: '%'
+              description: 'Percentage used on a filesystem discovered for rule R001.'
+              tags:
+                - tag: component
+                  value: storage
+                - tag: filesystem
+                  value: '{#FSNAME}'
+                - tag: polaris_rule
+                  value: R001
+              trigger_prototypes:
+                - uuid: 48caffaf45b640719dc4a1ddc387b229
+                  expression: 'last(/Polaris DSS Linux/vfs.fs.size[{#FSNAME},pused])>{$POLARIS.DISK.PUSED.PROBLEM:"{#FSNAME}"}'
+                  recovery_mode: RECOVERY_EXPRESSION
+                  recovery_expression: 'last(/Polaris DSS Linux/vfs.fs.size[{#FSNAME},pused])<{$POLARIS.DISK.PUSED.RECOVERY:"{#FSNAME}"}'
+                  name: 'FS [{#FSNAME}]: Disk space is critically low'
+                  event_name: 'FS [{#FSNAME}]: Disk space is critically low (used > {$POLARIS.DISK.PUSED.PROBLEM:"{#FSNAME}"}%)'
+                  opdata: 'Current utilization: {ITEM.LASTVALUE1}'
+                  priority: HIGH
+                  description: 'Detects saturation on a discovered mounted filesystem.'
+                  tags:
+                    - tag: filesystem
+                      value: '{#FSNAME}'
+                    - tag: polaris
+                      value: enabled
+                    - tag: polaris_tipo
+                      value: disk_full
+                    - tag: scope
+                      value: capacity
+      macros:
+        - macro: '{$POLARIS.DISK.PUSED.PROBLEM}'
+          value: '95'
+          description: 'Disk utilization threshold that opens an R001 problem.'
+        - macro: '{$POLARIS.DISK.PUSED.RECOVERY}'
+          value: '85'
+          description: 'Disk utilization threshold that resolves an R001 problem; supports context per mountpoint.'
+        - macro: '{$POLARIS.VFS.FSNAME.MATCHES}'
+          value: .+
+          description: 'Filesystem mountpoints included in Polaris discovery.'
+        - macro: '{$POLARIS.VFS.FSNAME.NOT_MATCHES}'
+          value: ^(/dev|/sys|/run|/proc|.+/shm$)
+          description: 'Pseudo and transient filesystem mountpoints excluded from Polaris discovery.'
+        - macro: '{$POLARIS.VFS.FSTYPE.MATCHES}'
+          value: ^(btrfs|ext2|ext3|ext4|reiser|xfs|ffs|ufs|jfs|jfs2|vxfs|hfs|apfs|refs|ntfs|fat32|zfs)$
+          description: 'Filesystem types included in Polaris discovery.'
+        - macro: '{$POLARIS.VFS.FSTYPE.NOT_MATCHES}'
+          value: '^\s$'
+          description: 'Filesystem types excluded from Polaris discovery.'

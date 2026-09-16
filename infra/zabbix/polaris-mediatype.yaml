@@ -64,7 +64,10 @@ zabbix_export:
            idêntico ao POLARIS_WEBHOOK_TOKEN do Polaris.
         3. Users > selecione o usuário > Media: adicione a mídia "Polaris DSS".
         4. Alerts > Actions > Trigger actions: crie uma ação com a operação
-           "Send message to users" via "Polaris DSS".
+           "Send message to users" via "Polaris DSS". Use quatro condições e a expressão
+           `(A and B) or (C and D)`: nome da tag igual a `polaris`, valor da tag `polaris`
+           igual a `enabled`, template igual a `Linux by Zabbix agent` e nome do evento
+           contendo `Linux: High CPU utilization`.
 
         Para escolher quais hosts são assistidos, prefira condições por host group
         (ex.: `Linux servers`) ou por tag (`polaris: enabled`) em vez de vincular host a host.

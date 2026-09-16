@@ -27,40 +27,27 @@ from src.engine.zabbix_client import (
 FIXTURES = Path(__file__).parent / "fixtures"
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
-WEBHOOK_DISCO = {
-    "event_id": "80231",
-    "event_time": "2026.10.14 18:22:01",
-    "host": "vm-alvo",
-    "host_ip": "192.168.0.152",
-    "trigger": "/mnt/polaris_test: Disk space is critically low (used > 95%)",
-    "severity": "High",
-    "item_key": "vfs.fs.size[/mnt/polaris_test,pused]",
-    "item_value": "97.4 %",
-    "tags": "polaris_tipo: disk_full, scope: capacity",
-}
-
-
 def carregar_payload(nome: str) -> dict:
     return json.loads((FIXTURES / f"{nome}.json").read_text(encoding="utf-8"))
 
 
 def test_normaliza_evento_de_disco():
-    alerta = normalizar_webhook(WEBHOOK_DISCO)
+    alerta = normalizar_webhook(carregar_payload("zabbix_disk_full"))
     assert alerta.tipo_alerta == "disk_full"
     assert alerta.hostname == "vm-alvo"
-    assert alerta.id_evento == "80231"
-    assert alerta.valor == pytest.approx(97.4)
+    assert alerta.id_evento == "239"
+    assert alerta.valor == pytest.approx(100)
     assert alerta.severidade == "alta"
     assert alerta.metrica == "vfs.fs.size[/mnt/polaris_test,pused]"
     assert "Disk space is critically low" in alerta.texto
-    assert alerta.ts_deteccao == datetime(2026, 10, 14, 18, 22, 1, tzinfo=timezone.utc)
+    assert alerta.ts_deteccao is None
 
 
 def test_evento_normalizado_casa_com_a_regra(kb, config, monkeypatch):
     """O caminho que importa: o que chega do Zabbix precisa disparar a heurística."""
     from src.engine.engine import analisar
 
-    alerta = normalizar_webhook(WEBHOOK_DISCO)
+    alerta = normalizar_webhook(carregar_payload("zabbix_disk_full"))
     sugestao = analisar(alerta, kb, config)
     assert sugestao is not None
     assert sugestao.rule.id == "R001"
@@ -101,6 +88,54 @@ def test_media_type_nao_envia_horario_sem_fuso():
     assert "name: event_time" not in conteudo
     assert "{EVENT.TIMESTAMP}" not in conteudo
     assert "value: '{EVENT.DATE} {EVENT.TIME}'" not in conteudo
+
+
+def test_template_linux_complementa_template_oficial_sem_duplicar_cpu_ou_segredos():
+    conteudo = (REPO_ROOT / "infra" / "zabbix" / "polaris-template-linux.yaml").read_text(
+        encoding="utf-8"
+    )
+    assert "template: 'Polaris DSS Linux'" in conteudo
+    assert "key: vfs.fs.discovery" in conteudo
+    assert "vfs.fs.size[{#FSNAME},pused]" in conteudo
+    assert '"Linux: High CPU utilization" trigger supplies R002' in conteudo
+    assert "key: polaris.cpu.util" not in conteudo
+    assert "proc.num[nginx]" in conteudo
+    assert "value: disk_full" in conteudo
+    assert "value: service_down" in conteudo
+    assert "polaris_token" not in conteudo
+
+
+def test_alias_de_cpu_do_template_vira_metrica_canonica(kb, config):
+    from src.engine.engine import analisar
+
+    alerta = normalizar_webhook({
+        "event_id": "template-cpu-1",
+        "host": "vm-alvo",
+        "trigger": "High CPU utilization on vm-alvo",
+        "severity": "Warning",
+        "item_key": "polaris.cpu.util",
+        "item_value": "94.2 %",
+        "tags": "polaris: enabled, polaris_tipo: cpu_high, scope: performance",
+    })
+
+    assert alerta.tipo_alerta == "cpu_high"
+    assert alerta.metrica == "system.cpu.util"
+    assert analisar(alerta, kb, config).rule.id == "R002"
+
+
+def test_trigger_oficial_de_cpu_casa_com_r002(kb, config):
+    from src.engine.engine import analisar
+
+    alerta = normalizar_webhook(carregar_payload("zabbix_cpu_high"))
+
+    assert alerta.id_evento == "245"
+    assert alerta.tipo_alerta == "cpu_high"
+    assert alerta.hostname == "vm-alvo"
+    assert alerta.metrica == "system.cpu.util"
+    assert alerta.valor == pytest.approx(100)
+    assert alerta.severidade == "media"
+    assert alerta.texto == "Linux: High CPU utilization 100 %"
+    assert analisar(alerta, kb, config).rule.id == "R002"
 
 
 def test_cliente_busca_clock_autoritativo_do_evento(monkeypatch):

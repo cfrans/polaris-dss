@@ -38,6 +38,11 @@ def test_alerta_sem_regra_nao_casa(kb, alerta):
     assert match_rules(alerta("sem_regra"), kb.regras) == []
 
 
+def test_filesystem_nao_autorizado_nao_recebe_remediacao_r001(kb, alerta, config):
+    a = alerta("disk_full", metrica="vfs.fs.size[/,pused]")
+    assert analisar(a, kb, config) is None
+
+
 def test_sem_regra_devolve_none_em_vez_de_palpite(kb, alerta, config):
     assert analisar(alerta("sem_regra"), kb, config) is None
 

@@ -8,6 +8,13 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 ## [Não lançado]        <!-- alvo: v0.5.0 telemetria · v0.6.0 remediação -->
 
 ### Corrigido
+- R002 passou a consumir o trigger `Linux: High CPU utilization` do template oficial, eliminando o
+  segundo item calculado e o problema duplicado de CPU criado pelo template complementar. O
+  payload bruto do evento oficial capturado no Zabbix 7.0 foi incorporado às fixtures e aos testes.
+- O gatilho R001 agora descobre sistemas de arquivos montados, em vez de existir somente para
+  `/mnt/polaris_test`. A correspondência de métricas impede que um volume não autorizado receba o
+  comando de limpeza reservado ao ponto de montagem allowlisted na base de conhecimento. O
+  payload bruto do evento 239 capturado no laboratório foi incorporado às fixtures e aos testes.
 - Idempotência global por `EVENT.ID`, inclusive para alertas sem regra compatível. O
   reconciliador deixa de gravar o mesmo `no_match` a cada ciclo; duplicatas históricas
   permanecem preservadas na auditoria e a primeira ingestão vira a referência canônica.
@@ -23,6 +30,9 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
   As imagens da coleta oficial ainda devem ser reconfirmadas quando ela ocorrer.
 
 ### Adicionado
+- Template complementar importável para Zabbix 7.0, com os itens, triggers, limiares e tags dos
+  cenários R001 e R003 e integração com o trigger oficial de R002. O vínculo em massa aplica a
+  integração a múltiplos hosts sem cadastro manual host a host nem alerta duplicado de CPU.
 - Serviço `polaris-reconciler` separado no Docker Compose, que operacionaliza um único laço de
   reconciliação sem criar um processo por worker da API. O intervalo continua configurável por
   `POLARIS_POLLING_SEGUNDOS`, e o valor zero desativa o serviço sem exigir acesso ao Zabbix.

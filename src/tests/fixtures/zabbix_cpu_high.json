@@ -1,0 +1,10 @@
+{
+  "event_id": "245",
+  "host": "vm-alvo",
+  "host_ip": "192.168.0.152",
+  "trigger": "Linux: High CPU utilization",
+  "severity": "Warning",
+  "item_key": "system.cpu.util",
+  "item_value": "100 %",
+  "tags": "class:os, component:cpu, scope:performance, target:linux"
+}

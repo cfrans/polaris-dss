@@ -41,6 +41,8 @@ def match_rules(alert: Alert, regras: tuple[Rule, ...] | list[Rule]) -> list[Mat
             continue
         if not _severidade_atendida(regra, alert):
             continue
+        if not _metrica_compativel(regra, alert):
+            continue
 
         metrica = _avaliar_metrica(regra, alert)
         texto = _avaliar_texto(regra, alert)
@@ -70,6 +72,17 @@ def _severidade_atendida(regra: Rule, alert: Alert) -> bool:
     if alert.severidade not in SEVERIDADES or regra.severidade_minima not in SEVERIDADES:
         return True
     return SEVERIDADES.index(alert.severidade) >= SEVERIDADES.index(regra.severidade_minima)
+
+
+def _metrica_compativel(regra: Rule, alert: Alert) -> bool:
+    """Impede que um alerta de outra métrica acione uma remediação apenas pelo texto.
+
+    Webhooks incompletos ainda podem casar pelo texto. Quando ambas as chaves estão presentes,
+    porém, elas precisam ser idênticas; isso preserva a allowlist da base de conhecimento.
+    """
+    esperada = regra.condicao.metrica
+    recebida = alert.metrica
+    return not esperada or not recebida or esperada == recebida
 
 
 def _avaliar_metrica(regra: Rule, alert: Alert) -> EvidenciaMetrica:

@@ -1,0 +1,10 @@
+{
+  "event_id": "239",
+  "host": "vm-alvo",
+  "host_ip": "192.168.0.152",
+  "trigger": "FS [/mnt/polaris_test]: Disk space is critically low",
+  "severity": "High",
+  "item_key": "vfs.fs.size[/mnt/polaris_test,pused]",
+  "item_value": "100 %",
+  "tags": "component:storage, filesystem:/mnt/polaris_test, polaris:enabled, polaris_rule:R001, polaris_tipo:disk_full, scope:capacity"
+}

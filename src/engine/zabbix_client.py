@@ -49,9 +49,16 @@ TIPO_POR_PREFIXO_ITEM = (
     ("proc.num", "service_down"),
     ("net.tcp.service", "service_down"),
     ("systemd.unit", "service_down"),
+    ("polaris.cpu.util", "cpu_high"),
 )
 
 TAG_TIPO = "polaris_tipo"
+
+# Compatibilidade com a revisão 1.0-0 do template complementar, que criou um alias calculado antes
+# de R002 passar a consumir diretamente o trigger oficial do template Linux.
+METRICA_CANONICA_POR_ITEM = {
+    "polaris.cpu.util": "system.cpu.util",
+}
 
 
 class ZabbixError(RuntimeError):
@@ -82,7 +89,7 @@ def normalizar_webhook(dados: dict[str, Any]) -> Alert:
         hostname=(dados.get("host") or "").strip(),
         texto=texto,
         valor=valor_numerico(dados.get("item_value")),
-        metrica=item_key or None,
+        metrica=METRICA_CANONICA_POR_ITEM.get(item_key, item_key) or None,
         severidade=traduzir_severidade(dados.get("severity")),
         id_evento=str(dados["event_id"]).strip() if dados.get("event_id") else None,
         ts_deteccao=interpretar_data(dados.get("event_time")),
