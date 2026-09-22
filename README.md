@@ -72,7 +72,9 @@ The system is organized into **three layers**:
 3. **Confidence score** is calculated based on rule parameters
 4. **Web interface** presents the suggestion with full diagnosis and justification
 5. **Operator** reviews and approves (or rejects) with one click
-6. **System executes** the remediation script on the target infrastructure
+6. **System executes** the approved default script on the target infrastructure over SSH. The
+   script is sent from the Polaris image through standard input, so no script installation is
+   needed on each target host.
 7. **Audit log** records the full incident lifecycle with timestamps for MTTR calculation
 
 ---

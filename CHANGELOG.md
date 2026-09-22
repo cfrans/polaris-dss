@@ -20,6 +20,10 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
   permanecem preservadas na auditoria e a primeira ingestão vira a referência canônica.
 
 ### Alterado
+- A remediação passa a enviar os scripts padrão da imagem pela entrada SSH, sem cópias permanentes
+  no host alvo. A aprovação grava o hash do conjunto apresentado; uma versão divergente impede a
+  decisão. A interface apresenta os scripts e o aviso de responsabilidade no primeiro acesso.
+- Corrigida a referência obsoleta à fixture de disco em cinco testes de reconciliação.
 - Distribuição-base explícita Debian 13 Trixie: `python:3.12-slim-trixie` para API e
   reconciliador e `postgres:16-trixie` para os bancos do Compose. As tags preservam a
   distribuição, mas continuam recebendo atualizações de pacotes.

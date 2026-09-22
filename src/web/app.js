@@ -11,6 +11,8 @@ const estado = {
   exibicaoRegistrada: new Set(),
   confirmandoBandaBaixa: false,
   debug: false,
+  catalogo: null,
+  indiceScript: 0,
 };
 
 const $ = (id) => document.getElementById(id);
@@ -28,6 +30,63 @@ async function api(caminho, opcoes = {}) {
 }
 
 const pct = (v) => (v == null ? "—" : `${Math.round(v * 100)}%`);
+
+/* ---------- ciência sobre a execução remota ---------- */
+
+const CHAVE_CIENCIA = "polaris.ciencia.scripts";
+const CHAVE_FAIXA = "polaris.faixa.oculta";
+
+function lerPreferencia(chave) {
+  try { return localStorage.getItem(chave); } catch { return null; }
+}
+
+function guardarPreferencia(chave, valor) {
+  try { localStorage.setItem(chave, valor); } catch { /* Reaparece no próximo acesso. */ }
+}
+
+function atualizarFaixa() {
+  const versao = estado.catalogo?.versao;
+  const mostrar = versao && lerPreferencia(CHAVE_CIENCIA) === versao
+    && lerPreferencia(CHAVE_FAIXA) !== versao;
+  $("faixa-ciencia").classList.toggle("oculto", !mostrar);
+}
+
+function mostrarScript(indice) {
+  if (!estado.catalogo?.scripts.length) return;
+  const total = estado.catalogo.scripts.length;
+  estado.indiceScript = (indice + total) % total;
+  const script = estado.catalogo.scripts[estado.indiceScript];
+  $("ciencia-script-nome").textContent = script.nome;
+  $("ciencia-contador").textContent = `${estado.indiceScript + 1} de ${total}`;
+  $("ciencia-codigo").textContent = script.conteudo;
+}
+
+async function carregarScripts() {
+  $("tela-ciencia").classList.remove("oculto");
+  $("btn-continuar-ciencia").disabled = true;
+  try {
+    estado.catalogo = await api("/api/v1/scripts-padrao");
+    mostrarScript(0);
+    $("ciencia-erro").classList.add("oculto");
+    $("btn-recarregar-scripts").classList.add("oculto");
+    $("btn-continuar-ciencia").disabled = false;
+    if (lerPreferencia(CHAVE_CIENCIA) === estado.catalogo.versao) {
+      $("tela-ciencia").classList.add("oculto");
+      atualizarFaixa();
+    }
+  } catch (erro) {
+    $("ciencia-erro").textContent = `Não foi possível carregar os scripts: ${erro.message}`;
+    $("ciencia-erro").classList.remove("oculto");
+    $("btn-recarregar-scripts").classList.remove("oculto");
+  }
+}
+
+function continuarAposCiencia() {
+  if (!estado.catalogo) return;
+  guardarPreferencia(CHAVE_CIENCIA, estado.catalogo.versao);
+  $("tela-ciencia").classList.add("oculto");
+  atualizarFaixa();
+}
 
 /* ---------- saúde ---------- */
 
@@ -368,10 +427,14 @@ async function decidir(id, aprovado) {
   try {
     await api(`/api/v1/incidentes/${id}/decisao`, {
       method: "POST",
-      body: JSON.stringify({ aprovado, operador: OPERADOR, motivo }),
+      body: JSON.stringify({ aprovado, operador: OPERADOR, motivo,
+        versao_scripts: aprovado ? estado.catalogo?.versao : null }),
     });
   } catch (erro) {
     alert(erro.message);
+    if (aprovado && erro.message.includes("scripts padrão mudaram")) {
+      await carregarScripts();
+    }
     $("btn-aprovar").disabled = false;
     $("btn-rejeitar").disabled = false;
     return;
@@ -551,7 +614,20 @@ $("btn-diagnostico").addEventListener("click", abrirDiagnostico);
 $("btn-fechar-diagnostico").addEventListener("click", fecharDiagnostico);
 $("btn-reverificar").addEventListener("click", carregarDiagnostico);
 $("btn-recarregar-base").addEventListener("click", recarregarBase);
+$("btn-scripts").addEventListener("click", () => {
+  $("tela-ciencia").classList.remove("oculto");
+  mostrarScript(0);
+});
+$("btn-script-anterior").addEventListener("click", () => mostrarScript(estado.indiceScript - 1));
+$("btn-script-proximo").addEventListener("click", () => mostrarScript(estado.indiceScript + 1));
+$("btn-continuar-ciencia").addEventListener("click", continuarAposCiencia);
+$("btn-recarregar-scripts").addEventListener("click", carregarScripts);
+$("btn-ocultar-faixa").addEventListener("click", () => {
+  guardarPreferencia(CHAVE_FAIXA, estado.catalogo.versao);
+  atualizarFaixa();
+});
 
+carregarScripts();
 atualizarSaude();
 atualizarReconciliacao();
 carregarLista();

@@ -22,6 +22,7 @@ from ..engine.diagnostico import executar as executar_diagnostico
 from ..engine.knowledge_base import KnowledgeBaseError
 from ..engine.knowledge_base import load as carregar_kb
 from ..engine.models import Alert
+from ..engine.script_catalog import load_catalog
 from ..engine.zabbix_client import (
     ZabbixClient,
     ZabbixError,
@@ -54,6 +55,20 @@ from .schemas import (
 router = APIRouter()
 VERSAO_API = "0.4.0"
 LOGGER = logging.getLogger(__name__)
+
+
+@router.get("/api/v1/scripts-padrao", tags=["remediação"])
+def list_default_scripts() -> dict[str, Any]:
+    """Expõe os mesmos bytes padrão que o executor enviará pela sessão SSH."""
+    catalog = load_catalog()
+    return {
+        "versao": catalog.sha256,
+        "scripts": [
+            {"nome": script.name, "sha256": script.sha256,
+             "conteudo": script.content.decode("utf-8")}
+            for script in catalog.scripts
+        ],
+    }
 
 
 def get_conn():
@@ -191,6 +206,7 @@ def detalhar(request: Request, incidente_id: int, conn=Depends(get_conn)) -> Inc
         candidatas_descartadas=trace.get("regras_candidatas_descartadas", []),
         versao_kb=registro["versao_kb"],
         versao_motor=registro["versao_motor"],
+        versao_scripts=registro["versao_scripts"],
         decisao_humana=registro["decisao_humana"],
         operador=registro["operador"],
         motivo_rejeicao=registro["motivo_rejeicao"],
@@ -240,7 +256,21 @@ def registrar_decisao(
             status_atual=registro["status_execucao"],
         )
 
-    if not decidir(conn, incidente_id, corpo.aprovado, corpo.operador, corpo.motivo):
+    catalog = None
+    if corpo.aprovado:
+        catalog = load_catalog()
+        if corpo.versao_scripts != catalog.sha256:
+            raise _erro(409, "scripts_alterados",
+                        "Os scripts padrão mudaram. Revise o conteúdo antes de aprovar.")
+        regra_atual = request.app.state.kb.por_id(registro["regra_disparada"] or "")
+        if (regra_atual is None
+                or registro["comando_executado"] != regra_atual.render(regra_atual.remediacao.comando)
+                or registro["comando_verificacao"] != regra_atual.render(regra_atual.remediacao.verificador)):
+            raise _erro(409, "regra_alterada",
+                        "A regra ou o comando mudou. Gere um novo incidente antes de aprovar.")
+
+    if not decidir(conn, incidente_id, corpo.aprovado, corpo.operador, corpo.motivo,
+                   versao_scripts=catalog.sha256 if catalog else None):
         raise _erro(409, "conflito_de_estado",
                     f"A decisão sobre o incidente {incidente_id} já havia sido registrada.")
 
@@ -252,7 +282,7 @@ def registrar_decisao(
     regra = request.app.state.kb.por_id(registro["regra_disparada"] or "")
     timeout = regra.remediacao.timeout_segundos if regra else 60
     try:
-        executar(conn, incidente_id, executor_padrao(), timeout_segundos=timeout)
+        executar(conn, incidente_id, executor_padrao(catalog), timeout_segundos=timeout)
     except ExecucaoNaoAutorizadaError as exc:
         raise _erro(409, "execucao_nao_autorizada", str(exc)) from exc
 

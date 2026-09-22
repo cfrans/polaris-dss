@@ -66,7 +66,7 @@ class ExecutorSimulado:
         )
 
 
-def executor_padrao() -> Executor:
+def executor_padrao(catalog=None) -> Executor:
     """Devolve o executor real quando há host alvo configurado, e o simulado caso contrário.
 
     A ausência de `TARGET_SSH_HOST` é o que mantém o sistema inofensivo em ambiente de
@@ -78,9 +78,11 @@ def executor_padrao() -> Executor:
         return ExecutorSimulado()
 
     from .remediation import ExecutorRemoto, runner_ssh
+    from .script_catalog import load_catalog
 
     return ExecutorRemoto(
-        runner=runner_ssh(s.target_ssh_host, s.target_ssh_user, s.target_ssh_key_path)
+        runner=runner_ssh(s.target_ssh_host, s.target_ssh_user, s.target_ssh_key_path),
+        catalog=catalog or load_catalog(),
     )
 
 
@@ -134,10 +136,12 @@ def exibir(conn, incidente_id: int) -> bool:
 
 
 def decidir(
-    conn, incidente_id: int, aprovado: bool, operador: str, motivo: str | None = None
+    conn, incidente_id: int, aprovado: bool, operador: str, motivo: str | None = None,
+    versao_scripts: str | None = None,
 ) -> bool:
     """Grava a decisão humana e **conclui a transação** antes de qualquer execução."""
-    registrado = queries.registrar_decisao(conn, incidente_id, aprovado, operador, motivo)
+    registrado = queries.registrar_decisao(conn, incidente_id, aprovado, operador, motivo,
+                                           versao_scripts=versao_scripts)
     conn.commit()
     return registrado
 
@@ -162,6 +166,12 @@ def executar(conn, incidente_id: int, executor: Executor,
         raise ExecucaoNaoAutorizadaError(
             f"incidente {incidente_id} está em '{incidente['status_execucao']}', "
             f"não em 'executando'"
+        )
+
+    from .remediation import ExecutorRemoto
+    if isinstance(executor, ExecutorRemoto) and incidente.get("versao_scripts") != executor.catalog.sha256:
+        raise ExecucaoNaoAutorizadaError(
+            f"incidente {incidente_id} não aprovou a versão dos scripts do executor remoto"
         )
 
     resultado = executor(

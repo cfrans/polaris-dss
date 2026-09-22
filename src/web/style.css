@@ -66,6 +66,41 @@ body {
 }
 .pilula-botao:hover { border-color: var(--acento); color: var(--texto); }
 
+.faixa-ciencia {
+  display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+  padding: 0.55rem 1.75rem; background: #29230f; border-bottom: 1px solid var(--media);
+  color: var(--texto); font-size: 0.86rem;
+}
+.faixa-ciencia .btn { padding: 0.35rem 0.7rem; white-space: nowrap; }
+
+.tela-ciencia {
+  position: fixed; inset: 0; z-index: 20; overflow-y: auto;
+  display: grid; place-items: center; padding: 1.25rem;
+  background: rgba(6, 10, 17, 0.94);
+}
+.ciencia-cartao {
+  width: min(960px, 100%); padding: 1.5rem; border: 1px solid var(--borda);
+  border-radius: var(--raio); background: var(--fundo-painel);
+}
+.ciencia-cartao h2 { margin-bottom: 0.6rem; }
+.ciencia-cartao p { margin-bottom: 0.8rem; }
+.ciencia-navegacao, .ciencia-acoes {
+  display: flex; align-items: center; gap: 0.7rem; margin-top: 0.9rem;
+}
+.ciencia-navegacao strong { flex: 1; overflow-wrap: anywhere; }
+.ciencia-contador { color: var(--texto-suave); }
+.ciencia-codigo {
+  margin-top: 0.75rem; max-height: 42vh; overflow: auto; padding: 1rem;
+  border: 1px solid var(--borda); border-radius: 6px; background: #0b111c;
+  color: #c5e8d1; font-family: "Cascadia Code", Consolas, monospace;
+  font-size: 0.82rem; line-height: 1.45; white-space: pre;
+}
+.ciencia-acoes { justify-content: flex-end; flex-wrap: wrap; }
+@media (max-width: 620px) {
+  .faixa-ciencia { align-items: flex-start; flex-direction: column; }
+  .ciencia-navegacao { flex-wrap: wrap; }
+}
+
 /* ---------- layout ---------- */
 
 .painel {

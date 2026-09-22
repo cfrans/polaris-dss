@@ -230,7 +230,7 @@ class ClienteFalha:
 def test_reconciliacao_recupera_evento_perdido(conn, kb, config):
     from src.engine.reconciliacao import reconciliar
 
-    cliente = ClienteDuble([normalizar_webhook({**WEBHOOK_DISCO, "event_id": "rec-1"})])
+    cliente = ClienteDuble([normalizar_webhook({**carregar_payload("zabbix_disk_full"), "event_id": "rec-1"})])
     resultado = reconciliar(conn, cliente, kb, config)
 
     assert resultado.recuperados == 1
@@ -241,7 +241,7 @@ def test_reconciliacao_recupera_evento_perdido(conn, kb, config):
 def test_reconciliacao_nao_duplica_o_que_ja_existe(conn, kb, config):
     from src.engine.reconciliacao import reconciliar
 
-    cliente = ClienteDuble([normalizar_webhook({**WEBHOOK_DISCO, "event_id": "rec-2"})])
+    cliente = ClienteDuble([normalizar_webhook({**carregar_payload("zabbix_disk_full"), "event_id": "rec-2"})])
     reconciliar(conn, cliente, kb, config)
     segundo = reconciliar(conn, cliente, kb, config)
 
@@ -255,7 +255,7 @@ def test_reconciliacao_nao_repete_evento_sem_regra(conn, kb, config):
     from src.engine.reconciliacao import reconciliar
 
     payload = {
-        **WEBHOOK_DISCO,
+        **carregar_payload("zabbix_disk_full"),
         "event_id": "rec-sem-regra",
         "item_key": "custom.unknown",
         "tags": "scope: unknown",
@@ -275,7 +275,7 @@ def test_reconciliacao_encerra_incidente_resolvido_na_origem(conn, kb, config):
     from src.db import queries
     from src.engine.reconciliacao import reconciliar
 
-    cliente = ClienteDuble([normalizar_webhook({**WEBHOOK_DISCO, "event_id": "rec-3"})])
+    cliente = ClienteDuble([normalizar_webhook({**carregar_payload("zabbix_disk_full"), "event_id": "rec-3"})])
     reconciliar(conn, cliente, kb, config)
 
     vazio = ClienteDuble([])
@@ -292,7 +292,7 @@ def test_ciclo_atualiza_estado_sem_encher_historico_com_sondagem_vazia(conn, kb,
     from src.db import queries
     from src.engine.reconciliacao import executar_ciclo
 
-    cliente = ClienteDuble([normalizar_webhook({**WEBHOOK_DISCO, "event_id": "rec-estado"})])
+    cliente = ClienteDuble([normalizar_webhook({**carregar_payload("zabbix_disk_full"), "event_id": "rec-estado"})])
     primeiro = executar_ciclo(conn, cliente, kb, config, intervalo_segundos=30)
     segundo = executar_ciclo(conn, cliente, kb, config, intervalo_segundos=30)
 

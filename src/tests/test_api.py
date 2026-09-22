@@ -34,6 +34,13 @@ def _criar(cliente, alerta=None, **extra):
     return resposta.json()
 
 
+def _aprovar(cliente, incidente, operador="tester"):
+    versao = cliente.get("/api/v1/scripts-padrao").json()["versao"]
+    return cliente.post(f"/api/v1/incidentes/{incidente}/decisao",
+                        json={"aprovado": True, "operador": operador,
+                              "versao_scripts": versao})
+
+
 def test_health_reporta_banco_e_base(cliente):
     dados = cliente.get("/health").json()
     assert dados["status"] == "ok"
@@ -47,6 +54,20 @@ def test_interface_e_documentacao_sao_servidas(cliente):
     assert cliente.get("/app.js").status_code == 200
     assert cliente.get("/style.css").status_code == 200
     assert cliente.get("/docs").status_code == 200
+
+
+def test_catalogo_expoe_os_bytes_executados(cliente):
+    from src.engine.script_catalog import load_catalog
+
+    catalog = load_catalog()
+    response = cliente.get("/api/v1/scripts-padrao")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["versao"] == catalog.sha256
+    assert [(entry["nome"], entry["sha256"], entry["conteudo"]) for entry in data["scripts"]] == [
+        (script.name, script.sha256, script.content.decode("utf-8"))
+        for script in catalog.scripts
+    ]
 
 
 def test_reconciliacao_informa_que_ainda_aguarda_o_primeiro_ciclo(cliente):
@@ -98,14 +119,29 @@ def test_fluxo_completo_de_aprovacao(cliente):
     assert cliente.get("/api/v1/incidentes").json()["total"] == 1
     assert cliente.patch(f"/api/v1/incidentes/{incidente}/exibicao").json()["status"] == "registrado"
 
-    decisao = cliente.post(f"/api/v1/incidentes/{incidente}/decisao",
-                           json={"aprovado": True, "operador": "tester"})
+    decisao = _aprovar(cliente, incidente)
     assert decisao.status_code == 202
     assert decisao.json()["status"] == "executando"
 
     resultado = cliente.get(f"/api/v1/incidentes/{incidente}/resultado").json()
     assert resultado["status"] == "sucesso"
     assert resultado["mttr_segundos"] is not None
+    detalhe = cliente.get(f"/api/v1/incidentes/{incidente}").json()
+    assert detalhe["versao_scripts"] == cliente.get("/api/v1/scripts-padrao").json()["versao"]
+
+
+def test_aprovacao_recusa_versao_ausente_ou_antiga_sem_registrar_decisao(cliente):
+    incidente = _criar(cliente, id_evento="api-versao-antiga")["incidente_id"]
+    for versao in (None, "0" * 64):
+        response = cliente.post(f"/api/v1/incidentes/{incidente}/decisao",
+                               json={"aprovado": True, "operador": "tester",
+                                     "versao_scripts": versao})
+        assert response.status_code == 409
+        assert response.json()["erro"] == "scripts_alterados"
+        detalhe = cliente.get(f"/api/v1/incidentes/{incidente}").json()
+        assert detalhe["status"] == "pendente"
+        assert detalhe["ts_aprovacao"] is None
+    assert _aprovar(cliente, incidente).status_code == 202
 
 
 def test_detalhe_traz_o_trace_de_explicabilidade(cliente):
@@ -135,14 +171,13 @@ def test_rejeicao_nao_executa_e_guarda_o_motivo(cliente):
     assert d["status"] == "rejeitado"
     assert d["motivo_rejeicao"] == "janela de manutenção"
     assert d["ts_conclusao"] is None
+    assert d["versao_scripts"] is None
 
 
 def test_segunda_decisao_gera_conflito(cliente):
     incidente = _criar(cliente, id_evento="api-conflito")["incidente_id"]
-    cliente.post(f"/api/v1/incidentes/{incidente}/decisao",
-                 json={"aprovado": True, "operador": "tester"})
-    resposta = cliente.post(f"/api/v1/incidentes/{incidente}/decisao",
-                            json={"aprovado": True, "operador": "outro"})
+    _aprovar(cliente, incidente)
+    resposta = _aprovar(cliente, incidente, operador="outro")
     assert resposta.status_code == 409
     assert resposta.json()["erro"] == "conflito_de_estado"
 
@@ -187,16 +222,14 @@ def test_recorrencia_derruba_a_banda_pela_api(cliente):
     for i in range(3):
         criado = _criar(cliente, id_evento=f"api-flap-{i}")
         bandas.append(criado["banda"])
-        cliente.post(f"/api/v1/incidentes/{criado['incidente_id']}/decisao",
-                     json={"aprovado": True, "operador": "tester"})
+        _aprovar(cliente, criado["incidente_id"])
     assert bandas == ["alta", "media", "baixa"]
 
 
 def test_aviso_de_recorrencia_chega_na_interface(cliente):
     for i in range(2):
         criado = _criar(cliente, id_evento=f"api-aviso-{i}")
-        cliente.post(f"/api/v1/incidentes/{criado['incidente_id']}/decisao",
-                     json={"aprovado": True, "operador": "tester"})
+        _aprovar(cliente, criado["incidente_id"])
     terceiro = _criar(cliente, id_evento="api-aviso-3")
     d = cliente.get(f"/api/v1/incidentes/{terceiro['incidente_id']}").json()
 

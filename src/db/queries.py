@@ -121,7 +121,8 @@ def marcar_exibicao(conn, incidente_id: int) -> bool:
 
 
 def registrar_decisao(
-    conn, incidente_id: int, aprovado: bool, operador: str, motivo: str | None = None
+    conn, incidente_id: int, aprovado: bool, operador: str, motivo: str | None = None,
+    versao_scripts: str | None = None,
 ) -> bool:
     """Registra t4. Retorna False se o incidente não estava pendente.
 
@@ -135,12 +136,14 @@ def registrar_decisao(
                SET decisao_humana = %s,
                    operador = %s,
                    motivo_rejeicao = %s,
+                   versao_scripts = %s,
                    ts_aprovacao = NOW(),
                    status_execucao = CASE WHEN %s THEN 'executando' ELSE 'rejeitado' END
              WHERE id = %s AND status_execucao = 'pendente'
             RETURNING id
             """,
-            (aprovado, operador, motivo, aprovado, incidente_id),
+            (aprovado, operador, motivo, versao_scripts if aprovado else None,
+             aprovado, incidente_id),
         )
         return cur.fetchone() is not None
 

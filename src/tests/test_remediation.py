@@ -8,8 +8,11 @@ fechar o incidente, quando recusar, quando insistir na verificação — sem hos
 from __future__ import annotations
 
 import pytest
+import subprocess
+import shutil
 
-from src.engine.remediation import ExecutorRemoto, montar_comando
+from src.engine.remediation import ExecutorRemoto, prepare_command
+from src.engine.script_catalog import load_catalog
 
 
 class RunnerDuble:
@@ -18,9 +21,11 @@ class RunnerDuble:
     def __init__(self, respostas):
         self.respostas = list(respostas)
         self.chamadas: list[str] = []
+        self.entradas: list[bytes | None] = []
 
-    def __call__(self, comando, timeout):
+    def __call__(self, comando, timeout, input_data=None):
         self.chamadas.append(comando)
+        self.entradas.append(input_data)
         if not self.respostas:
             return 0, "", ""
         proxima = self.respostas.pop(0)
@@ -34,7 +39,8 @@ class RunnerDuble:
 
 def executor(respostas, **kwargs):
     runner = RunnerDuble(respostas)
-    return ExecutorRemoto(runner=runner, intervalo_verificacao=0, **kwargs), runner
+    return ExecutorRemoto(runner=runner, catalog=load_catalog(),
+                          intervalo_verificacao=0, **kwargs), runner
 
 
 # ---------------------------------------------------------------------------
@@ -42,30 +48,45 @@ def executor(respostas, **kwargs):
 # ---------------------------------------------------------------------------
 
 
-def test_script_e_resolvido_no_diretorio_controlado():
-    """A forma final precisa casar com a entrada correspondente no sudoers do host alvo."""
-    assert montar_comando("disk_cleanup.sh /mnt/polaris_test") == \
-        "sudo /opt/polaris/bin/disk_cleanup.sh /mnt/polaris_test"
+def test_script_e_enviado_pela_entrada_padrao():
+    command, content = prepare_command("disk_cleanup.sh /mnt/polaris_test", load_catalog(), 60)
+    assert command == "sudo -n /usr/bin/timeout -k 5s 60s /usr/bin/bash -s -- /mnt/polaris_test"
+    assert content == load_catalog().get("disk_cleanup.sh").content
 
 
-def test_binario_do_sistema_nao_recebe_diretorio_de_scripts():
-    assert montar_comando("systemctl restart nginx") == "sudo systemctl restart nginx"
+def test_comando_nativo_fica_limitado_ao_nginx():
+    command, content = prepare_command("systemctl restart nginx", load_catalog(), 120)
+    assert command.endswith("/usr/bin/systemctl restart nginx")
+    assert content is None
 
 
 def test_verificador_roda_sem_privilegio_elevado():
-    """Verificador consulta estado e não altera nada: não precisa entrar no sudoers."""
-    assert montar_comando("verify_service.sh nginx", com_sudo=False) == \
-        "/opt/polaris/bin/verify_service.sh nginx"
+    command, content = prepare_command("verify_service.sh nginx", load_catalog(), 30,
+                                       with_sudo=False)
+    assert command == "/usr/bin/timeout -k 5s 30s /usr/bin/bash -s -- nginx"
+    assert content == load_catalog().get("verify_service.sh").content
 
 
-def test_caminho_absoluto_e_preservado():
-    assert montar_comando("/usr/sbin/logrotate -f /etc/logrotate.conf") == \
-        "sudo /usr/sbin/logrotate -f /etc/logrotate.conf"
+def test_bytes_transmitidos_executam_sem_arquivo_no_alvo():
+    command, content = prepare_command("disk_cleanup.sh /", load_catalog(), 30,
+                                       with_sudo=False)
+    # O macOS não fornece /usr/bin/timeout; este teste exercita a passagem por stdin ao bash.
+    shell_command = command.removeprefix("/usr/bin/timeout -k 5s 30s ")
+    shell_command = shell_command.replace("/usr/bin/bash", shutil.which("bash") or "bash", 1)
+    result = subprocess.run(shell_command, shell=True, input=content, capture_output=True,
+                            timeout=35)
+    assert result.returncode == 2
+    assert "ponto de montagem não permitido: /" in result.stderr.decode()
+
+
+def test_comando_nativo_fora_da_lista_e_recusado():
+    with pytest.raises(ValueError, match="não autorizado"):
+        prepare_command("/usr/sbin/logrotate -f /etc/logrotate.conf", load_catalog(), 60)
 
 
 def test_comando_vazio_e_rejeitado():
     with pytest.raises(ValueError, match="vazio"):
-        montar_comando("   ")
+        prepare_command("   ", load_catalog(), 60)
 
 
 # ---------------------------------------------------------------------------
@@ -79,8 +100,9 @@ def test_sucesso_exige_confirmacoes_consecutivas_do_verificador():
 
     assert resultado.status == "sucesso"
     assert resultado.saudavel is True
-    assert runner.chamadas[0] == "sudo systemctl restart nginx"
-    assert runner.chamadas[1] == "/opt/polaris/bin/verify_service.sh nginx"
+    assert runner.chamadas[0].endswith("/usr/bin/systemctl restart nginx")
+    assert runner.chamadas[1] == "/usr/bin/timeout -k 5s 30s /usr/bin/bash -s -- nginx"
+    assert runner.entradas[1] == load_catalog().get("verify_service.sh").content
 
 
 def test_comando_bem_sucedido_com_servico_ainda_caido_nao_fecha_o_incidente():
@@ -175,17 +197,15 @@ def test_ciclo_completo_usa_o_verificador_gravado(conn, kb, config, alerta):
     registro = queries.obter_incidente(conn, ing.incidente_id)
     assert registro["comando_verificacao"] == "verify_service.sh nginx"
 
-    decidir(conn, ing.incidente_id, True, "tester")
+    decidir(conn, ing.incidente_id, True, "tester", versao_scripts=load_catalog().sha256)
     exe, runner = executor([0, 0, 0])
 
     from src.engine.service import executar
     executar(conn, ing.incidente_id, exe, timeout_segundos=120)
 
-    assert runner.chamadas == [
-        "sudo systemctl restart nginx",
-        "/opt/polaris/bin/verify_service.sh nginx",
-        "/opt/polaris/bin/verify_service.sh nginx",
-    ]
+    assert runner.chamadas[0].endswith("/usr/bin/systemctl restart nginx")
+    assert runner.chamadas[1:] == ["/usr/bin/timeout -k 5s 30s /usr/bin/bash -s -- nginx"] * 2
+    assert runner.entradas[1:] == [load_catalog().get("verify_service.sh").content] * 2
     final = queries.obter_incidente(conn, ing.incidente_id)
     assert final["status_execucao"] == "sucesso"
     assert final["ts_conclusao"] is not None

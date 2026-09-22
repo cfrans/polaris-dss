@@ -61,6 +61,7 @@ class IncidenteDetalhe(BaseModel):
     candidatas_descartadas: list[dict[str, Any]] = Field(default_factory=list)
     versao_kb: str | None = None
     versao_motor: str | None = None
+    versao_scripts: str | None = None
     decisao_humana: bool | None = None
     operador: str | None = None
     motivo_rejeicao: str | None = None
@@ -78,6 +79,7 @@ class DecisaoRequest(BaseModel):
     aprovado: bool
     operador: str = Field(min_length=1, max_length=64)
     motivo: str | None = Field(default=None, max_length=1000)
+    versao_scripts: str | None = None
 
 
 class DecisaoResponse(BaseModel):

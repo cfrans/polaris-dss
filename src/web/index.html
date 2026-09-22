@@ -28,8 +28,43 @@
     <button id="btn-diagnostico" class="btn btn-secundario" type="button">
       Diagnóstico
     </button>
+    <button id="btn-scripts" class="btn btn-secundario" type="button">
+      Scripts e ciência
+    </button>
   </div>
 </header>
+
+<div id="faixa-ciencia" class="faixa-ciencia oculto" role="status">
+  <span>O Polaris executa ações privilegiadas nos hosts após sua aprovação. Confira o script e o
+    alvo antes de autorizar cada incidente.</span>
+  <button id="btn-ocultar-faixa" class="btn btn-secundario" type="button">Ocultar aviso</button>
+</div>
+
+<section id="tela-ciencia" class="tela-ciencia oculto" role="dialog" aria-modal="true"
+         aria-labelledby="ciencia-titulo">
+  <div class="ciencia-cartao">
+    <h2 id="ciencia-titulo">Conheça os scripts padrão do Polaris</h2>
+    <p>Após sua aprovação em um incidente, o Polaris pode enviar um destes scripts por SSH para
+      execução no host. As ações de remediação podem usar privilégios de administrador. Leia o
+      conteúdo e confirme o alvo antes de aprovar. Esta ciência geral não aprova incidentes.</p>
+    <p class="nota">A interface ainda não identifica operadores por login. Esta confirmação fica
+      lembrada neste navegador; cada decisão continua registrada separadamente na auditoria.</p>
+    <div class="ciencia-navegacao">
+      <button id="btn-script-anterior" class="btn btn-secundario" type="button" aria-label="Script anterior">←</button>
+      <strong id="ciencia-script-nome">Carregando scripts…</strong>
+      <span id="ciencia-contador"></span>
+      <button id="btn-script-proximo" class="btn btn-secundario" type="button" aria-label="Próximo script">→</button>
+    </div>
+    <pre id="ciencia-codigo" class="ciencia-codigo"></pre>
+    <p id="ciencia-erro" class="aviso oculto"></p>
+    <div class="ciencia-acoes">
+      <button id="btn-recarregar-scripts" class="btn btn-secundario oculto" type="button">Tentar novamente</button>
+      <button id="btn-continuar-ciencia" class="btn btn-aprovar" type="button" disabled>
+        Estou ciente e quero continuar
+      </button>
+    </div>
+  </div>
+</section>
 
 <main class="painel">
 
