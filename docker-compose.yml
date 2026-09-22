@@ -87,8 +87,9 @@ services:
     ports:
       - "${POLARIS_API_PORT:-8000}:8000"
     volumes:
-      # Somente a chave dedicada à remediação, em leitura apenas.
+      # Chave dedicada e identidade validada do host alvo, ambas em leitura apenas.
       - ${TARGET_SSH_KEY_PATH:-./secrets/polaris_ed25519}:/run/secrets/polaris_ssh_key:ro
+      - ./secrets/known_hosts:/etc/ssh/ssh_known_hosts:ro
     depends_on:
       polaris-db:
         condition: service_healthy

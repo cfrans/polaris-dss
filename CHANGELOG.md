@@ -20,6 +20,9 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
   permanecem preservadas na auditoria e a primeira ingestão vira a referência canônica.
 
 ### Alterado
+- A chave pública validada do host alvo passa a persistir em `secrets/known_hosts` e é montada em
+  leitura apenas no container; recriar a API não apaga a confiança SSH. Hosts desconhecidos ou com
+  chave alterada continuam recusados.
 - A remediação passa a enviar os scripts padrão da imagem pela entrada SSH, sem cópias permanentes
   no host alvo. A aprovação grava o hash do conjunto apresentado; uma versão divergente impede a
   decisão. A interface apresenta os scripts e o aviso de responsabilidade no primeiro acesso.

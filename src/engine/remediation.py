@@ -9,12 +9,14 @@ from __future__ import annotations
 import shlex
 import time
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Protocol
 
 from .script_catalog import ScriptCatalog
 from .service import ResultadoExecucao
 
 NATIVE_ACTIONS = {("systemctl", "restart", "nginx")}
+SYSTEM_KNOWN_HOSTS = Path("/etc/ssh/ssh_known_hosts")
 
 
 class Runner(Protocol):
@@ -137,7 +139,10 @@ def runner_ssh(host: str, usuario: str, caminho_chave: str, porta: int = 22) -> 
                 input_data: bytes | None = None) -> tuple[int, str, str]:
         cliente = paramiko.SSHClient()
         cliente.set_missing_host_key_policy(paramiko.RejectPolicy())
-        cliente.load_system_host_keys()
+        if SYSTEM_KNOWN_HOSTS.is_file():
+            cliente.load_system_host_keys(str(SYSTEM_KNOWN_HOSTS))
+        else:
+            cliente.load_system_host_keys()
         try:
             cliente.connect(hostname=host, port=porta, username=usuario,
                             key_filename=caminho_chave, timeout=10, auth_timeout=10)

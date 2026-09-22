@@ -126,6 +126,8 @@ cp .env.example .env
 
 # Generate the service SSH key used to reach the remediation target
 ssh-keygen -t ed25519 -N "" -f secrets/polaris_ed25519 -C "polaris-dss"
+# Create the persistent host-key file before starting Compose
+touch secrets/known_hosts
 
 # Build and start the audit database + API + HITL interface
 docker compose up -d --build polaris-db polaris-api
@@ -138,7 +140,9 @@ docker compose up -d polaris-reconciler
 ```
 
 Only that one key is mounted into the API container, read-only — never your whole `~/.ssh`. Authorize
-its public half on the target host's `polaris` account. See [`secrets/README.md`](secrets/README.md).
+its public half on the target host's `polaris` account. The target's verified public host key is
+mounted separately from `secrets/known_hosts`, also read-only. Compare its fingerprint directly on
+the target before adding it; see [`secrets/README.md`](secrets/README.md).
 
 The schema is **not** applied automatically: `CREATE TABLE IF NOT EXISTS` creates a missing table but
 does not alter an existing one, and PostgreSQL's `docker-entrypoint-initdb.d` only runs on first

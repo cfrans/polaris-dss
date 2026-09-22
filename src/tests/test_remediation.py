@@ -79,6 +79,26 @@ def test_bytes_transmitidos_executam_sem_arquivo_no_alvo():
     assert "ponto de montagem não permitido: /" in result.stderr.decode()
 
 
+def test_ssh_carrega_host_validado_sem_aceitar_desconhecidos(monkeypatch, tmp_path):
+    import paramiko
+    import src.engine.remediation as remediation
+
+    known_hosts = tmp_path / "known_hosts"
+    keys = paramiko.HostKeys()
+    keys.add("192.0.2.10", "ssh-rsa", paramiko.RSAKey.generate(1024))
+    keys.save(str(known_hosts))
+    monkeypatch.setattr(remediation, "SYSTEM_KNOWN_HOSTS", known_hosts)
+
+    def check_connect(client, **kwargs):
+        assert isinstance(client._policy, paramiko.RejectPolicy)
+        assert client._system_host_keys.lookup("192.0.2.10") is not None
+        raise OSError("conexão simulada")
+
+    monkeypatch.setattr(paramiko.SSHClient, "connect", check_connect)
+    with pytest.raises(OSError, match="conexão simulada"):
+        remediation.runner_ssh("192.0.2.10", "polaris", "chave")("true", 5)
+
+
 def test_comando_nativo_fora_da_lista_e_recusado():
     with pytest.raises(ValueError, match="não autorizado"):
         prepare_command("/usr/sbin/logrotate -f /etc/logrotate.conf", load_catalog(), 60)
