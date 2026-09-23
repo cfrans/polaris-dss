@@ -8,6 +8,8 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 ## [Não lançado]        <!-- alvo: v0.5.0 telemetria · v0.6.0 remediação -->
 
 ### Corrigido
+- R002 consulta o nome completo do processo pelo PID antes de compará-lo com a lista permitida;
+  a coluna `COMMAND` do `top` podia abreviar `stress-ng-cpu` como `stress-+` e recusar a ação.
 - A interface passa a servir HTML, JavaScript e CSS sem cache persistente e a recarregar o catálogo
   ao abrir "Scripts e ciência", evitando misturar código antigo do navegador com a API atual.
 - R002 passou a consumir o trigger `Linux: High CPU utilization` do template oficial, eliminando o

@@ -11,12 +11,18 @@ PERMITIDOS="${1:-}"
 # O %CPU do `ps` é a média desde o início do processo: uma carga iniciada há trinta segundos pode
 # não aparecer no topo, enquanto um processo antigo aparece. A segunda amostra do `top` reflete o
 # intervalo corrente.
-LINHA=$(top -bn2 -d 1 -o %CPU | awk '/^ *[0-9]+ / {print $1, $9, $12}' | tail -n +1 | sort -k2 -nr | head -1)
+LINHA=$(top -bn2 -d 1 -o %CPU | awk '/^ *[0-9]+ / {print $1, $9}' | sort -k2,2nr | head -1)
 PID=$(echo "$LINHA" | awk '{print $1}')
 PCPU=$(echo "$LINHA" | awk '{print $2}')
-COMANDO=$(echo "$LINHA" | awk '{print $3}')
 
-[ -n "${PID:-}" ] || { echo "nenhum processo candidato identificado" >&2; exit 3; }
+[ -n "${PID:-}" ] && [[ "$PID" =~ ^[0-9]+$ ]] || {
+  echo "nenhum processo candidato identificado" >&2; exit 3;
+}
+
+# A coluna COMMAND de `top` depende da largura da tela e pode virar `stress-+`.
+# `ps` consulta o nome do processo pelo PID, sem usar o texto truncado da tela.
+COMANDO=$(ps -p "$PID" -o comm= -ww 2>/dev/null | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
+[ -n "$COMANDO" ] || { echo "processo candidato não encontrado: pid $PID" >&2; exit 3; }
 
 if ! printf '%s' "$PERMITIDOS" | tr ',' '\n' | grep -qxF "$COMANDO"; then
   echo "candidato '$COMANDO' (pid $PID, ${PCPU}% de CPU) fora da lista autorizada: $PERMITIDOS" >&2
