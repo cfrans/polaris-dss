@@ -49,11 +49,17 @@ def test_health_reporta_banco_e_base(cliente):
     assert dados["versao_kb"] == "1.0.0"
 
 
-def test_interface_e_documentacao_sao_servidas(cliente):
-    assert cliente.get("/").status_code == 200
-    assert cliente.get("/app.js").status_code == 200
-    assert cliente.get("/style.css").status_code == 200
-    assert cliente.get("/docs").status_code == 200
+def test_interface_e_documentacao_sao_servidas():
+    from fastapi.testclient import TestClient
+
+    from src.api.server import app
+
+    with TestClient(app) as cliente:
+        for path in ("/", "/app.js", "/style.css"):
+            response = cliente.get(path)
+            assert response.status_code == 200
+            assert response.headers["cache-control"] == "no-store"
+        assert cliente.get("/docs").status_code == 200
 
 
 def test_catalogo_expoe_os_bytes_executados(cliente):

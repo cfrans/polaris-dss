@@ -61,7 +61,7 @@ function mostrarScript(indice) {
   $("ciencia-codigo").textContent = script.conteudo;
 }
 
-async function carregarScripts() {
+async function carregarScripts(forcarExibicao = false) {
   $("tela-ciencia").classList.remove("oculto");
   $("btn-continuar-ciencia").disabled = true;
   try {
@@ -70,7 +70,7 @@ async function carregarScripts() {
     $("ciencia-erro").classList.add("oculto");
     $("btn-recarregar-scripts").classList.add("oculto");
     $("btn-continuar-ciencia").disabled = false;
-    if (lerPreferencia(CHAVE_CIENCIA) === estado.catalogo.versao) {
+    if (!forcarExibicao && lerPreferencia(CHAVE_CIENCIA) === estado.catalogo.versao) {
       $("tela-ciencia").classList.add("oculto");
       atualizarFaixa();
     }
@@ -433,7 +433,7 @@ async function decidir(id, aprovado) {
   } catch (erro) {
     alert(erro.message);
     if (aprovado && erro.message.includes("scripts padrão mudaram")) {
-      await carregarScripts();
+      await carregarScripts(true);
     }
     $("btn-aprovar").disabled = false;
     $("btn-rejeitar").disabled = false;
@@ -614,14 +614,11 @@ $("btn-diagnostico").addEventListener("click", abrirDiagnostico);
 $("btn-fechar-diagnostico").addEventListener("click", fecharDiagnostico);
 $("btn-reverificar").addEventListener("click", carregarDiagnostico);
 $("btn-recarregar-base").addEventListener("click", recarregarBase);
-$("btn-scripts").addEventListener("click", () => {
-  $("tela-ciencia").classList.remove("oculto");
-  mostrarScript(0);
-});
+$("btn-scripts").addEventListener("click", () => carregarScripts(true));
 $("btn-script-anterior").addEventListener("click", () => mostrarScript(estado.indiceScript - 1));
 $("btn-script-proximo").addEventListener("click", () => mostrarScript(estado.indiceScript + 1));
 $("btn-continuar-ciencia").addEventListener("click", continuarAposCiencia);
-$("btn-recarregar-scripts").addEventListener("click", carregarScripts);
+$("btn-recarregar-scripts").addEventListener("click", () => carregarScripts(true));
 $("btn-ocultar-faixa").addEventListener("click", () => {
   guardarPreferencia(CHAVE_FAIXA, estado.catalogo.versao);
   atualizarFaixa();

@@ -22,6 +22,15 @@ from .routes import VERSAO_API, router
 
 WEB = Path(__file__).resolve().parents[1] / "web"
 
+
+class FreshStaticFiles(StaticFiles):
+    """Avoid mixing an updated page with JavaScript cached from an older release."""
+
+    async def get_response(self, path, scope):
+        response = await super().get_response(path, scope)
+        response.headers["Cache-Control"] = "no-store"
+        return response
+
 DESCRICAO = """
 Sistema Especialista de Suporte à Decisão para remediação de incidentes de infraestrutura.
 
@@ -67,4 +76,4 @@ async def erro_http(request: Request, exc: HTTPException) -> JSONResponse:
 app.include_router(router)
 
 # Montado por último: uma montagem em "/" captura tudo o que não casou com as rotas acima.
-app.mount("/", StaticFiles(directory=WEB, html=True), name="web")
+app.mount("/", FreshStaticFiles(directory=WEB, html=True), name="web")
