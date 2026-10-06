@@ -46,7 +46,7 @@ def test_health_reporta_banco_e_base(cliente):
     assert dados["status"] == "ok"
     assert dados["db"] == "ok"
     assert dados["kb"] == "ok"
-    assert dados["versao_kb"] == "1.0.0"
+    assert dados["versao_kb"] == "1.0.1"
 
 
 def test_interface_e_documentacao_sao_servidas():
@@ -247,7 +247,7 @@ def test_aviso_de_recorrencia_chega_na_interface(cliente):
 
 def test_regras_sao_expostas_para_leitura(cliente):
     dados = cliente.get("/api/v1/regras").json()
-    assert dados["versao_kb"] == "1.0.0"
+    assert dados["versao_kb"] == "1.0.1"
     assert len(dados["regras"]) == 3
     assert all("{" not in r["comando"] for r in dados["regras"])
 

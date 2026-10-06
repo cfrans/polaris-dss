@@ -134,7 +134,7 @@ def test_zabbix_inacessivel_e_falha_com_causa_legivel(ambiente):
 def test_base_de_conhecimento_reporta_versao_e_regras(kb):
     base = _por_id(executar(kb).to_dict(), "base")
     assert base["estado"] == OK
-    assert "v1.0.0" in base["detalhe"]
+    assert "v1.0.1" in base["detalhe"]
     assert "3 de 3" in base["detalhe"]
 
 

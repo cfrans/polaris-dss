@@ -1,5 +1,5 @@
 {
-  "versao_kb": "1.0.0",
+  "versao_kb": "1.0.1",
   "regras": [
     {
       "id": "R001",
@@ -16,10 +16,10 @@
           "ponto_montagem": "/mnt/polaris_test"
         }
       },
-      "diagnostico": "A partição atingiu o limite crítico de uso, o que compromete a gravação de logs e pode interromper serviços que dependem de escrita em disco. A ação sugerida libera espaço removendo arquivos de log já comprimidos e forçando a rotação dos logs ativos. A operação não remove dados de aplicação. Caso a partição volte a encher em seguida, o consumo tem origem fora do diretório de logs e requer investigação manual.",
+      "diagnostico": "A partição atingiu o limite crítico de uso, o que compromete a gravação de logs e pode interromper serviços que dependem de escrita em disco. A limpeza remove primeiro o arquivo .gz mais antigo no ponto de montagem autorizado, independentemente da idade, para liberar espaço. Em seguida, tenta forçar a rotação dos logs e remove os demais arquivos .gz com mais de sete dias. Confira os arquivos desse volume antes de aprovar: a seleção considera o nome e a data de modificação, sem verificar o conteúdo dos arquivos. Se o espaço liberado não for suficiente, será necessária investigação manual.",
       "remediacao": {
         "comando": "disk_cleanup.sh {ponto_montagem}",
-        "rollback": "Operação não destrutiva de dados de aplicação: são removidos apenas arquivos de log comprimidos com mais de sete dias. Não há reversão possível nem necessária.",
+        "rollback": "A remoção dos arquivos .gz não pode ser revertida pelo sistema. O arquivo .gz mais antigo é removido independentemente da idade; depois são removidos os demais arquivos .gz com mais de sete dias. Não há restauração automática. A recuperação dos arquivos apagados depende de uma cópia de segurança.",
         "script": "disk_cleanup.sh",
         "verificador": "verify_disk.sh {ponto_montagem}",
         "timeout_segundos": 60,

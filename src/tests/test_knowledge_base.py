@@ -7,7 +7,7 @@ from src.engine.models import ParametroInvalidoError
 
 
 def test_base_real_carrega_e_valida(kb):
-    assert kb.versao_kb == "1.0.0"
+    assert kb.versao_kb == "1.0.1"
     assert [r.id for r in kb.regras] == ["R001", "R002", "R003"]
     assert all(r.habilitada for r in kb.regras)
 

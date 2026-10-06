@@ -8,6 +8,10 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 ## [Não lançado]        <!-- alvo: v0.5.0 telemetria · v0.6.0 remediação -->
 
 ### Corrigido
+- Base de conhecimento 1.0.1: o diagnóstico e o aviso de reversão de R001 explicam a remoção
+  inicial do arquivo `.gz` mais antigo, independentemente da idade, seguida da limpeza dos demais
+  comprimidos antigos. A interface informa que não há restauração automática e que a seleção não
+  verifica o conteúdo dos arquivos; a política de limpeza e os comandos permanecem os mesmos.
 - R002 consulta o nome completo do processo pelo PID antes de compará-lo com a lista permitida;
   a coluna `COMMAND` do `top` podia abreviar `stress-ng-cpu` como `stress-+` e recusar a ação.
 - A interface passa a servir HTML, JavaScript e CSS sem cache persistente e a recarregar o catálogo
