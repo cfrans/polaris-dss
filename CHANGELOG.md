@@ -42,8 +42,10 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 - KPI 03 passa a usar a avaliação humana das rodadas HITL por cenário, incluindo falhas sem
   incidente e regras divergentes no denominador, excluindo rodadas não avaliadas ou descartadas.
   Exportador de acerto com CSV sem sobrescrita; migração 007 preparada para substituir a view,
-  retirando o agrupamento/coluna `regra_disparada`. Testes sintéticos da agregação aprovados;
-  **[NÃO VERIFICADO EM POSTGRESQL]** aplicação da migração e equivalência da view ao cálculo.
+  retirando o agrupamento/coluna `regra_disparada`. Validação local em PostgreSQL 16.15 descartável: sete
+  migrações aplicadas, view equivalente ao cálculo Python e resposta da API conferida com casos
+  sintéticos de falha sem incidente, exclusão e arredondamento. Percentual na API como string JSON.
+  **[NÃO VERIFICADO NO LABORATÓRIO]** implantação/aplicação no servidor permanece pendente.
 - Base de conhecimento 1.0.1: o diagnóstico e o aviso de reversão de R001 explicam a remoção
   inicial do arquivo `.gz` mais antigo, independentemente da idade, seguida da limpeza dos demais
   comprimidos antigos. A interface informa que não há restauração automática e que a seleção não

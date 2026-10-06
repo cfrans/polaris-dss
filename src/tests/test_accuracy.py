@@ -84,4 +84,27 @@ def test_accuracy_view_counts_assessments_in_postgresql(conn):
         cursor.execute('SELECT * FROM vw_kpi03_acerto')
         assert cursor.fetchall() == [dict(cenario='service_down', tentativas=3,
                                          sucessos=1, taxa_acerto_pct=Decimal('33.3'))]
+        cursor.execute('SELECT cenario,braco,descartada,resolvido FROM experiment_run ORDER BY id')
+        assert calculate_accuracy(cursor.fetchall()) == [dict(cenario='service_down', tentativas=3,
+                                         sucessos=1, taxa_acerto_pct=Decimal('33.3'))]
     conn.rollback()
+
+
+def test_accuracy_view_python_and_api_match_with_rounding_and_no_audit(conn, cliente):
+    samples = [row(cenario='disk_full', resolvido=True)] + [row(cenario='disk_full')] * 15
+    samples += [row(cenario='cpu_high', resolvido=True)] * 2 + [row(cenario='cpu_high')]
+    samples += [row(), row(resolvido=True), row(resolvido=None), row(descartada=True), row(braco='baseline')]
+    with conn.cursor() as cursor:
+        for repetition, sample in enumerate(samples, 1):
+            cursor.execute('INSERT INTO experiment_run (cenario,braco,rodada,descartada,resolvido,ts_injecao) '
+                           'VALUES (%s,%s,%s,%s,%s,clock_timestamp())',
+                           (sample['cenario'],sample['braco'],repetition,sample['descartada'],sample['resolvido']))
+        cursor.execute('SELECT * FROM vw_kpi03_acerto ORDER BY cenario')
+        expected=calculate_accuracy(samples)
+        assert cursor.fetchall()==expected
+    conn.commit()
+    response=cliente.get('/api/v1/kpis')
+    assert response.status_code==200
+    assert response.json()['kpi03_acerto']==[
+        {**item,'taxa_acerto_pct':str(item['taxa_acerto_pct'])} for item in expected]
+    assert all('regra_disparada' not in item for item in response.json()['kpi03_acerto'])

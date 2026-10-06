@@ -1,7 +1,9 @@
 # Human-assessed HITL accuracy
 
-Prepared and tested offline on 2026-10-06 with synthetic data. PostgreSQL migration/application
-and laboratory use have **not been validated**. No research results have been collected.
+Validated locally on 2026-10-06 with synthetic rounds in disposable PostgreSQL 16.15. All seven
+migrations applied; the database view, Python calculation and API response agreed, including
+rounding and failures without incidents. Deployment on the laboratory server remains unvalidated.
+No research results have been collected.
 
 ## Definition
 
@@ -35,6 +37,7 @@ Migration `007_acerto_avaliacao_humana` replaces `vw_kpi03_acerto` with the same
 altering primary rows or earlier migrations. Its columns are the four CSV fields above. The old
 `regra_disparada` grouping/column is removed; actual operational rules remain in `audit_log`.
 `GET /api/v1/kpis` exposes the new shape under `kpi03_acerto` after the migration is applied.
+The API serializes the decimal percentage as a JSON string (for example, `"66.7"`).
 Update consumers that expected the old grouping.
 
 With Docker Engine running, rebuild the API to include the new migration before applying it:
@@ -45,7 +48,7 @@ docker compose exec -T polaris-api python -m src.db.migrate
 docker compose exec -T polaris-api python -m src.db.migrate --status
 ```
 
-The migration runs transactionally through the existing migration runner. The offline tests cover
-the Python aggregation; the PostgreSQL regression test is skipped without a test database. Execute
-it in the existing disposable test database, with migrations applied, before official collection.
+The migration runs transactionally through the existing migration runner. The regression tests cover Python aggregation and real PostgreSQL/API equivalence with synthetic
+rounds. They passed locally; database tests remain skipped when PostgreSQL is unavailable. Use
+only a disposable test database: the integration fixtures truncate volatile tables.
 Do not interpret the old unmigrated view as the corrected accuracy calculation.
