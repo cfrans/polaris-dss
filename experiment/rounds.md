@@ -24,7 +24,8 @@ original timestamp. The exception message is not stored because it might contain
 exception reports that fact; inspect the row and target before retrying. There is no automatic reset. Keep callback setup outside the measured interval; the committed ID
 allows the controller to coordinate the observer and the declared injection.
 
-The actual scenario controller, environment checks and injection transport are still absent.
+An R003 controller is now prepared in [scenarios/service_controller.md](scenarios/service_controller.md);
+its real SSH/PostgreSQL integration remains unvalidated. Other scenario controllers are still absent.
 There is deliberately no retrospective CLI registration: never invent `t0` after a manual fault.
 The helper cannot verify the callback's scope, software metadata or clean environment; its caller
 must establish those conditions. For the R003 observer, `target` must equal `TARGET_SSH_HOST`.

@@ -30,6 +30,7 @@ def observe_recovery(
     *,
     monotonic: Callable[[], float] = time.monotonic,
     sleep: Callable[[float], None] = time.sleep,
+    should_stop: Callable[[], bool] = lambda: False,
 ) -> datetime:
     """Record the first healthy sample confirmed by three consecutive successes.
 
@@ -43,9 +44,13 @@ def observe_recovery(
     consecutive = 0
     first_healthy = None
     while monotonic() < deadline:
+        if should_stop():
+            raise ObservationError("observation cancelled")
         sample_started = monotonic()
         healthy = probe()
         sampled_at = utc_now()
+        if should_stop():
+            raise ObservationError("observation cancelled")
         if monotonic() >= deadline:
             break
         if not healthy:
@@ -140,12 +145,14 @@ class RoundStore:
 
 
 def watch_round(connection, run_id: int, target: str, probe, timeout_seconds: float,
-                *, monotonic=time.monotonic, sleep=time.sleep) -> datetime:
+                *, monotonic=time.monotonic, sleep=time.sleep,
+                on_ready=lambda: None, should_stop=lambda: False) -> datetime:
     store = RoundStore(connection, run_id)
     try:
         store.claim(target)
+        on_ready()
         return observe_recovery(probe, store.utc_now, store.record, timeout_seconds,
-                                monotonic=monotonic, sleep=sleep)
+                                monotonic=monotonic, sleep=sleep, should_stop=should_stop)
     finally:
         store.release()
 

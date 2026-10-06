@@ -13,8 +13,9 @@ have been collected by these tools. This procedure covers `service_down` only.
 - Freeze the randomized round order before collection. These tools do not generate that order.
 - A collection controller must create an `experiment_run` row and record `ts_injecao` using
   PostgreSQL time immediately before stopping nginx. The registration helper now enforces commit
-  before a trusted injection callback, but **the actual injection controller is still absent**.
-  Explicit incident linking and human assessment are described in [rounds.md](rounds.md).
+  before a trusted injection callback. The R003 controller is prepared in
+  [scenarios/service_controller.md](scenarios/service_controller.md); its real integration remains
+  unvalidated. Explicit incident linking and human assessment are described in [rounds.md](rounds.md).
   Creating a row retrospectively is not an acceptable replacement for recording injection time.
 - The row must identify `cenario=service_down`, the actual arm (`baseline` or `hitl`), the round,
   software revision, knowledge-base version, operator and target. `host_alvo` must equal

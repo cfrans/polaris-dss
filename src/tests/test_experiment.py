@@ -258,3 +258,34 @@ def test_empty_export_has_headers_and_query_keeps_all_rounds(tmp_path):
     sql, args = connection.calls[0]
     assert sql.startswith("SELECT ") and "WHERE" not in sql
     assert args is None
+
+
+def test_ready_hook_precedes_first_probe_and_cancellation_never_records_t5():
+    connection, clock, events = Connection(), Clock(), []
+    states = iter([False, True, True, True])
+
+    def probe():
+        events.append('probe')
+        return next(states)
+
+    watch_round(connection, 1, 'target', probe, 10,
+                on_ready=lambda: events.append('ready'),
+                monotonic=clock.monotonic, sleep=clock.sleep)
+    assert events[0] == 'ready'
+
+    clock, recorded = Clock(), []
+    cancelled = False
+    count = 0
+
+    def cancelled_probe():
+        nonlocal count, cancelled
+        count += 1
+        if count == 4:
+            cancelled = True
+        return count > 1
+
+    with pytest.raises(ObservationError, match='cancelled'):
+        observe_recovery(cancelled_probe, clock.utc_now, recorded.append, 10,
+                         should_stop=lambda: cancelled,
+                         monotonic=clock.monotonic, sleep=clock.sleep)
+    assert recorded == []

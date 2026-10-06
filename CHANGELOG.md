@@ -8,6 +8,15 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 ## [Não lançado]        <!-- alvo: v0.5.0 telemetria · v0.6.0 remediação · preparação v0.7.0 -->
 
 ### Adicionado
+- Controlador experimental R003 para baseline/HITL: checks de nginx e registros anteriores,
+  espera de 60 s, commit de t0 antes de armar observador e injetar, com lock por alvo e conexão
+  própria no observador. Injeção e reset explícitos usam identidade administrativa distinta;
+  reset exige avaliação/descarte e recusa interferência com outra rodada ou incidente aberto.
+  Nenhuma aprovação automática ou remediação pelo controlador; timestamps/auditoria preservados.
+  Observador cancelável; erros e IDs mantidos para avaliação. CLI documentada para checkout ou
+  imagem sem Git. Testes simulados e shell com comandos falsos aprovados;
+  **[NÃO VERIFICADO NO LABORATÓRIO]** SSH/sudo, locks e ciclo real dos dois braços. t0 inclui o
+  despacho da instrumentação anterior à parada; esse atraso ainda deve ser observado no ensaio.
 - Gestão das rodadas do experimento: registro de t0 confirmado antes de um callback de injeção,
   associação explícita de incidente/evento, avaliação humana e descarte com motivo sem apagar
   evidências. Valida alvo, versão da base, horários e aprovação do incidente para avaliação HITL
