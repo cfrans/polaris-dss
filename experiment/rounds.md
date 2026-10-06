@@ -95,7 +95,7 @@ an invalid measurement or rehearsal, not an undesired but valid failed outcome. 
 
 Commands return zero on completion and two on operational or validation errors. A database error
 prints its type rather than connection details. These writes commit their own transactions.
-The CSV exporter preserves incomplete, failed and discarded rows. The existing `vw_kpi03_acerto`
-view counts approved execution outcomes and is **not** the protocol's human-assessed accuracy:
-it excludes unlinked false negatives and ignores `experiment_run.resolvido`. Do not use that view
-for official accuracy results; the analysis must be corrected and validated before collection.
+The CSV exporter preserves incomplete, failed and discarded rows. Human-assessed accuracy is
+prepared in [analysis/accuracy.md](analysis/accuracy.md), including failed rounds without incidents.
+The database view requires migration 007; an unmigrated view still uses approved execution outcomes.
+Real PostgreSQL validation remains required before official collection.
