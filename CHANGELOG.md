@@ -5,7 +5,18 @@ Todas as mudanças relevantes deste projeto são documentadas neste arquivo.
 O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o versionamento segue
 [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
-## [Não lançado]        <!-- alvo: v0.5.0 telemetria · v0.6.0 remediação -->
+## [Não lançado]        <!-- alvo: v0.5.0 telemetria · v0.6.0 remediação · preparação v0.7.0 -->
+
+### Adicionado
+- Preparação da instrumentação de R003: observador independente para rodadas `service_down`
+  existentes, usando o verificador SSH sem sudo, e runbook manual do braço baseline. O observador
+  exige falha observada seguida de três verificações saudáveis e grava apenas o horário da primeira,
+  com proteção contra observadores concorrentes e sobrescrita de rodadas descartadas ou medidas.
+- Exportação CSV das rodadas com metadados, timestamps UTC e MTTR em segundos, preservando rodadas
+  incompletas e descartadas e recusando substituir arquivos existentes. Verificação local com
+  respostas simuladas; **[NÃO VERIFICADO NO LABORATÓRIO]** o uso integrado de SSH/PostgreSQL e o
+  procedimento manual. A injeção com registro de t0, a associação à auditoria e a análise dos KPIs
+  continuam pendentes; não houve coleta experimental.
 
 ### Corrigido
 - Base de conhecimento 1.0.1: o diagnóstico e o aviso de reversão de R001 explicam a remoção
