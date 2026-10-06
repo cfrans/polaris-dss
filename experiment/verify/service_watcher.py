@@ -95,7 +95,7 @@ class RoundStore:
             if not self.claimed:
                 raise ObservationError("another observer owns this round")
             cursor.execute(
-                "SELECT cenario, braco, descartada, ts_injecao, ts_verificado_ok, host_alvo "
+                "SELECT cenario, braco, descartada, ts_injecao, ts_verificado_ok, host_alvo, resolvido "
                 "FROM experiment_run WHERE id = %s", (self.run_id,),
             )
             row = cursor.fetchone()
@@ -103,8 +103,8 @@ class RoundStore:
             raise ObservationError("round does not exist")
         if row["cenario"] != "service_down" or row["braco"] not in {"baseline", "hitl"}:
             raise ObservationError("observer requires a service_down baseline or hitl round")
-        if row["descartada"] or row["ts_verificado_ok"] is not None:
-            raise ObservationError("round is discarded or already measured")
+        if row["descartada"] or row["ts_verificado_ok"] is not None or row.get("resolvido") is not None:
+            raise ObservationError("round is discarded, measured or assessed")
         if not target or row["host_alvo"] != target:
             raise ObservationError("round target differs from the configured SSH host")
         self.target = target
@@ -126,11 +126,11 @@ class RoundStore:
             cursor.execute(
                 "UPDATE experiment_run SET ts_verificado_ok = %s "
                 "WHERE id = %s AND descartada = FALSE AND ts_verificado_ok IS NULL "
-                "AND cenario = 'service_down' AND host_alvo = %s RETURNING id",
+                "AND resolvido IS NULL AND cenario = 'service_down' AND host_alvo = %s RETURNING id",
                 (timestamp, self.run_id, self.target),
             )
             if cursor.fetchone() is None:
-                raise ObservationError("round was discarded or measured by another process")
+                raise ObservationError("round was discarded, measured or assessed by another process")
 
     def release(self) -> None:
         if self.claimed:

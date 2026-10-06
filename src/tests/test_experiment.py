@@ -171,7 +171,7 @@ def test_store_updates_only_t5_and_releases_the_lock():
     assert len(updates) == 1
     sql, args = updates[0]
     assert "SET ts_verificado_ok = %s WHERE" in sql
-    assert "descartada = FALSE AND ts_verificado_ok IS NULL" in sql
+    assert "descartada = FALSE AND ts_verificado_ok IS NULL AND resolvido IS NULL" in sql
     assert args == (START + timedelta(seconds=10), 1, "target")
     assert not any("audit_log" in sql for sql, _ in connection.calls)
     assert "pg_advisory_unlock" in connection.calls[-1][0]
@@ -179,7 +179,7 @@ def test_store_updates_only_t5_and_releases_the_lock():
 
 @pytest.mark.parametrize("changes", [
     {"cenario": "disk_full"}, {"braco": "invalid"}, {"descartada": True},
-    {"ts_verificado_ok": START}, {"host_alvo": "other"},
+    {"ts_verificado_ok": START}, {"resolvido": False}, {"host_alvo": "other"},
     {"ts_injecao": START + timedelta(days=1)}, {"ts_injecao": START.replace(tzinfo=None)},
 ])
 def test_store_refuses_invalid_rounds_and_unlocks(changes):

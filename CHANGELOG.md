@@ -8,6 +8,13 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 ## [Não lançado]        <!-- alvo: v0.5.0 telemetria · v0.6.0 remediação · preparação v0.7.0 -->
 
 ### Adicionado
+- Gestão das rodadas do experimento: registro de t0 confirmado antes de um callback de injeção,
+  associação explícita de incidente/evento, avaliação humana e descarte com motivo sem apagar
+  evidências. Valida alvo, versão da base, horários e aprovação do incidente para avaliação HITL
+  de sucesso; regras divergentes e falhas sem incidente permanecem registráveis. O observador
+  recusa gravar t5 após avaliação humana. Testes simulados locais aprovados;
+  **[NÃO VERIFICADO NO LABORATÓRIO]** transações/locks reais e integração. O controlador de
+  injeção e a restauração do cenário continuam pendentes.
 - Tela de ciência apresenta finalidade e efeitos dos cinco scripts padrão, mantendo o nome
   técnico e o código integral. Destaque de sintaxe Bash opcional, sem bibliotecas externas,
   com texto inserido por nós DOM para impedir interpretação do código como HTML.
@@ -18,8 +25,9 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 - Exportação CSV das rodadas com metadados, timestamps UTC e MTTR em segundos, preservando rodadas
   incompletas e descartadas e recusando substituir arquivos existentes. Verificação local com
   respostas simuladas; **[NÃO VERIFICADO NO LABORATÓRIO]** o uso integrado de SSH/PostgreSQL e o
-  procedimento manual. A injeção com registro de t0, a associação à auditoria e a análise dos KPIs
-  continuam pendentes; não houve coleta experimental.
+  procedimento manual. O controlador de injeção, a integração dos componentes e a análise dos KPIs
+  continuam pendentes; não houve coleta experimental. A view atual de KPI 03 usa desfechos de
+  execução aprovados e não equivale ao acerto avaliado pelo protocolo; não serve à coleta oficial.
 
 ### Corrigido
 - Base de conhecimento 1.0.1: o diagnóstico e o aviso de reversão de R001 explicam a remoção

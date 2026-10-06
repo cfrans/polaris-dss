@@ -12,9 +12,10 @@ have been collected by these tools. This procedure covers `service_down` only.
   the observer does not notify the operator or diagnose the incident.
 - Freeze the randomized round order before collection. These tools do not generate that order.
 - A collection controller must create an `experiment_run` row and record `ts_injecao` using
-  PostgreSQL time immediately before stopping nginx. **That controller and automatic association
-  with `audit_log.experiment_run_id` are not implemented by this preparation.** Creating a row
-  retrospectively is not an acceptable replacement for recording injection time.
+  PostgreSQL time immediately before stopping nginx. The registration helper now enforces commit
+  before a trusted injection callback, but **the actual injection controller is still absent**.
+  Explicit incident linking and human assessment are described in [rounds.md](rounds.md).
+  Creating a row retrospectively is not an acceptable replacement for recording injection time.
 - The row must identify `cenario=service_down`, the actual arm (`baseline` or `hitl`), the round,
   software revision, knowledge-base version, operator and target. `host_alvo` must equal
   `TARGET_SSH_HOST`. Use discarded rehearsal rounds before any official collection.
@@ -40,7 +41,7 @@ This is an observation time, with verification and network latency, rather than 
 of recovery. A broken SSH connection or an unexpected verifier response aborts measurement.
 
 The observer locks the round against another observer and conditionally writes only
-`ts_verificado_ok`. A discarded or already measured row cannot be overwritten. It does not mark
+`ts_verificado_ok`. A discarded, already measured or human-assessed row cannot be overwritten. It does not mark
 `resolvido`, count operator actions or write approval records. If the observer misses the failure,
 times out or loses connectivity, discard the rehearsal/collection round with a reason and repeat;
 do not fabricate a recovery timestamp. Its timeout starts when observation starts, not at injection.
@@ -65,7 +66,9 @@ Record the actual count of monitoring navigation actions, SSH session openings, 
 verification commands. Record commands literally, including unsuccessful commands and retries.
 Keep the definition of a step identical between arms; do not substitute a fixed expected count.
 The observer's probes and scenario injection are instrumentation and are not operator steps.
-Record any deviation and decide whether the round must be discarded before analysis.
+Record any deviation and decide whether the round must be discarded before analysis. Use the
+assessment command in [rounds.md](rounds.md) after checking the measured recovery and the protocol's
+correctness criteria. A valid failed outcome is recorded as `resolvido=false`, not discarded.
 
 For HITL, the operator follows the same alert-driven start, reads the Polaris recommendation and
 records each actual action, including approval. Normal persisted human approval remains mandatory
