@@ -8,6 +8,9 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 ## [Não lançado]        <!-- alvo: v0.5.0 telemetria · v0.6.0 remediação · preparação v0.7.0 -->
 
 ### Adicionado
+- Tela de ciência apresenta finalidade e efeitos dos cinco scripts padrão, mantendo o nome
+  técnico e o código integral. Destaque de sintaxe Bash opcional, sem bibliotecas externas,
+  com texto inserido por nós DOM para impedir interpretação do código como HTML.
 - Preparação da instrumentação de R003: observador independente para rodadas `service_down`
   existentes, usando o verificador SSH sem sudo, e runbook manual do braço baseline. O observador
   exige falha observada seguida de três verificações saudáveis e grava apenas o horário da primeira,

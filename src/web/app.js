@@ -58,11 +58,17 @@ function mostrarScript(indice) {
   const script = estado.catalogo.scripts[estado.indiceScript];
   $("ciencia-script-nome").textContent = script.nome;
   $("ciencia-contador").textContent = `${estado.indiceScript + 1} de ${total}`;
-  $("ciencia-codigo").textContent = script.conteudo;
+  const description = window.PolarisScriptViewer.describeScript(script.nome);
+  $("ciencia-script-titulo").textContent = description.title;
+  $("ciencia-script-finalidade").textContent = description.purpose;
+  $("ciencia-script-efeitos").textContent = description.effect;
+  window.PolarisScriptViewer.renderScript($("ciencia-codigo"), script.conteudo,
+    $("ciencia-colorir").checked);
 }
 
 async function carregarScripts(forcarExibicao = false) {
   $("tela-ciencia").classList.remove("oculto");
+  $("tela-ciencia").scrollTop = 0;
   $("btn-continuar-ciencia").disabled = true;
   try {
     estado.catalogo = await api("/api/v1/scripts-padrao");
@@ -615,6 +621,7 @@ $("btn-fechar-diagnostico").addEventListener("click", fecharDiagnostico);
 $("btn-reverificar").addEventListener("click", carregarDiagnostico);
 $("btn-recarregar-base").addEventListener("click", recarregarBase);
 $("btn-scripts").addEventListener("click", () => carregarScripts(true));
+$("ciencia-colorir").addEventListener("change", () => mostrarScript(estado.indiceScript));
 $("btn-script-anterior").addEventListener("click", () => mostrarScript(estado.indiceScript - 1));
 $("btn-script-proximo").addEventListener("click", () => mostrarScript(estado.indiceScript + 1));
 $("btn-continuar-ciencia").addEventListener("click", continuarAposCiencia);

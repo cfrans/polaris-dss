@@ -75,11 +75,11 @@ body {
 
 .tela-ciencia {
   position: fixed; inset: 0; z-index: 20; overflow-y: auto;
-  display: grid; place-items: center; padding: 1.25rem;
+  display: flex; align-items: flex-start; justify-content: center; padding: 1.25rem;
   background: rgba(6, 10, 17, 0.94);
 }
 .ciencia-cartao {
-  width: min(960px, 100%); padding: 1.5rem; border: 1px solid var(--borda);
+  width: min(960px, 100%); margin-block: auto; padding: 1.5rem; border: 1px solid var(--borda);
   border-radius: var(--raio); background: var(--fundo-painel);
 }
 .ciencia-cartao h2 { margin-bottom: 0.6rem; }
@@ -95,6 +95,18 @@ body {
   color: #c5e8d1; font-family: "Cascadia Code", Consolas, monospace;
   font-size: 0.82rem; line-height: 1.45; white-space: pre;
 }
+.ciencia-descricao { margin-top: 1rem; padding: 0.9rem; border-left: 3px solid var(--acento); }
+.ciencia-descricao h3 { font-size: 1rem; margin-bottom: 0.5rem; }
+.ciencia-descricao p:last-child { margin-bottom: 0; }
+.ciencia-opcoes { display: flex; align-items: center; gap: 0.5rem; margin-top: 0.8rem; }
+.ciencia-codigo:focus-visible { outline: 2px solid var(--acento); outline-offset: 2px; }
+.shell-plain { color: #e2e8f0; }
+.shell-comment { color: #a8b6c8; }
+.shell-string { color: #b7e39b; }
+.shell-variable { color: #a8d8ff; }
+.shell-keyword { color: #e2b2ff; font-weight: 600; }
+.shell-operator { color: #ffd38a; }
+.shell-number { color: #ffbfaa; }
 .ciencia-acoes { justify-content: flex-end; flex-wrap: wrap; }
 @media (max-width: 620px) {
   .faixa-ciencia { align-items: flex-start; flex-direction: column; }
