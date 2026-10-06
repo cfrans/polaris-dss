@@ -22,8 +22,8 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
   evidências. Valida alvo, versão da base, horários e aprovação do incidente para avaliação HITL
   de sucesso; regras divergentes e falhas sem incidente permanecem registráveis. O observador
   recusa gravar t5 após avaliação humana. Testes simulados locais aprovados;
-  **[NÃO VERIFICADO NO LABORATÓRIO]** transações/locks reais e integração. O controlador de
-  injeção e a restauração do cenário continuam pendentes.
+  **[NÃO VERIFICADO NO LABORATÓRIO]** transações/locks reais e integração. Controlador R003 e
+  reset explícito preparados em continuidade; demais cenários e restauração global pendentes.
 - Tela de ciência apresenta finalidade e efeitos dos cinco scripts padrão, mantendo o nome
   técnico e o código integral. Destaque de sintaxe Bash opcional, sem bibliotecas externas,
   com texto inserido por nós DOM para impedir interpretação do código como HTML.
@@ -34,9 +34,9 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 - Exportação CSV das rodadas com metadados, timestamps UTC e MTTR em segundos, preservando rodadas
   incompletas e descartadas e recusando substituir arquivos existentes. Verificação local com
   respostas simuladas; **[NÃO VERIFICADO NO LABORATÓRIO]** o uso integrado de SSH/PostgreSQL e o
-  procedimento manual. O controlador de injeção, a integração dos componentes e a análise dos KPIs
-  continuam pendentes; não houve coleta experimental. A view atual de KPI 03 usa desfechos de
-  execução aprovados e não equivale ao acerto avaliado pelo protocolo; não serve à coleta oficial.
+  procedimento manual. Integração real, demais cenários e análise completa continuam pendentes;
+  não houve coleta experimental. O acerto humano foi preparado em continuidade; a view do servidor
+  sem migração 007 ainda usa desfechos aprovados e não equivale ao acerto do protocolo.
 
 ### Corrigido
 - KPI 03 passa a usar a avaliação humana das rodadas HITL por cenário, incluindo falhas sem
