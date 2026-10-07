@@ -8,14 +8,25 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 ## [Não lançado]        <!-- alvo: v0.5.0 telemetria · v0.6.0 remediação · preparação v0.7.0 -->
 
 ### Adicionado
+- Controladores experimentais R001/R002 para baseline/HITL, reutilizando gestão de rodadas e
+  coordenação R003. Disco somente no mount isolado de 2 GB: preparação de gzip descartável,
+  manifesto de dispositivo/inodes, recusa de dados alheios/links, pressão confirmada e reset dos
+  arquivos rastreados. CPU com uma CPU disponível e um worker em unidade transitória dedicada,
+  sem restart, com expiração de segurança superior ao deadline máximo de observação.
+  Observadores sem sudo: disco abaixo de 85%; CPU abaixo de 70% por janela amostrada de 30 s,
+  seguida de três checks qualificadores. Registro só de t5; avaliação humana e aprovação preservadas.
+  Locks e t0/t5 testados no PostgreSQL local descartável; scripts testados com utilitários falsos.
+  **[NÃO VERIFICADO NO LABORATÓRIO]** SSH/sudo, systemd, pressão real e ensaio dos dois braços.
+  Runbooks e CLIs documentados; análise completa e checklist global de reset continuam pendentes.
 - Controlador experimental R003 para baseline/HITL: checks de nginx e registros anteriores,
   espera de 60 s, commit de t0 antes de armar observador e injetar, com lock por alvo e conexão
   própria no observador. Injeção e reset explícitos usam identidade administrativa distinta;
-  reset exige avaliação/descarte e recusa interferência com outra rodada ou incidente aberto.
+  reset exige avaliação/descarte e recusa interferência com outra rodada ou incidente aberto no alvo.
   Nenhuma aprovação automática ou remediação pelo controlador; timestamps/auditoria preservados.
   Observador cancelável; erros e IDs mantidos para avaliação. CLI documentada para checkout ou
   imagem sem Git. Testes simulados e shell com comandos falsos aprovados;
-  **[NÃO VERIFICADO NO LABORATÓRIO]** SSH/sudo, locks e ciclo real dos dois braços. t0 inclui o
+  **[NÃO VERIFICADO NO LABORATÓRIO]** SSH/sudo e ciclo real dos dois braços. Locks compartilhados
+  validados localmente no PostgreSQL descartável em continuidade. t0 inclui o
   despacho da instrumentação anterior à parada; esse atraso ainda deve ser observado no ensaio.
 - Gestão das rodadas do experimento: registro de t0 confirmado antes de um callback de injeção,
   associação explícita de incidente/evento, avaliação humana e descarte com motivo sem apagar
@@ -23,7 +34,8 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
   de sucesso; regras divergentes e falhas sem incidente permanecem registráveis. O observador
   recusa gravar t5 após avaliação humana. Testes simulados locais aprovados;
   **[NÃO VERIFICADO NO LABORATÓRIO]** transações/locks reais e integração. Controlador R003 e
-  reset explícito preparados em continuidade; demais cenários e restauração global pendentes.
+  reset explícito preparados em continuidade; controladores CPU/disco preparados posteriormente,
+  restauração/checklist global pendente.
 - Tela de ciência apresenta finalidade e efeitos dos cinco scripts padrão, mantendo o nome
   técnico e o código integral. Destaque de sintaxe Bash opcional, sem bibliotecas externas,
   com texto inserido por nós DOM para impedir interpretação do código como HTML.

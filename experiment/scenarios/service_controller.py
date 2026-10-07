@@ -23,6 +23,7 @@ from src.engine.script_catalog import load_catalog
 ROOT = Path(__file__).resolve().parents[2]
 SCRIPT = Path(__file__).resolve().with_name('service_scenario.sh')
 LOCK_NAMESPACE = 17017
+SCENARIOS = {'service_down': 'R003', 'cpu_high': 'R002', 'disk_full': 'R001'}
 
 
 class ScenarioError(RuntimeError):
@@ -72,25 +73,26 @@ def target_lock(connection, target: str):
 def check_environment(connection, target: str, probe) -> None:
     with connection.transaction():
         with connection.cursor() as cursor:
-            cursor.execute("SELECT id FROM experiment_run WHERE cenario = 'service_down' "
-                           'AND host_alvo = %s AND descartada = FALSE AND resolvido IS NULL', (target,))
+            cursor.execute('SELECT id FROM experiment_run WHERE host_alvo = %s '
+                           'AND descartada = FALSE AND resolvido IS NULL', (target,))
             if cursor.fetchall():
-                raise ScenarioError('an earlier R003 round still needs assessment or discard')
-            cursor.execute("SELECT id FROM audit_log WHERE regra_disparada = 'R003' "
+                raise ScenarioError('an earlier round still needs assessment or discard')
+            cursor.execute("SELECT id FROM audit_log WHERE regra_disparada IN ('R001','R002','R003') "
                            "AND status_execucao IN ('pendente', 'executando') "
                            'AND (hostname = %s OR host(ip_address) = %s)', (target, target))
             if cursor.fetchall():
-                raise ScenarioError('an earlier R003 incident is still open')
+                raise ScenarioError('an earlier incident is still open')
     if not probe():
-        raise ScenarioError('nginx is not healthy; restore and review the environment first')
+        raise ScenarioError('target scenario is not healthy; restore and review the environment first')
 
 
 class RecoveryObserver:
     """One dedicated PostgreSQL connection in the worker; caller never shares its connection."""
-    def __init__(self, probe, timeout: float):
+    def __init__(self, probe, timeout: float, *, watcher=None):
         if not math.isfinite(timeout) or timeout <= 0:
             raise ValueError('observation timeout must be positive and finite')
         self.probe, self.timeout = probe, timeout
+        self.watcher = watcher
         self.ready, self.cancel = Event(), Event()
         self.thread = None
         self.error, self.timestamp = None, None
@@ -102,14 +104,14 @@ class RecoveryObserver:
         def worker():
             try:
                 with conectar(autocommit=True) as connection:
-                    self.timestamp = watch_round(connection, run_id, self.target, self.probe,
+                    self.timestamp = (self.watcher or watch_round)(connection, run_id, self.target, self.probe,
                                                  self.timeout, on_ready=self.ready.set,
                                                  should_stop=self.cancel.is_set, sleep=self.cancel.wait)
             except BaseException as exc:
                 self.error = exc
                 self.ready.set()
 
-        self.thread = Thread(target=worker, name=f'r003-observer-{run_id}', daemon=True)
+        self.thread = Thread(target=worker, name=f'recovery-observer-{run_id}', daemon=True)
         self.thread.start()
         if not self.ready.wait(10) or self.error is not None:
             raise ScenarioError('observer could not be armed before injection')
@@ -130,10 +132,10 @@ class RecoveryObserver:
 
 
 def run_round(connection, metadata: RoundMetadata, admin_action, probe, observer,
-              *, sleep=time.sleep, emit=lambda message: None):
+              *, sleep=time.sleep, emit=lambda message: None, scenario="service_down"):
     metadata.validate()
-    if metadata.scenario != 'service_down':
-        raise ValueError('controller supports service_down only')
+    if scenario not in SCENARIOS or metadata.scenario != scenario:
+        raise ValueError('round scenario does not match controller')
     with target_lock(connection, metadata.target):
         check_environment(connection, metadata.target, probe)
         admin_action('check')
@@ -168,27 +170,29 @@ def run_round(connection, metadata: RoundMetadata, admin_action, probe, observer
                                     f'({type(cleanup_error).__name__}); inspect evidence and target') from cleanup_error
 
 
-def reset_round(connection, run_id: int, target: str, admin_action, probe) -> None:
+def reset_round(connection, run_id: int, target: str, admin_action, probe, *, scenario="service_down") -> None:
+    if scenario not in SCENARIOS:
+        raise ValueError("unsupported scenario")
     with target_lock(connection, target):
         with connection.transaction():
             with connection.cursor() as cursor:
                 row = locked_round(cursor, run_id)
-                if row['cenario'] != 'service_down' or row['host_alvo'] != target:
+                if row['cenario'] != scenario or row['host_alvo'] != target:
                     raise ScenarioError('round scenario or target does not match')
                 if not row['descartada'] and row['resolvido'] is None:
                     raise ScenarioError('assess or discard the round before resetting')
-                cursor.execute("SELECT id FROM experiment_run WHERE cenario = 'service_down' "
-                               'AND host_alvo = %s AND id <> %s '
+                cursor.execute('SELECT id FROM experiment_run WHERE host_alvo = %s AND id <> %s '
                                'AND descartada = FALSE AND resolvido IS NULL', (target, run_id))
                 if cursor.fetchall():
                     raise ScenarioError('another round on this target still needs assessment or discard')
-                cursor.execute('SELECT id FROM audit_log WHERE experiment_run_id = %s '
-                               "AND status_execucao IN ('pendente', 'executando')", (run_id,))
+                cursor.execute('SELECT id FROM audit_log WHERE (experiment_run_id = %s '
+                               'OR hostname = %s OR host(ip_address) = %s) '
+                               "AND status_execucao IN ('pendente', 'executando')", (run_id, target, target))
                 if cursor.fetchall():
-                    raise ScenarioError('close the linked pending/executing incident before resetting')
+                    raise ScenarioError('close the linked or target pending/executing incident before resetting')
         admin_action('reset')
         if not probe():
-            raise ScenarioError('nginx recovery after reset not confirmed')
+            raise ScenarioError('scenario recovery after reset not confirmed')
 
 
 def repository_revision() -> str:
@@ -201,8 +205,10 @@ def repository_revision() -> str:
     return revision.stdout.strip()
 
 
-def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description=__doc__)
+def main(argv: list[str] | None = None, *, scenario="service_down") -> int:
+    if scenario not in SCENARIOS:
+        raise ValueError("unsupported scenario")
+    parser = argparse.ArgumentParser(description=f'Explicit {scenario} injection, observation and post-round reset')
     common = argparse.ArgumentParser(add_help=False)
     common.add_argument('--admin-user', required=True)
     common.add_argument('--admin-key-file', type=Path, required=True)
@@ -216,6 +222,8 @@ def main(argv: list[str] | None = None) -> int:
     run.add_argument('--commit-sha', help='full build SHA, required when Git metadata is absent')
     reset = sub.add_parser('reset', parents=[common])
     reset.add_argument('--run-id', type=int, required=True)
+    if scenario == 'disk_full':
+        sub.add_parser('prepare', parents=[common], help='create the disposable gzip fixture before a round')
     args = parser.parse_args(argv)
     try:
         settings = get_settings()
@@ -230,8 +238,19 @@ def main(argv: list[str] | None = None) -> int:
         probe = lambda: service_probe(reader, catalog)
         admin = AdminTransport(runner_ssh(settings.target_ssh_host, args.admin_user, str(admin_key)),
                                use_sudo=args.admin_user != 'root')
+        watcher = None
+        if scenario != 'service_down':
+            from functools import partial
+            from experiment.scenarios.resource_controller import ResourceTransport
+            from experiment.verify.resource_watcher import resource_probe, watch_resource_round
+            probe = partial(resource_probe, reader, catalog, scenario)
+            admin = ResourceTransport(runner_ssh(settings.target_ssh_host, args.admin_user, str(admin_key)),
+                                      scenario, use_sudo=args.admin_user != 'root')
+            watcher = partial(watch_resource_round, scenario=scenario)
         metadata, observer = None, None
         if args.action == 'run':
+            if scenario == 'cpu_high' and (not math.isfinite(args.timeout) or not 0 < args.timeout <= 1800):
+                raise ValueError('CPU observation limit must be at most 1800s, below the 3600s safety expiry')
             kb = load(settings.rules_path, settings.schema_path)
             revision = args.commit_sha
             if (ROOT / '.git').exists():
@@ -241,17 +260,22 @@ def main(argv: list[str] | None = None) -> int:
                 revision = actual_revision
             elif revision is None:
                 raise ValueError('provide the full build SHA when Git metadata is absent')
-            metadata = RoundMetadata('service_down', args.arm, args.repetition, args.system_version,
+            metadata = RoundMetadata(scenario, args.arm, args.repetition, args.system_version,
                                      revision, kb.versao_kb, settings.target_ssh_host, args.operator)
             metadata.validate()
-            observer = RecoveryObserver(probe, args.timeout)
+            observer = RecoveryObserver(probe, args.timeout, watcher=watcher)
         with conectar() as connection:
-            if args.action == 'reset':
-                reset_round(connection, args.run_id, settings.target_ssh_host, admin, probe)
+            if args.action == 'prepare':
+                with target_lock(connection, settings.target_ssh_host):
+                    check_environment(connection, settings.target_ssh_host, probe)
+                    admin('prepare')
+                print(json.dumps({'event': 'fixture_prepared', 'scenario': scenario}))
+            elif args.action == 'reset':
+                reset_round(connection, args.run_id, settings.target_ssh_host, admin, probe, scenario=scenario)
                 print(json.dumps({'event': 'reset_confirmed', 'run_id': args.run_id}))
             else:
                 emit = lambda message: print(json.dumps(message), flush=True)
-                run_id, timestamp = run_round(connection, metadata, admin, probe, observer, emit=emit)
+                run_id, timestamp = run_round(connection, metadata, admin, probe, observer, emit=emit, scenario=scenario)
                 emit({'event': 'recovery_measured', 'run_id': run_id, 'ts_verificado_ok': timestamp.isoformat()})
     except (Exception, KeyboardInterrupt) as exc:
         detail = str(exc) if isinstance(exc, (ScenarioError, ValueError)) or hasattr(exc, 'run_id') else type(exc).__name__

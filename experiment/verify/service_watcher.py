@@ -31,6 +31,7 @@ def observe_recovery(
     monotonic: Callable[[], float] = time.monotonic,
     sleep: Callable[[float], None] = time.sleep,
     should_stop: Callable[[], bool] = lambda: False,
+    healthy_duration: float = 0,
 ) -> datetime:
     """Record the first healthy sample confirmed by three consecutive successes.
 
@@ -39,6 +40,9 @@ def observe_recovery(
     """
     if not math.isfinite(timeout_seconds) or timeout_seconds <= 0:
         raise ValueError("observation timeout must be positive")
+    if not math.isfinite(healthy_duration) or healthy_duration < 0:
+        raise ValueError("healthy duration must be finite and nonnegative")
+    window_started = None
     deadline = monotonic() + timeout_seconds
     failure_seen = False
     consecutive = 0
@@ -57,7 +61,13 @@ def observe_recovery(
             failure_seen = True
             consecutive = 0
             first_healthy = None
+            window_started = None
         elif failure_seen:
+            if window_started is None:
+                window_started = monotonic()
+            if monotonic() - window_started < healthy_duration:
+                sleep(min(max(0.0, sample_started + 1.0 - monotonic()), max(0.0, deadline - monotonic())))
+                continue
             if consecutive == 0:
                 first_healthy = sampled_at
             consecutive += 1
@@ -86,9 +96,12 @@ def service_probe(runner, catalog) -> bool:
 class RoundStore:
     """Persist only the measurement, leaving correctness and manual fields untouched."""
 
-    def __init__(self, connection, run_id: int):
+    def __init__(self, connection, run_id: int, scenario: str = "service_down"):
         if run_id <= 0:
             raise ValueError("run ID must be positive")
+        if scenario not in {"service_down", "cpu_high", "disk_full"}:
+            raise ValueError("unsupported observation scenario")
+        self.scenario = scenario
         self.connection = connection
         self.run_id = run_id
         self.claimed = False
@@ -106,8 +119,8 @@ class RoundStore:
             row = cursor.fetchone()
         if row is None:
             raise ObservationError("round does not exist")
-        if row["cenario"] != "service_down" or row["braco"] not in {"baseline", "hitl"}:
-            raise ObservationError("observer requires a service_down baseline or hitl round")
+        if row["cenario"] != self.scenario or row["braco"] not in {"baseline", "hitl"}:
+            raise ObservationError(f"observer requires a {self.scenario} baseline or hitl round")
         if row["descartada"] or row["ts_verificado_ok"] is not None or row.get("resolvido") is not None:
             raise ObservationError("round is discarded, measured or assessed")
         if not target or row["host_alvo"] != target:
@@ -131,8 +144,8 @@ class RoundStore:
             cursor.execute(
                 "UPDATE experiment_run SET ts_verificado_ok = %s "
                 "WHERE id = %s AND descartada = FALSE AND ts_verificado_ok IS NULL "
-                "AND resolvido IS NULL AND cenario = 'service_down' AND host_alvo = %s RETURNING id",
-                (timestamp, self.run_id, self.target),
+                "AND resolvido IS NULL AND host_alvo = %s AND cenario = %s RETURNING id",
+                (timestamp, self.run_id, self.target, self.scenario),
             )
             if cursor.fetchone() is None:
                 raise ObservationError("round was discarded, measured or assessed by another process")

@@ -1,7 +1,7 @@
 # R003 manual baseline and recovery measurement
 
-Status: prepared and tested offline on 2026-10-05. Laboratory execution, PostgreSQL
-integration and SSH measurement have **not been validated**. No experimental results
+Status: prepared and tested offline on 2026-10-05. Shared persistence/locks were validated locally in disposable PostgreSQL on 2026-10-06.
+Laboratory execution and SSH measurement have **not been validated**. No experimental results
 have been collected by these tools. This procedure covers `service_down` only.
 
 ## Preconditions
@@ -93,3 +93,5 @@ Keep the CSV on the collection host and preserve the original database evidence.
 command inside a container, copy the output to the host before recreating the container; the image
 filesystem is not durable evidence storage. Review exported observations/commands for credentials
 and personal information before publishing raw data. Back up the database after each round.
+
+The prepared CPU/disk manual procedures are in [runbook_resources.md](runbook_resources.md).

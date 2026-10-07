@@ -1,7 +1,8 @@
 # R003 laboratory controller
 
-Prepared and tested offline on 2026-10-06. PostgreSQL locks, actual SSH, sudo/systemd and the
-integrated two-arm experiment have **not been validated**. Shell tests use fake systemctl/id
+Prepared on 2026-10-06. Shared target/observer locks and t0/t5 persistence were tested locally
+in disposable PostgreSQL 16.15. Actual SSH, sudo/systemd and the integrated two-arm experiment
+have **not been validated**. Shell tests use fake systemctl/id
 commands in a temporary directory. No real service or research data was used in those tests.
 
 ## Preconditions and credentials
@@ -48,7 +49,8 @@ Sequence:
 
 1. Acquire the PostgreSQL advisory lock for the configured target. Another controller for that
    target string is refused; aliases must not be used to run concurrent sessions on one physical host.
-2. Refuse prior unassessed R003 rounds and pending/executing R003 incidents for that target.
+2. Refuse prior unassessed rounds of any scenario and pending/executing R001/R002/R003 incidents
+   for that target.
    Confirm healthy nginx through the independent verifier and the administrative script's check.
 3. Wait 60 seconds, then repeat those checks. An unhealthy environment is refused, not repaired.
 4. Persist and commit the round and `t0` using the existing registration helper.
@@ -89,7 +91,7 @@ python -m experiment.scenarios.service_controller reset --run-id <round_id> --ad
 ```
 
 The round must match R003 and the configured target. Reset is refused for an unassessed valid row,
-another unassessed R003 round on that target or a linked pending/executing incident. It sends only
+another unassessed round on that target or a linked/target pending/executing incident. It sends only
 `systemctl start nginx` and checks health using both the script and independent verifier. It changes
 no database timestamps, assessments, links or decisions. It does not restart a running service,
 reconfigure nginx or repair other faults. Wait for the monitoring problem to close before the next
@@ -100,3 +102,6 @@ Commands return zero on measured recovery/confirmed reset and two on errors. A s
 exit is a measurement result; the human assessment determines protocol accuracy. Credentials and
 remote stderr are not printed. Use discarded rehearsal rounds to validate this complete workflow
 before collecting official data.
+
+CPU and disk instruments use the same lifecycle and target lock; see
+[resource controllers](resource_controller.md) and [manual resource baseline](../runbook_resources.md).
