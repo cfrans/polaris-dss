@@ -35,6 +35,53 @@ const pct = (v) => (v == null ? "—" : `${Math.round(v * 100)}%`);
 
 const CHAVE_CIENCIA = "polaris.ciencia.scripts";
 const CHAVE_FAIXA = "polaris.faixa.oculta";
+let descriptionAnimation = null;
+let descriptionExpanded = false;
+
+function resetScriptDescription() {
+  if (descriptionAnimation) {
+    descriptionAnimation.onfinish = null;
+    descriptionAnimation.cancel();
+    descriptionAnimation = null;
+  }
+  descriptionExpanded = false;
+  const details = $("ciencia-descricao");
+  details.open = false;
+  details.style.overflow = "";
+}
+
+function toggleScriptDescription(event) {
+  event.preventDefault();
+  const details = $("ciencia-descricao");
+  const summary = details.querySelector("summary");
+  const startHeight = details.getBoundingClientRect().height;
+  const opening = !descriptionExpanded;
+  if (descriptionAnimation) {
+    descriptionAnimation.onfinish = null;
+    descriptionAnimation.cancel();
+    descriptionAnimation = null;
+  }
+  descriptionExpanded = opening;
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches || !details.animate) {
+    details.open = opening;
+    details.style.overflow = "";
+    return;
+  }
+  details.open = true;
+  const endHeight = opening ? details.getBoundingClientRect().height
+    : summary.getBoundingClientRect().height;
+  details.style.overflow = "hidden";
+  const animation = details.animate(
+    [{height: `${startHeight}px`}, {height: `${endHeight}px`}],
+    {duration: 180, easing: "ease-in-out"},
+  );
+  descriptionAnimation = animation;
+  animation.onfinish = () => {
+    details.open = opening;
+    details.style.overflow = "";
+    descriptionAnimation = null;
+  };
+}
 
 function lerPreferencia(chave) {
   try { return localStorage.getItem(chave); } catch { return null; }
@@ -68,7 +115,7 @@ function mostrarScript(indice) {
 
 async function carregarScripts(forcarExibicao = false) {
   $("tela-ciencia").classList.remove("oculto");
-  $("ciencia-descricao").open = false;
+  resetScriptDescription();
   $("tela-ciencia").scrollTop = 0;
   $("btn-continuar-ciencia").disabled = true;
   try {
@@ -622,6 +669,7 @@ $("btn-fechar-diagnostico").addEventListener("click", fecharDiagnostico);
 $("btn-reverificar").addEventListener("click", carregarDiagnostico);
 $("btn-recarregar-base").addEventListener("click", recarregarBase);
 $("btn-scripts").addEventListener("click", () => carregarScripts(true));
+$("ciencia-descricao").querySelector("summary").addEventListener("click", toggleScriptDescription);
 $("ciencia-colorir").addEventListener("change", () => mostrarScript(estado.indiceScript));
 $("btn-script-anterior").addEventListener("click", () => mostrarScript(estado.indiceScript - 1));
 $("btn-script-proximo").addEventListener("click", () => mostrarScript(estado.indiceScript + 1));

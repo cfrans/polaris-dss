@@ -1,7 +1,7 @@
 /* Interface Human-in-the-Loop.
    Sem framework e sem etapa de build, por decisão de projeto: a monografia declara HTML, CSS e
    JavaScript puros, e a interface precisa ser legível em projetor durante a defesa — daí o
-   contraste alto, a tipografia grande e a ausência de animação decorativa. */
+   contraste alto, a tipografia grande e as transições curtas entre estados. */
 
 :root {
   --fundo: #0e1420;
@@ -29,6 +29,11 @@ body {
 }
 
 .oculto { display: none !important; }
+
+a[href], button, summary, [role="button"], [role="link"],
+input[type="button"], input[type="submit"], input[type="reset"],
+input[type="checkbox"], input[type="radio"] { cursor: pointer; }
+button:disabled, input:disabled, [aria-disabled="true"] { cursor: not-allowed; }
 
 /* ---------- topo ---------- */
 

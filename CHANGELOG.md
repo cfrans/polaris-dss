@@ -67,6 +67,10 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
   sem migração 007 ainda usa desfechos aprovados e não equivale ao acerto do protocolo.
 
 ### Corrigido
+- Cursor de mão padronizado nos links, botões e demais controles clicáveis; controles
+  desabilitados indicam indisponibilidade. Explicação dos scripts abre e fecha com transição
+  curta de altura, respeitando a preferência de movimento reduzido e cliques durante a animação.
+  Conferido em prévia local; **[NÃO VERIFICADO NO LABORATÓRIO]** este refinamento visual.
 - Tela de ciência compacta: finalidade e efeitos ficam recolhidos ao abrir/reabrir,
   com expansão por clique ou teclado. A opção de colorir sintaxe fica menor e à direita,
   na mesma linha da explicação recolhida. Código integral, rolagem e navegação preservados.
