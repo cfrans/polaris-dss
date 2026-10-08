@@ -8,6 +8,14 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 ## [Não lançado]        <!-- alvo: v0.5.0 telemetria · v0.6.0 remediação · preparação v0.7.0 -->
 
 ### Adicionado
+- Relatório descritivo do experimento: resumos de MTTR e passos por cenário/braço com média,
+  desvio amostral, mínimo/máximo, contagens e lacunas; redução entre braços e comparação por
+  repetições pareadas. Acerto humano agregado por contagens; decomposição somente com vínculo
+  único e seis horários completos/ordenados, terminando no t5 independente. Snapshot PostgreSQL
+  REPEATABLE READ READ ONLY ou entrada CSV, com exportação bruta, tabelas, Markdown e manifesto
+  de hashes, sem sobrescrita. Figuras PNG/PDF com Matplotlib opcional restrito à análise;
+  dados sintéticos identificados, sem imputação de medições nem alteração do runtime.
+  Validação local com banco descartável e dados sintéticos; nenhum resultado experimental coletado.
 - Controladores experimentais R001/R002 para baseline/HITL, reutilizando gestão de rodadas e
   coordenação R003. Disco somente no mount isolado de 2 GB: preparação de gzip descartável,
   manifesto de dispositivo/inodes, recusa de dados alheios/links, pressão confirmada e reset dos
@@ -46,7 +54,7 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 - Exportação CSV das rodadas com metadados, timestamps UTC e MTTR em segundos, preservando rodadas
   incompletas e descartadas e recusando substituir arquivos existentes. Verificação local com
   respostas simuladas; **[NÃO VERIFICADO NO LABORATÓRIO]** o uso integrado de SSH/PostgreSQL e o
-  procedimento manual. Integração real, demais cenários e análise completa continuam pendentes;
+  procedimento manual. Integração no laboratório continua pendente; demais cenários e análise foram implementados em continuidade;
   não houve coleta experimental. O acerto humano foi preparado em continuidade; a view do servidor
   sem migração 007 ainda usa desfechos aprovados e não equivale ao acerto do protocolo.
 

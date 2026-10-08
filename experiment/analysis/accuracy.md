@@ -52,3 +52,7 @@ The migration runs transactionally through the existing migration runner. The re
 rounds. They passed locally; database tests remain skipped when PostgreSQL is unavailable. Use
 only a disposable test database: the integration fixtures truncate volatile tables.
 Do not interpret the old unmigrated view as the corrected accuracy calculation.
+
+
+For raw evidence, MTTR/effort summaries, pooled accuracy and PNG/PDF figures together, use the
+[descriptive report](report.md). It retains this assessment-based accuracy denominator.

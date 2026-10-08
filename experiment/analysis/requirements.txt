@@ -1,0 +1,2 @@
+# Figuras opcionais da análise; manter estas dependências fora do motor/runtime.
+matplotlib==3.11.2
