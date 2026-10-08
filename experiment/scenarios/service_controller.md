@@ -105,3 +105,9 @@ before collecting official data.
 
 CPU and disk instruments use the same lifecycle and target lock; see
 [resource controllers](resource_controller.md) and [manual resource baseline](../runbook_resources.md).
+
+
+Before a controller invocation, use the [global environment checklist](reset_environment.md) to
+inspect all scenarios, not only the injected one. After assessment/discard, its explicit reset
+command restores the round's scenario and verifies the other scenarios without repairing them.
+The remaining NTP, monitoring rearming, five-minute interval and collateral checks are manual.

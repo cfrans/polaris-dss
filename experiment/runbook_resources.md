@@ -49,3 +49,9 @@ Count actual operator actions rather than substituting a fixed expected count. A
 resource alone does not establish a correct diagnosis. Assess valid failure as false; discard only
 invalid measurements with a reason. Preserve database backup, screen recording and literal commands
 before an explicit post-round reset, and allow the monitoring alert to close before repeating.
+
+
+Use the [global environment checklist](scenarios/reset_environment.md) before the next round and
+after the explicit post-round reset. Preserve the raw evidence before cleanup; a successful health
+check does not replace human correctness assessment. [Report analysis](analysis/report.md) exports
+MTTR, recorded manual steps and human-assessed accuracy without editing primary data.

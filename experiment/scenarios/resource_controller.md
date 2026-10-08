@@ -116,3 +116,9 @@ CPU count, systemd privileges, no automatic workload restart, transport cancella
 actual failure observation, t0-to-fault delay, CPU sampled 30-second window, post-remedy disk headroom,
 and safe reset after a valid failure. The global reset checklist and aggregate MTTR/manual-step
 analysis are separate requirements; these per-scenario commands do not complete the experiment.
+
+
+Before a controller invocation, use the [global environment checklist](reset_environment.md) to
+inspect all scenarios, not only the injected one. After assessment/discard, its explicit reset
+command restores the round's scenario and verifies the other scenarios without repairing them.
+The remaining NTP, monitoring rearming, five-minute interval and collateral checks are manual.

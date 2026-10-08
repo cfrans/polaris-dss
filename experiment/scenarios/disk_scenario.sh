@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Disposable R001 data only; never mount, format, or use the root filesystem.
 set -euo pipefail
-[[ $# == 1 ]] || { echo 'expected prepare, check, inject or reset' >&2; exit 2; }
+[[ $# == 1 ]] || { echo 'expected prepare, check, check-clean, inject or reset' >&2; exit 2; }
 action=$1
-case "$action" in prepare|check|inject|reset) ;; *) exit 2 ;; esac
+case "$action" in prepare|check|check-clean|inject|reset) ;; *) exit 2 ;; esac
 [[ "$(id -u)" == 0 ]] || { echo 'administrative privileges required' >&2; exit 3; }
 mount=/mnt/polaris_test
 archive=$mount/polaris_r001_lab.log.gz
@@ -55,6 +55,13 @@ usage() {
     [[ "$value" =~ ^[0-9]+$ && "$value" -le 100 ]] || return 5
     printf '%s' "$value"
 }
+if [[ "$action" == check-clean ]]; then
+    [[ ! -e "$manifest" && ! -e "$archive" && ! -e "$filler" && "$(usage)" -lt 5 ]] || {
+        echo 'test fixture is not empty; review the previous round before reset' >&2; exit 4;
+    }
+    echo 'disk: clean'
+    exit 0
+fi
 if [[ "$action" == reset ]]; then
     # Only files identified by our manifest can be removed. Other data was rejected above.
     if [[ -e "$manifest" ]]; then

@@ -8,6 +8,14 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 ## [Não lançado]        <!-- alvo: v0.5.0 telemetria · v0.6.0 remediação · preparação v0.7.0 -->
 
 ### Adicionado
+- Checklist global do experimento e reset administrativo explícito por ID de rodada: lock
+  compartilhado por alvo, recusa de rodada não avaliada/incidente aberto e inspeção dos três
+  cenários em duas amostras separadas por 60 s. Check de mount vazio não prepara nem remove
+  arquivos; reset restaura somente o cenário avaliado/descartado e confere os demais, sem
+  reparar sujeira alheia ou mudar avaliação/timestamps/aprovação. NTP, rearme, cinco minutos,
+  versões e efeitos colaterais continuam em checklist manual explícito. Runbooks atualizados.
+  Suite local com PostgreSQL descartável: 430 aprovados, sem pulos; shells/SSH simulados.
+  **[NÃO VERIFICADO NO LABORATÓRIO]** inspeções físicas, acesso administrativo e ciclo integrado.
 - Relatório descritivo do experimento: resumos de MTTR e passos por cenário/braço com média,
   desvio amostral, mínimo/máximo, contagens e lacunas; redução entre braços e comparação por
   repetições pareadas. Acerto humano agregado por contagens; decomposição somente com vínculo
@@ -25,7 +33,7 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
   seguida de três checks qualificadores. Registro só de t5; avaliação humana e aprovação preservadas.
   Locks e t0/t5 testados no PostgreSQL local descartável; scripts testados com utilitários falsos.
   **[NÃO VERIFICADO NO LABORATÓRIO]** SSH/sudo, systemd, pressão real e ensaio dos dois braços.
-  Runbooks e CLIs documentados; análise completa e checklist global de reset continuam pendentes.
+  Runbooks e CLIs documentados; análise/checklist global implementados em continuidade, com ensaio integrado pendente.
 - Controlador experimental R003 para baseline/HITL: checks de nginx e registros anteriores,
   espera de 60 s, commit de t0 antes de armar observador e injetar, com lock por alvo e conexão
   própria no observador. Injeção e reset explícitos usam identidade administrativa distinta;
@@ -43,7 +51,7 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
   recusa gravar t5 após avaliação humana. Testes simulados locais aprovados;
   **[NÃO VERIFICADO NO LABORATÓRIO]** transações/locks reais e integração. Controlador R003 e
   reset explícito preparados em continuidade; controladores CPU/disco preparados posteriormente,
-  restauração/checklist global pendente.
+  checklist global implementado em continuidade; ensaio integrado pendente.
 - Tela de ciência apresenta finalidade e efeitos dos cinco scripts padrão, mantendo o nome
   técnico e o código integral. Destaque de sintaxe Bash opcional, sem bibliotecas externas,
   com texto inserido por nós DOM para impedir interpretação do código como HTML.

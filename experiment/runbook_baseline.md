@@ -95,3 +95,9 @@ filesystem is not durable evidence storage. Review exported observations/command
 and personal information before publishing raw data. Back up the database after each round.
 
 The prepared CPU/disk manual procedures are in [runbook_resources.md](runbook_resources.md).
+
+
+Use the [global environment checklist](scenarios/reset_environment.md) before the next round and
+after the explicit post-round reset. Preserve the raw evidence before cleanup; a successful health
+check does not replace human correctness assessment. [Report analysis](analysis/report.md) exports
+MTTR, recorded manual steps and human-assessed accuracy without editing primary data.

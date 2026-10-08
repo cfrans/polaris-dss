@@ -17,7 +17,7 @@ class ResourceTransport:
             raise ValueError('unsupported resource scenario')
         allowed = {'check', 'inject', 'reset'}
         if self.scenario == 'disk_full':
-            allowed.add('prepare')
+            allowed.update({'prepare', 'check-clean'})
         if action not in allowed:
             raise ValueError('unsupported resource action')
         name = 'disk' if self.scenario == 'disk_full' else 'cpu'
@@ -26,7 +26,7 @@ class ResourceTransport:
         prefix = 'sudo -n ' if self.use_sudo else ''
         command = prefix + f'/usr/bin/timeout -k 5s {seconds}s /usr/bin/bash -s -- ' + action
         code, output, _ = self.runner(command, timeout=seconds + 10, input_data=script.read_bytes())
-        marker = {'check':'ready', 'inject':'injected', 'reset':'reset', 'prepare':'prepared'}[action]
+        marker = {'check':'ready', 'inject':'injected', 'reset':'reset', 'prepare':'prepared', 'check-clean':'clean'}[action]
         if code != 0 or output.strip() != f'{name}: {marker}':
             raise ScenarioError(f'{name} {action} not confirmed (exit code {code})')
 
