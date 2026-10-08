@@ -68,6 +68,7 @@ function mostrarScript(indice) {
 
 async function carregarScripts(forcarExibicao = false) {
   $("tela-ciencia").classList.remove("oculto");
+  $("ciencia-descricao").open = false;
   $("tela-ciencia").scrollTop = 0;
   $("btn-continuar-ciencia").disabled = true;
   try {

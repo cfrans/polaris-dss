@@ -67,13 +67,18 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
   sem migração 007 ainda usa desfechos aprovados e não equivale ao acerto do protocolo.
 
 ### Corrigido
+- Tela de ciência compacta: finalidade e efeitos ficam recolhidos ao abrir/reabrir,
+  com expansão por clique ou teclado. A opção de colorir sintaxe fica menor e à direita,
+  na mesma linha da explicação recolhida. Código integral, rolagem e navegação preservados.
 - KPI 03 passa a usar a avaliação humana das rodadas HITL por cenário, incluindo falhas sem
   incidente e regras divergentes no denominador, excluindo rodadas não avaliadas ou descartadas.
   Exportador de acerto com CSV sem sobrescrita; migração 007 preparada para substituir a view,
   retirando o agrupamento/coluna `regra_disparada`. Validação local em PostgreSQL 16.15 descartável: sete
   migrações aplicadas, view equivalente ao cálculo Python e resposta da API conferida com casos
   sintéticos de falha sem incidente, exclusão e arredondamento. Percentual na API como string JSON.
-  **[NÃO VERIFICADO NO LABORATÓRIO]** implantação/aplicação no servidor permanece pendente.
+  Migração 007 aplicada no PCT 151 em 08/Out/2026, com sete migrações e nenhuma pendente;
+  endpoint respondeu com listas vazias. Comparação das contagens com rodadas elegíveis no
+  banco implantado ainda **[NÃO VERIFICADA NO LABORATÓRIO]**.
 - Base de conhecimento 1.0.1: o diagnóstico e o aviso de reversão de R001 explicam a remoção
   inicial do arquivo `.gz` mais antigo, independentemente da idade, seguida da limpeza dos demais
   comprimidos antigos. A interface informa que não há restauração automática e que a seleção não

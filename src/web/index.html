@@ -55,13 +55,18 @@
       <span id="ciencia-contador"></span>
       <button id="btn-script-proximo" class="btn btn-secundario" type="button" aria-label="Próximo script">→</button>
     </div>
-    <section class="ciencia-descricao" aria-live="polite">
-      <h3 id="ciencia-script-titulo"></h3>
-      <p id="ciencia-script-finalidade"></p>
-      <p><strong>Efeitos:</strong> <span id="ciencia-script-efeitos"></span></p>
-    </section>
-    <label class="ciencia-opcoes"><input id="ciencia-colorir" type="checkbox" checked>
-      Colorir sintaxe</label>
+    <div class="ciencia-ferramentas">
+      <details id="ciencia-descricao" class="ciencia-descricao">
+        <summary>Finalidade e efeitos</summary>
+        <div class="ciencia-descricao-conteudo" aria-live="polite">
+          <h3 id="ciencia-script-titulo"></h3>
+          <p id="ciencia-script-finalidade"></p>
+          <p><strong>Efeitos:</strong> <span id="ciencia-script-efeitos"></span></p>
+        </div>
+      </details>
+      <label class="ciencia-opcoes"><input id="ciencia-colorir" type="checkbox" checked>
+        Colorir sintaxe</label>
+    </div>
     <pre id="ciencia-codigo" class="ciencia-codigo" tabindex="0" aria-label="Código integral do script"></pre>
     <p id="ciencia-erro" class="aviso oculto"></p>
     <div class="ciencia-acoes">
