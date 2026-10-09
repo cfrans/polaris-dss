@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Laboratório — Polaris DSS</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="laboratorio.css">
+</head>
+<body>
+<header class="topo">
+  <div class="marca"><span class="estrela" aria-hidden="true">&#9733;</span><div>
+    <h1>Laboratório de ensaios</h1><p class="subtitulo">Prepare, acompanhe e preserve cada rodada</p>
+  </div></div>
+  <a class="btn btn-secundario" href="/" target="_blank" rel="noopener">Abrir Polaris ↗</a>
+</header>
+<main class="lab-page">
+  <p class="lab-intro">Escolha o cenário e siga as etapas. Os comandos são executados no terminal
+    do servidor; copiar um comando não inicia uma rodada. No braço manual, espere o alerta real
+    no Zabbix antes de agir.</p>
+  <details class="lab-config" open>
+    <summary>Configuração da sessão</summary>
+    <form id="lab-form" class="lab-fields">
+      <label>Cenário<select id="lab-scenario"><option value="service_down">R003 · Serviço nginx</option>
+        <option value="cpu_high">R002 · CPU</option><option value="disk_full">R001 · Disco</option></select></label>
+      <label>Braço<select id="lab-arm"><option value="baseline">Manual (baseline)</option>
+        <option value="hitl">Polaris (HITL)</option></select></label>
+      <label>Repetição<input id="lab-repetition" type="number" min="1" max="32767" value="1" required></label>
+      <label>Identificador da sessão<input id="lab-session" value="ensaio-01" pattern="[a-zA-Z0-9_-]+" required></label>
+      <label>Operador<input id="lab-operator" maxlength="64" placeholder="Nome ou identificador" required></label>
+      <label>Versão congelada<input id="lab-version" maxlength="32" placeholder="Rótulo da versão em teste" required></label>
+      <label class="lab-wide">SHA da imagem conferida<input id="lab-sha" pattern="[0-9a-f]{40}"
+        maxlength="40" placeholder="40 caracteres, conferidos com o checkout e a imagem" required></label>
+      <label>Limite da observação (segundos)<input id="lab-timeout" type="number" min="1" value="300" required></label>
+      <label>Usuário administrativo<input id="lab-admin-user" value="root" required></label>
+      <label class="lab-wide">Caminho da chave administrativa no servidor<input id="lab-admin-key" value="~/.ssh/id_ed25519" required></label>
+    </form>
+    <p class="nota">Use a mesma versão, base, ordem definida e intervalo de monitoramento nos dois braços.
+      O diagnóstico não comprova que o SHA informado corresponde à imagem. Este rascunho fica
+      apenas nesta página e será perdido ao recarregar.</p>
+  </details>
+  <nav id="lab-tabs" class="lab-tabs" aria-label="Etapas do ensaio">
+    <button type="button" data-step="prepare" aria-current="step">1 · Preparar</button>
+    <button type="button" data-step="run">2 · Conduzir</button>
+    <button type="button" data-step="record">3 · Registrar</button>
+    <button type="button" data-step="close">4 · Preservar e restaurar</button>
+  </nav>
+  <section data-panel="prepare" class="lab-panel">
+    <div class="lab-heading"><div><h2>Confira o ambiente</h2><p class="nota">Comece por inspeções. Não há reparo automático.</p></div>
+      <button id="lab-refresh" type="button" class="btn btn-secundario">Atualizar diagnóstico</button></div>
+    <p id="lab-health" role="status">Diagnóstico ainda não consultado.</p>
+    <ul id="lab-dependencies" class="lab-dependencies"></ul>
+    <div class="lab-checklist">
+      <label><input type="checkbox"> Snapshot inicial e local das evidências conferidos.</label>
+      <label><input type="checkbox"> Relógios/NTP conferidos no Polaris, Zabbix e alvo.</label>
+      <label><input type="checkbox"> Alertas anteriores encerrados; triggers rearmadas e sem duplicatas.</label>
+      <label><input type="checkbox"> Imagem, SHA, base e ordem das rodadas conferidos.</label>
+      <label><input type="checkbox"> Ambiente recuperado e intervalo mínimo de cinco minutos respeitado.</label>
+    </div>
+    <p class="nota">As marcações são lembretes pessoais. O checklist automático inspeciona duas amostras
+      separadas por 60 segundos; não comprova todos os itens acima.</p>
+    <div id="lab-prepare-commands"></div>
+  </section>
+  <section data-panel="run" class="lab-panel oculto">
+    <h2>Conduza uma rodada</h2>
+    <p>Deixe o controlador em um terminal próprio. Ele registra t0, arma o observador, injeta a falha
+      e aguarda a recuperação; não executa a remediação.</p>
+    <div id="lab-run-command"></div>
+    <h3>Procedimento do operador</h3><ol id="lab-runbook"></ol>
+    <p class="nota">Anote cada ação real, inclusive comandos que falharam e tentativas repetidas.
+      Injeção e sondagens do observador são instrumentação, não passos do operador.
+      A saúde observada não preenche a avaliação de correção.</p>
+  </section>
+  <section data-panel="record" class="lab-panel oculto">
+    <h2>Registre a avaliação humana</h2>
+    <p>Use o ID retornado pelo controlador. O arquivo baixado é um rascunho; a avaliação só fica
+      persistida depois de executar o comando no servidor.</p>
+    <div class="lab-fields">
+      <label>ID da rodada<input id="lab-run-id" type="number" min="1" placeholder="ID do controlador"></label>
+      <label data-hitl>ID do incidente Polaris<input id="lab-incident-id" type="number" min="1"></label>
+      <label data-hitl>ID do evento Zabbix<input id="lab-event-id"></label>
+      <label>Passos reais do operador<input id="lab-steps" type="number" min="0" max="32767" placeholder="Contagem observada"></label>
+      <label>Resultado da avaliação<select id="lab-resolved"><option value="">Selecione após conferir</option>
+        <option value="true">Resolução correta</option><option value="false">Tentativa válida sem resolução correta</option></select></label>
+      <label class="lab-wide">Comandos usados, literalmente<textarea id="lab-commands" rows="4" placeholder="Um comando por linha; deixe vazio se não houve comando"></textarea></label>
+      <label class="lab-wide">Observações e efeitos colaterais<textarea id="lab-observations" rows="3" placeholder="Diagnóstico, recuperação, desvios e conferência dos efeitos"></textarea></label>
+    </div>
+    <button id="lab-download-assessment" class="btn btn-secundario" type="button">Baixar avaliação JSON</button>
+    <p id="lab-download-status" class="nota" role="status"></p>
+    <div id="lab-record-commands"></div>
+  </section>
+  <section data-panel="close" class="lab-panel oculto">
+    <h2>Preserve antes de restaurar</h2>
+    <p>Salve o backup, a gravação/prints e os comandos reais. Ensaios e medições inválidas recebem
+      descarte com motivo; uma tentativa válida que falhou recebe avaliação negativa.</p>
+    <div class="lab-fields">
+      <label>ID da rodada a encerrar<input id="lab-close-id" type="number" min="1" placeholder="Mesmo ID do controlador"></label>
+      <label class="lab-wide">Motivo de descarte<input id="lab-reason" placeholder="Ex.: ensaio de instrumentação; descreva o ocorrido"></label>
+    </div>
+    <div id="lab-close-commands"></div>
+    <p class="nota">Backup e relatório são snapshots distintos; gere com a rodada estabilizada.
+      O reset exige avaliação ou descarte e não altera t0/t5. Confira o fechamento do alerta,
+      os efeitos colaterais e o intervalo antes da próxima rodada.</p>
+  </section>
+  <p id="lab-message" role="status" class="nota"></p>
+</main>
+<script src="laboratorio.js"></script>
+</body>
+</html>

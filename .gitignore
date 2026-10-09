@@ -79,3 +79,6 @@ GEMINI.md
 # Chaves de servico: geradas localmente, nunca versionadas
 secrets/*
 !secrets/README.md
+
+# Evidências locais do laboratório: publicar dados primários exige revisão separada.
+experiment/evidence/

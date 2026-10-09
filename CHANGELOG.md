@@ -8,6 +8,16 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 ## [Não lançado]        <!-- alvo: v0.5.0 telemetria · v0.6.0 remediação · preparação v0.7.0 -->
 
 ### Adicionado
+- Tela de laboratório com etapas de preparação, condução, registro e preservação/reset;
+  seleção de cenário/braço, comandos prontos, diagnóstico sob demanda e avaliação JSON com
+  resultado e passos humanos explícitos. Sem injeção, aprovação ou escrita de rodadas via HTTP.
+  Helper de host `experiment/lab.py` reúne as CLIs existentes em containers temporários,
+  fixa a imagem imutável da API e monta a chave administrativa somente nas ações administrativas.
+  Recusa chave de serviço reutilizada, modo de arquivo amplo e condições de execução divergentes;
+  exige histórico/debug desligados antes de injetar. Backup e relatório persistem no host, sem
+  sobrescrita; análise montada somente no processo temporário. Roteiro público incluído.
+  Testes offline com Docker falso e geração de comandos/avaliação aprovados;
+  **[NÃO VERIFICADO NO LABORATÓRIO]** montagens Compose e fluxo integrado, adiado pelo autor.
 - Checklist global do experimento e reset administrativo explícito por ID de rodada: lock
   compartilhado por alvo, recusa de rodada não avaliada/incidente aberto e inspeção dos três
   cenários em duas amostras separadas por 60 s. Check de mount vazio não prepara nem remove

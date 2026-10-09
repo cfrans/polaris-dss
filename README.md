@@ -326,6 +326,11 @@ The system is validated through controlled experiments comparing manual remediat
 
 ### Failure Scenarios
 
+The **Laboratório** page prepares per-scenario commands and human assessment drafts. See the
+[rehearsal workspace guide](experiment/laboratorio.md) for setup, temporary administrative
+controllers, evidence on the host and explicit post-round reset. Integrated laboratory validation
+of this workspace is still pending; the page does not execute recovery or approve incidents.
+
 1. **Disk Space Saturation** — Filesystem exceeds 95% usage
 2. **Anomalous CPU Consumption** — Sustained CPU usage above 90%
 3. **Critical Service Interruption** — Essential service stopped/crashed

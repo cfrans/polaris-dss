@@ -29,6 +29,7 @@ ENV/
 experiment/baseline/
 experiment/hitl/
 experiment/dumps/
+experiment/evidence/
 experiment/analysis/
 
 # Editores e sistema operacional
