@@ -77,6 +77,12 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
   sem migração 007 ainda usa desfechos aprovados e não equivale ao acerto do protocolo.
 
 ### Corrigido
+- Views de MTTR, passos e decomposição alinhadas ao relatório descritivo pela migração 008:
+  exigem avaliação humana e preservam falhas válidas; MTTR com apenas um braço informa a
+  amostra existente e mantém medidas/redução ausentes como nulas. Decomposição exige vínculo
+  único e horários completos/ordenados, terminando no t5 independente para que as fases somem
+  o total. Campos atuais da API, KPI 03 e dados primários preservados. Validação com PostgreSQL
+  descartável e rodadas sintéticas; **[NÃO VERIFICADO NO LABORATÓRIO]** implantação da migração.
 - Cursor de mão padronizado nos links, botões e demais controles clicáveis; controles
   desabilitados indicam indisponibilidade. Explicação dos scripts abre e fecha com transição
   curta de altura, respeitando a preferência de movimento reduzido e cliques durante a animação.

@@ -81,8 +81,17 @@ execution/recovery. Processing/presentation does not isolate inference time. Mis
 non-monotonic timelines are counted, not converted to negative or zero phases. There is no inferred
 baseline decomposition. Phase totals use the same subset as all five segments.
 
-This report queries primary rows directly. It does not use the earlier MTTR/steps/decomposition
-views: those views have broader eligibility, and the original decomposition ends its last phase at
-operational `ts_conclusao` instead of independent t5. Do not substitute those view results for these
-report tables without reconciling the definitions. Accuracy view 007 is separately documented in
-[accuracy.md](accuracy.md).
+This report queries primary rows directly. Migration 008 aligns MTTR/steps eligibility and
+per-round decomposition with this report: assessed non-discarded rounds, valid failures included,
+unique audit link and complete ordered timestamps ending at independent t5. The API keeps its
+existing fields, including legacy names `inferencia_s` for processing/presentation and `execucao_s`
+for execution/recovery. SQL/API values retain their existing display rounding.
+
+The MTTR view includes a scenario with measurements in only one arm: the missing arm has n=0,
+null means/deviation and no reduction. Scenarios without any measured MTTR have no row in that
+view. The report additionally preserves coverage/exclusions, validates metadata and cohort,
+counts missing measurements, computes paired comparisons and exports tables/figures; those
+features are not replaced by the summarized API views. Compare the same valid cohort and metric
+subset when checking SQL/API against report outputs. Before migration 008 is deployed, the earlier
+views still use the broader eligibility and operational completion time. Accuracy view 007 is
+unchanged and documented separately in [accuracy.md](accuracy.md).
