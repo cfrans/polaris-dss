@@ -12,7 +12,7 @@ from __future__ import annotations
 import logging
 import secrets
 from datetime import datetime, timedelta, timezone
-from typing import Any
+from typing import Any, Literal
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request
 
@@ -155,10 +155,12 @@ def listar(
     request: Request,
     status: str | None = Query(default="pendente"),
     limit: int = Query(default=50, ge=1, le=500),
+    include_unmatched: bool = Query(default=True),
     conn=Depends(get_conn),
 ) -> ListaIncidentes:
     kb = request.app.state.kb
-    linhas = queries.listar_incidentes(conn, status=status or None, limite=limit)
+    linhas = queries.listar_incidentes(conn, status=status or None, limite=limit,
+                                      include_unmatched=include_unmatched)
     itens = [
         IncidenteResumo(
             id=l["id"],
@@ -175,6 +177,14 @@ def listar(
         for l in linhas
     ]
     return ListaIncidentes(total=len(itens), itens=itens)
+
+
+@router.get("/api/v1/historico-decisoes", tags=["incidentes"])
+def decision_history(
+    period: Literal["24h", "7d", "30d"] = Query(default="7d"), conn=Depends(get_conn),
+) -> dict[str, Any]:
+    """Read operational human decisions, independently of experimental KPI eligibility."""
+    return queries.read_decision_history(conn, period)
 
 
 @router.get("/api/v1/incidentes/{incidente_id}", response_model=IncidenteDetalhe,

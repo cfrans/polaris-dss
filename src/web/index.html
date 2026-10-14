@@ -207,12 +207,38 @@
         <p id="recent-message" class="nota" role="status">Consultando registros…</p>
         <p id="hidden-feedback" class="nota oculto" role="status"></p>
         <ul id="recent-incidents" class="recent-incidents"></ul>
-        <details id="hidden-records" class="hidden-records">
-          <summary><svg class="icon" aria-hidden="true"><use href="icons.svg#eye-off"></use></svg>
-            Ocultos neste navegador <span id="hidden-count" class="recon-count">0</span></summary>
-          <p class="nota">Ocultar afeta apenas esta lista. A auditoria e a fila de decisões permanecem disponíveis.</p>
-          <ul id="hidden-incidents" class="recent-incidents"></ul>
+        <div class="recent-controls">
+          <details id="hidden-records" class="hidden-records">
+            <summary><svg class="icon" aria-hidden="true"><use href="icons.svg#eye-off"></use></svg>
+              Ocultos neste navegador <span id="hidden-count" class="recon-count">0</span></summary>
+            <p class="nota">Ocultar afeta apenas esta lista. A auditoria e a fila de decisões permanecem disponíveis.</p>
+            <ul id="hidden-incidents" class="recent-incidents"></ul>
+          </details>
+          <label class="unmatched-toggle" title="Esses alertas continuam na auditoria. A preferência afeta apenas os registros recentes.">
+            <input id="show-unmatched" type="checkbox">Mostrar alertas sem regra compatível</label>
+        </div>
+      </section>
+      <section id="decision-history" class="decision-history" aria-labelledby="decision-history-title">
+        <div class="history-heading">
+          <div><h2 id="decision-history-title">Histórico de decisões</h2>
+            <p class="nota">Aprovações e rejeições registradas pelo operador.</p></div>
+          <label class="recent-filter">Período
+            <select id="history-period"><option value="24h">Últimas 24 horas</option>
+              <option value="7d" selected>Últimos 7 dias</option><option value="30d">Últimos 30 dias</option></select>
+          </label>
+        </div>
+        <div class="history-legend" aria-label="Totais do período">
+          <span class="history-approved"><i aria-hidden="true"></i>Aprovadas <strong id="history-approved">—</strong></span>
+          <span class="history-rejected"><i aria-hidden="true"></i>Rejeitadas <strong id="history-rejected">—</strong></span>
+        </div>
+        <p id="history-message" class="nota" role="status">Consultando decisões…</p>
+        <div id="history-chart" class="history-chart" tabindex="0" aria-label="Gráfico de decisões; permite rolagem horizontal em telas pequenas"></div>
+        <details id="history-details" class="history-details oculto"><summary>Consultar valores do gráfico</summary>
+          <div class="tabela-rolagem"><table class="history-table"><caption>Decisões por intervalo em UTC</caption>
+            <thead><tr><th scope="col">Intervalo</th><th scope="col">Aprovadas</th><th scope="col">Rejeitadas</th></tr></thead>
+            <tbody id="history-values"></tbody></table></div>
         </details>
+        <p id="history-caption" class="nota">Contagem operacional; não representa os KPIs do experimento.</p>
       </section>
       <footer class="home-footer"><span id="estado-kb">base —</span>
         <span>Este resumo cobre o Polaris; continue acompanhando a infraestrutura no Zabbix.</span></footer>
@@ -340,6 +366,7 @@
 
 <script src="ui.js"></script>
 <script src="server-metrics.js"></script>
+<script src="decision-history.js"></script>
 <script src="script-viewer.js"></script>
 <script src="app.js"></script>
 </body>

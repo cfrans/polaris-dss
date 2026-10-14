@@ -41,6 +41,27 @@ let recentItems = [];
 let recentAvailable = false;
 const hiddenStorageKey = "polaris.hidden.incidents.v1";
 const hiddenRecords = readHiddenRecords();
+const unmatchedStorageKey = "polaris.show.unmatched.v1";
+let includeUnmatched = readUnmatchedPreference();
+$("show-unmatched").checked = includeUnmatched;
+
+function readUnmatchedPreference() {
+  try { return localStorage.getItem(unmatchedStorageKey) === "true"; }
+  catch { return false; }
+}
+
+function setUnmatchedVisibility(show) {
+  includeUnmatched = show;
+  $("show-unmatched").checked = show;
+  if (!show && $("recent-filter").value === "no_match") $("recent-filter").value = "";
+  try { localStorage.setItem(unmatchedStorageKey, String(show)); }
+  catch {
+    $("hidden-feedback").textContent = "Preferência aplicada apenas nesta sessão; o navegador não permitiu salvá-la.";
+    $("hidden-feedback").classList.remove("oculto");
+  }
+  recentSignature = null;
+  return loadRecentIncidents();
+}
 
 function readHiddenRecords() {
   try {
@@ -99,7 +120,7 @@ async function loadRecentIncidents() {
   const filter = $("recent-filter").value;
   let data;
   try {
-    data = await api(`/api/v1/incidentes?status=${encodeURIComponent(filter)}&limit=6`);
+    data = await api(`/api/v1/incidentes?status=${encodeURIComponent(filter)}&limit=6&include_unmatched=${includeUnmatched}`);
   } catch {
     if (request !== recentRequest) return;
     recentSignature = null;
@@ -112,7 +133,7 @@ async function loadRecentIncidents() {
   }
   if (request !== recentRequest) return;
   recentAvailable = true;
-  const signature = JSON.stringify([filter, data.itens, [...hiddenRecords.keys()]]);
+  const signature = JSON.stringify([filter, includeUnmatched, data.itens, [...hiddenRecords.keys()]]);
   if (signature === recentSignature) return;
   recentSignature = signature;
   recentItems = data.itens;
@@ -127,10 +148,12 @@ function renderRecentIncidents() {
     renderHiddenRecords();
     return;
   }
-  const visible = recentItems.filter(item => !hiddenRecords.has(item.id));
+  const eligible = recentItems.filter(item => includeUnmatched || item.regra != null);
+  const visible = eligible.filter(item => !hiddenRecords.has(item.id));
   $("recent-message").classList.toggle("oculto", visible.length > 0);
-  $("recent-message").textContent = recentItems.length > 0
-    ? "Os registros deste filtro estão na área de ocultos." : "Nenhum incidente neste filtro.";
+  $("recent-message").textContent = eligible.length > 0
+    ? "Os registros deste filtro estão na área de ocultos." : includeUnmatched
+      ? "Nenhum incidente neste filtro." : "Nenhum incidente com regra neste filtro. Você pode incluir os alertas sem regra abaixo.";
   const list = $("recent-incidents");
   list.replaceChildren();
   for (const item of visible) list.appendChild(createRecentRow(item));
@@ -144,7 +167,8 @@ function createRecentRow(item, hidden = false) {
     button.type = "button";
     button.className = "recent-item";
     for (const [className, text] of [
-      ["recent-name", `#${item.id} · ${item.nome_regra ?? "Incidente sem heurística formalizada"}`],
+      ["recent-name", `#${item.id} · ${item.nome_regra ?? (item.regra
+        ? `Regra ${item.regra} indisponível na base atual` : "Sem regra compatível")}`],
       ["recent-meta", `${item.hostname ?? "—"} · entrada ${formatarData(item.ts_criacao)}`],
       [`recent-status status-${hidden ? "hidden" : Object.hasOwn(incidentLabels, item.status) ? item.status : "unknown"}`,
         hidden ? "Oculto" : incidentLabels[item.status] ?? item.status],
@@ -907,12 +931,17 @@ async function recarregarBase() {
 $("btn-simular").addEventListener("click", simular);
 $("brand-home").addEventListener("click", showHome);
 $("recent-filter").addEventListener("change", () => {
+  if ($("recent-filter").value === "no_match" && !includeUnmatched) {
+    setUnmatchedVisibility(true);
+    return;
+  }
   recentSignature = null;
   $("recent-incidents").replaceChildren();
   $("recent-message").textContent = "Consultando registros…";
   $("recent-message").classList.remove("oculto");
   loadRecentIncidents();
 });
+$("show-unmatched").addEventListener("change", () => setUnmatchedVisibility($("show-unmatched").checked));
 $("tools-toggle").addEventListener("click", () => window.PolarisUI.setDisclosure($("tools-panel"),
   $("tools-toggle"), $("tools-toggle").getAttribute("aria-expanded") !== "true"));
 document.querySelectorAll(".tools-links button, .tools-links a").forEach(item => item.addEventListener("click", closeTools));

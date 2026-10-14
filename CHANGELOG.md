@@ -8,6 +8,12 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 ## [Não lançado]        <!-- alvo: v0.5.0 telemetria · v0.6.0 remediação · preparação v0.7.0 -->
 
 ### Adicionado
+- Histórico operacional de decisões na home, com barras de aprovações/rejeições, períodos
+  de 24 horas, 7 e 30 dias e tabela acessível dos valores. Endpoint GET
+  `/api/v1/historico-decisoes` agrega decisões persistidas por horário UTC, preenche intervalos
+  vazios e distingue falha de consulta de ausência de decisões. Não calcula KPIs experimentais.
+  Validado em PostgreSQL descartável e prévia identificada com dados sintéticos;
+  **[NÃO VERIFICADO NO LABORATÓRIO]** implantação desta rota e consulta do histórico real.
 - Relógio local com segundos/data no cabeçalho da interface e do laboratório, com fuso
   indicado no tooltip. Painel compacto de CPU/memória do servidor via GET `/api/v1/servidor`
   e host técnico explícito em `POLARIS_ZABBIX_HOST`; somente leitura de itens no Zabbix,
@@ -134,6 +140,12 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
   permanecem preservadas na auditoria e a primeira ingestão vira a referência canônica.
 
 ### Alterado
+- Registros recentes ocultam por padrão alertas sem regra atribuída. Checkbox no canto inferior direito,
+  ao lado dos ocultos, permite incluí-los e lembra a escolha no navegador; filtro SQL é aplicado antes do limite de seis
+  registros, inclusive quando um alerta sem regra foi encerrado na origem. Auditoria, fila
+  pendente e KPIs permanecem disponíveis. API preserva o padrão anterior para outros clientes.
+  Regressão desta etapa: 99 testes Python de API/persistência/Zabbix e 27 testes JavaScript
+  aprovados; aparência/conversão de períodos e preferência conferidas na prévia local.
 - Página inicial mostra decisões pendentes, execuções em andamento, conexão da API/banco,
   última reconciliação e até seis registros recentes com filtro por estado. Fila vazia ocupa
   a largura disponível; falha de consulta aparece como indisponibilidade. Consultas de fundo

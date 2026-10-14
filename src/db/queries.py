@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 
 from psycopg.types.json import Jsonb
 
@@ -185,28 +185,63 @@ def obter_incidente(conn, incidente_id: int) -> dict | None:
         return cur.fetchone()
 
 
-def listar_incidentes(conn, status: str | None = "pendente", limite: int = 50) -> list[dict]:
+def listar_incidentes(
+    conn, status: str | None = "pendente", limite: int = 50, include_unmatched: bool = True,
+) -> list[dict]:
     with conn.cursor() as cur:
-        if status:
-            cur.execute(
-                """
-                SELECT id, id_evento, hostname, severidade, regra_disparada,
-                       confianca_calculada, banda_confianca, status_execucao, ts_criacao
-                  FROM audit_log WHERE status_execucao = %s
-                 ORDER BY ts_criacao DESC LIMIT %s
-                """,
-                (status, limite),
-            )
-        else:
-            cur.execute(
-                """
-                SELECT id, id_evento, hostname, severidade, regra_disparada,
-                       confianca_calculada, banda_confianca, status_execucao, ts_criacao
-                  FROM audit_log ORDER BY ts_criacao DESC LIMIT %s
-                """,
-                (limite,),
-            )
+        cur.execute(
+            """
+            SELECT id, id_evento, hostname, severidade, regra_disparada,
+                   confianca_calculada, banda_confianca, status_execucao, ts_criacao
+              FROM audit_log
+             WHERE (%s::text IS NULL OR status_execucao = %s)
+               AND (%s OR regra_disparada IS NOT NULL)
+             ORDER BY ts_criacao DESC, id DESC LIMIT %s
+            """,
+            (status, status, include_unmatched, limite),
+        )
         return cur.fetchall()
+
+
+def read_decision_history(conn, period: str = "7d", *, now: datetime | None = None) -> dict:
+    """Aggregate persisted human decisions by their timestamp, including empty UTC buckets.
+
+    ts_aprovacao records both approvals and rejections. Execution outcomes and no_match
+    records are not human decisions; neither incident creation nor its current state is used.
+    """
+    days, unit, step = {
+        "24h": (1, "hour", timedelta(hours=1)),
+        "7d": (7, "day", timedelta(days=1)),
+        "30d": (30, "day", timedelta(days=1)),
+    }[period]
+    end = (now or datetime.now(timezone.utc)).astimezone(timezone.utc)
+    start = end - timedelta(days=days)
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            SELECT date_trunc(%s, ts_aprovacao AT TIME ZONE 'UTC') AT TIME ZONE 'UTC' AS inicio,
+                   COUNT(*) FILTER (WHERE decisao_humana IS TRUE) AS aprovadas,
+                   COUNT(*) FILTER (WHERE decisao_humana IS FALSE) AS rejeitadas
+              FROM audit_log
+             WHERE ts_aprovacao >= %s AND ts_aprovacao < %s
+               AND decisao_humana IS NOT NULL
+             GROUP BY 1 ORDER BY 1
+            """,
+            (unit, start, end),
+        )
+        rows = {row["inicio"]: row for row in cur.fetchall()}
+    bucket = start.replace(minute=0, second=0, microsecond=0)
+    if unit == "day":
+        bucket = bucket.replace(hour=0)
+    series = []
+    while bucket < end:
+        row = rows.get(bucket, {})
+        series.append({"inicio": bucket, "aprovadas": row.get("aprovadas", 0),
+                       "rejeitadas": row.get("rejeitadas", 0)})
+        bucket += step
+    return {"periodo": period, "inicio": start, "fim": end, "agrupamento": unit,
+            "fuso": "UTC", "series": series,
+            "totais": {key: sum(row[key] for row in series) for key in ("aprovadas", "rejeitadas")}}
 
 
 # ---------------------------------------------------------------------------

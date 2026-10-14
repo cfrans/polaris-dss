@@ -58,14 +58,14 @@ function home(api, storage = new Map()) {
   return {get, context, requests, opened, document};
 }
 
-const incident = {id: 42, hostname: "host-01", nome_regra: "Serviço nginx",
+const incident = {id: 42, regra: "R003", hostname: "host-01", nome_regra: "Serviço nginx",
   status: "executando", ts_criacao: "2026-10-13T20:00:00Z"};
 
 test("background overview only reads incidents; opening one requires an explicit click", async () => {
   const hostileText = '<img src=x onerror="alert(1)">';
   const {get, context, requests, opened} = home(async () => ({itens: [{...incident, hostname: hostileText}]}));
   await context.loadRecentIncidents();
-  assert.deepEqual(requests, [["/api/v1/incidentes?status=&limit=6"]]);
+  assert.deepEqual(requests, [["/api/v1/incidentes?status=&limit=6&include_unmatched=false"]]);
   assert.deepEqual(opened, []);
   const button = get("recent-incidents").children[0].children[0];
   assert.equal(button.tag, "button");
@@ -104,9 +104,9 @@ test("a slow response from the previous filter cannot overwrite the current filt
   await context.loadRecentIncidents();
   release({itens: [incident]});
   await previous;
-  assert.equal(requests[1][0], "/api/v1/incidentes?status=falha&limit=6");
+  assert.equal(requests[1][0], "/api/v1/incidentes?status=falha&limit=6&include_unmatched=false");
   assert.equal(get("recent-incidents").children.length, 0);
-  assert.equal(get("recent-message").textContent, "Nenhum incidente neste filtro.");
+  assert.equal(get("recent-message").textContent, "Nenhum incidente com regra neste filtro. Você pode incluir os alertas sem regra abaixo.");
 });
 
 test("home navigation clears selection without viewing or approving an incident", () => {
@@ -196,4 +196,29 @@ test("an unavailable queue is never shown as empty; capped results are not an ex
   context.updateHomeQueue(50);
   assert.equal(get("home-pending").textContent, "50+");
   assert.match(document.title, /50\+/);
+});
+
+
+test("unmatched alerts are hidden by default and the explicit preference survives a reload", async () => {
+  const storage = new Map();
+  const rows = [{...incident, id: 1, regra: null, nome_regra: null, status: "no_match"},
+    {...incident, id: 2, regra: null, nome_regra: null, status: "encerrado_na_origem"},
+    {...incident, id: 3, regra: "R999", nome_regra: null}];
+  const {get, context, requests} = home(async () => ({itens: rows}), storage);
+  await context.loadRecentIncidents();
+  assert.equal(get("show-unmatched").checked, false);
+  assert.equal(get("recent-incidents").children.length, 1);
+  assert.match(get("recent-incidents").textContent, /Regra R999/);
+  assert.match(requests[0][0], /include_unmatched=false/);
+  await context.setUnmatchedVisibility(true);
+  assert.equal(get("recent-incidents").children.length, 3);
+  assert.match(requests[1][0], /include_unmatched=true/);
+  const reloaded = home(async () => ({itens: rows}), storage);
+  await reloaded.context.loadRecentIncidents();
+  assert.equal(reloaded.get("show-unmatched").checked, true);
+  assert.equal(reloaded.get("recent-incidents").children.length, 3);
+  get("recent-filter").value = "no_match";
+  await context.setUnmatchedVisibility(false);
+  assert.equal(get("recent-filter").value, "");
+  assert.ok(requests.every(args => args.length === 1), "preference never writes to the server");
 });

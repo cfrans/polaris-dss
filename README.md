@@ -89,6 +89,16 @@ The header stays visible while scrolling. Its Zabbix/database indicators report 
 checks; hover or focus them for the state and check time, or click for diagnostics. Reconciliation
 expands below the header and leaves the current view selected. The eye controls hide or restore
 recent records only in this browser, without changing the audit log or the pending decision queue.
+Alerts without an assigned rule are excluded from recent records by default. Enable
+**Mostrar alertas sem regra compatível** to include them; this preference stays in the browser.
+The filter is applied before the six-record limit and does not erase audit records.
+
+Below the recent records, **Histórico de decisões** shows persisted approvals and rejections
+for the last 24 hours, 7 days, or 30 days. Buckets use UTC and the human decision timestamp,
+including approvals whose execution later failed. Empty intervals are shown as zero; a failed
+request clears outdated values. Expand the values table for an accessible alternative to the SVG.
+This operational count is separate from the experiment KPIs. The first/last buckets may be partial.
+
 
 ---
 
