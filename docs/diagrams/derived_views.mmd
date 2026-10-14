@@ -1,0 +1,12 @@
+flowchart TB
+  R[("experiment_run<br/>metadata, t0/t5, steps and assessment")] --> M["vw_kpi01_mttr<br/>assessed, undiscarded rounds with t5"]
+  R --> P["vw_kpi02_passos<br/>actual steps on assessed rounds"]
+  R --> A["vw_kpi03_acerto<br/>successes / assessed HITL attempts<br/>includes failures without incident"]
+  R --> D["vw_decomposicao_mttr<br/>unique link and ordered t0…t5"]
+  L[("audit_log<br/>operational timestamps and round link")] --> D
+  R --> E["Descriptive report<br/>read-only snapshot, gaps and hashes"]
+  L --> E
+  L --> H["Home decision history<br/>persisted approval/rejection time"]
+  N["Views are derived queries;<br/>not tables or new foreign keys"] -.-> M
+  N -.-> D
+  H -.-> X["Operational count;<br/>not an experiment KPI"]

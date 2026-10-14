@@ -1,6 +1,6 @@
 # R003 manual baseline and recovery measurement
 
-Status: prepared and tested offline on 2026-10-05. Shared persistence/locks were validated locally in disposable PostgreSQL on 2026-10-06.
+Status: prepared and tested offline on 2026-10-05; reviewed on 2026-10-14. Shared persistence/locks and incident identity were validated locally in disposable PostgreSQL.
 Laboratory execution and SSH measurement have **not been validated**. No experimental results
 have been collected by these tools. This procedure covers `service_down` only.
 
@@ -23,8 +23,12 @@ have been collected by these tools. This procedure covers `service_down` only.
 
 ## Independent observer (both arms)
 
-Use the project's existing Python environment and database/SSH configuration. Start from the
-repository root in a separate terminal while nginx is down, before the operator can restore it:
+The normal entry point is [the laboratory helper](laboratorio.md): `experiment/lab.py run`.
+It registers t0, arms the observer, then injects the fault. **Do not start a second watcher**
+alongside that controller. The operator waits for the real alert, not its `injected` output.
+
+The following lower-level command is only for a separately coordinated, already registered
+round. Starting it after a fault can miss the unhealthy state; it does not register t0 or inject:
 
 ```bash
 python -m experiment.verify.service_watcher --run-id <round_id> --timeout <observation_seconds>
@@ -71,9 +75,11 @@ Record any deviation and decide whether the round must be discarded before analy
 assessment command in [rounds.md](rounds.md) after checking the measured recovery and the protocol's
 correctness criteria. A valid failed outcome is recorded as `resolvido=false`, not discarded.
 
-For HITL, the operator follows the same alert-driven start, reads the Polaris recommendation and
-records each actual action, including approval. Normal persisted human approval remains mandatory
+For HITL, keep Polaris open before the round, wait for its actual alert/card, read the recommendation and
+record each actual action, including approval. Normal persisted human approval remains mandatory
 before the existing remediation executor can run. This runbook adds no alternative execution path.
+Keep Zabbix open before a baseline round. Opening browsers/login before injection is preparation;
+all subsequent navigation, confirmations, retries and manual commands are counted consistently.
 
 ## CSV export
 

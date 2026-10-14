@@ -2,7 +2,7 @@
 
 ### Decision Support System for IT Infrastructure Incident Remediation
 
-> A rule-based Expert System that transforms raw monitoring alerts into actionable, human-approved remediations — reducing Mean Time To Repair while maintaining full operational governance.
+> A rule-based Expert System that transforms raw monitoring alerts into actionable, human-approved remediations with an auditable decision and execution trail. Performance comparison is pending controlled collection.
 
 [![Python 3.12+](https://img.shields.io/badge/Python-3.12+-3776AB?logo=python&logoColor=white)](https://python.org)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
@@ -16,7 +16,7 @@
 
 **Polaris DSS** is a lightweight, open-source **Symbolic AI** system designed for IT infrastructure incident management. Instead of using opaque Machine Learning models ("black boxes"), Polaris relies on **deterministic, explainable heuristic rules** stored in a JSON knowledge base.
 
-The system implements a **Human-in-the-Loop (HITL)** workflow with **One-Click Repair**: when an incident is detected, Polaris analyzes it against known patterns, calculates a confidence score, and presents a remediation suggestion to the operator — who then approves or rejects with a single click.
+The system implements a **Human-in-the-Loop (HITL)** workflow with **explicit human review**: when an incident is detected, Polaris analyzes it against known patterns, calculates a confidence score, and presents a remediation suggestion to the operator — who then approves or rejects. Additional confirmation is required for low confidence.
 
 > *The name "Polaris" references the North Star, which has historically guided navigators through uncertainty — much like this system guides IT operators through incident resolution.*
 
@@ -27,6 +27,9 @@ The system implements a **Human-in-the-Loop (HITL)** workflow with **One-Click R
 - ❌ Not a blind automation tool that replaces human judgment
 
 ---
+
+See the [documentation index](docs/README.md) for operational setup, security limits, diagrams,
+physical schema and experiment runbooks. Laboratory rehearsal is still required before collection.
 
 ## 🏗️ Architecture
 
@@ -71,7 +74,7 @@ The system is organized into **three layers**:
 2. **Inference Engine** matches the alert against heuristic rules using regex
 3. **Confidence score** is calculated based on rule parameters
 4. **Web interface** presents the suggestion with full diagnosis and justification
-5. **Operator** reviews and approves (or rejects) with one click
+5. **Operator** reviews and explicitly approves (or rejects)
 6. **System executes** the approved default script on the target infrastructure over SSH. The
    script is sent from the Polaris image through standard input, so no script installation is
    needed on each target host.
@@ -108,7 +111,7 @@ This operational count is separate from the experiment KPIs. The first/last buck
 |:--------|:------------|
 | **Explainable AI (XAI)** | Every suggestion comes with a human-readable diagnosis and justification |
 | **Human-in-the-Loop** | No action is ever executed without explicit human approval |
-| **One-Click Repair** | Complex multi-step remediation reduced to a single approval click |
+| **Human-approved execution** | Reviewed scripts run only after a persisted decision; actual operator steps are measured separately |
 | **Deterministic Logic** | Same input always produces the same output — fully auditable |
 | **Comprehensive Audit** | Every incident, decision, and result logged with precise timestamps |
 | **MTTR Tracking** | Automatic calculation of Mean Time To Repair per incident type |
@@ -243,9 +246,9 @@ python -m src.engine.cli src/tests/fixtures/cpu_high.json --json
 python -m src.engine.cli src/tests/fixtures/service_down.json --historico 14 14 2
 ```
 
-That last one is worth running: the recurrence factor drops confidence from 92% to 55%, and the
-system stops recommending the restart — it reports that the previous remediation did not hold and
-that the root cause is likely different from the one diagnosed.
+The recurrence example demonstrates a confidence discount and a warning about repeated failures.
+A low-confidence suggestion still exists; the UI requires additional confirmation and recommends
+manual investigation. The index is heuristic and does not estimate a probability of success.
 
 ```bash
 pytest

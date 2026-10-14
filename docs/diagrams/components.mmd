@@ -1,0 +1,21 @@
+flowchart TB
+  WEB["src/web<br/>home, incident card and lab"] --> API["src/api/routes.py<br/>HTTP contracts"]
+  API --> SERVICE["engine/service.py<br/>ingestion, decision and execution guard"]
+  SERVICE --> ENGINE["engine/engine.py<br/>analysis orchestration"]
+  ENGINE --> INFER["engine/inference.py<br/>rule matching"]
+  ENGINE --> KB["engine/knowledge_base.py<br/>validation and JSON rules"]
+  ENGINE --> CONF["engine/confidence.py<br/>deterministic factors and trace"]
+  SERVICE --> DB["db/queries.py + connection.py<br/>audit and transactions"]
+  SERVICE --> EXEC["engine/remediation.py<br/>SSH transport and verification"]
+  EXEC --> CAT["engine/script_catalog.py + src/scripts<br/>approved default bytes and hash"]
+  RECON["engine/reconciliacao.py<br/>reconciliation process"] --> SERVICE
+  RECON --> ZAB["engine/zabbix_client.py<br/>normalization and upstream API"]
+  API --> ZAB
+  API --> MET["engine/server_metrics.py<br/>server observability"]
+  MET --> ZAB
+  LAB["experiment/lab.py<br/>explicit host launcher"] --> CTRL["experiment/scenarios<br/>injection, coordination and reset"]
+  CTRL --> OBS["experiment/verify<br/>independent observer"]
+  CTRL --> ROUND["experiment/rounds.py<br/>registration, linking and assessment"]
+  ROUND --> DB
+  OBS --> DB
+  REPORT["experiment/analysis<br/>separate descriptive reporting"] --> DB

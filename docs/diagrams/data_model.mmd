@@ -1,0 +1,85 @@
+erDiagram
+  experiment_run o|--o{ audit_log : "optional link"
+  audit_log ||--o{ evento_ingestao : "first ingestion of event"
+  experiment_run {
+    bigint id PK
+    varchar cenario
+    varchar braco
+    smallint rodada
+    boolean descartada
+    text motivo_descarte
+    varchar versao_sistema
+    varchar commit_sha
+    varchar versao_kb
+    varchar host_alvo
+    varchar operador
+    timestamptz ts_injecao
+    timestamptz ts_verificado_ok
+    smallint passos_manuais
+    text comandos_usados
+    boolean resolvido
+    text observacoes
+    interval mttr "generated: t5 minus t0"
+  }
+  audit_log {
+    bigint id PK
+    varchar id_evento
+    varchar hostname
+    inet ip_address
+    varchar severidade
+    varchar regra_disparada
+    numeric confianca_calculada
+    varchar banda_confianca
+    jsonb explicabilidade
+    varchar versao_kb
+    varchar versao_motor
+    boolean decisao_humana
+    varchar operador
+    text motivo_rejeicao
+    char versao_scripts
+    varchar status_execucao
+    text comando_executado
+    text comando_verificacao
+    integer exit_code
+    text output_execucao
+    text output_erro
+    timestamptz ts_deteccao
+    timestamptz ts_criacao
+    timestamptz ts_exibicao
+    timestamptz ts_aprovacao
+    timestamptz ts_conclusao
+    interval mttr_calculado "generated: operational time"
+    bigint experiment_run_id FK
+  }
+  evento_ingestao {
+    varchar id_evento PK
+    bigint incidente_id FK
+    timestamptz registrado_em
+  }
+  schema_migrations {
+    varchar versao PK
+    text nome
+    char checksum
+    timestamptz aplicada_em
+  }
+  reconciliacao_estado {
+    smallint id PK "single row: 1"
+    varchar status
+    integer intervalo_segundos
+    integer recuperados
+    integer ja_conhecidos
+    integer encerrados_na_origem
+    text mensagem_erro
+    timestamptz ts_inicio
+    timestamptz ts_conclusao
+  }
+  reconciliacao_historico {
+    bigint id PK
+    varchar status
+    integer recuperados
+    integer ja_conhecidos
+    integer encerrados_na_origem
+    text mensagem_erro
+    timestamptz ts_inicio
+    timestamptz ts_conclusao
+  }

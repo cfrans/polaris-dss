@@ -8,6 +8,10 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 ## [Não lançado]        <!-- alvo: v0.5.0 telemetria · v0.6.0 remediação · preparação v0.7.0 -->
 
 ### Adicionado
+- Documentação pública de operação, arquitetura/limites de segurança e catálogo físico
+  PostgreSQL, com índice e seis diagramas editáveis em Mermaid e exportados em SVG/PNG.
+  Catálogo conferido contra oito migrações em banco descartável: seis tabelas, quatro views,
+  atributos e FKs. Imagens renderizadas e revisadas; não substituem ensaio/instalação real.
 - Histórico operacional de decisões na home, com barras de aprovações/rejeições, períodos
   de 24 horas, 7 e 30 dias e tabela acessível dos valores. Endpoint GET
   `/api/v1/historico-decisoes` agrega decisões persistidas por horário UTC, preenche intervalos
@@ -97,13 +101,20 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
   sem migração 007 ainda usa desfechos aprovados e não equivale ao acerto do protocolo.
 
 ### Corrigido
+- Runbooks atualizados para usar o observador já armado pelo controlador, sem iniciar outro
+  depois da falha. Três controladores, transações locais, identidade por IP, início por alerta
+  real, contagem de ações e distinção entre ensaio e coleta passam a refletir o comportamento
+  atual. README deixa de afirmar redução de MTTR medida ou supressão automática da sugestão
+  por baixa confiança. Integração do laboratório continua pendente.
 - IP do alvo preservado do webhook até audit_log, inclusive em alertas sem regra; o
   reconciliador consulta a interface principal de agente por IP para eventos de um único host.
   Endereços inválidos/ambíguos ficam ausentes, sem DNS ou inferência pelo nome. O detalhe HTTP
   expõe o campo opcional já existente no banco. Corrige bloqueio do vínculo experimental quando
   o alvo é configurado por IP; não altera destino SSH, aprovação ou registros históricos.
   240 testes selecionados aprovados em PostgreSQL descartável, incluindo os dois caminhos reais
-  de ingestão até o vínculo. **[NÃO VERIFICADO NO LABORATÓRIO]** implantação e evento novo real.
+  de ingestão até o vínculo. Regressão completa Linux/PostgreSQL em 14/Out: 525 aprovados,
+  dois gráficos opcionais pulados por Matplotlib ausente, um aviso de depreciação Starlette.
+  **[NÃO VERIFICADO NO LABORATÓRIO]** implantação e evento novo real.
 - Views de MTTR, passos e decomposição alinhadas ao relatório descritivo pela migração 008:
   exigem avaliação humana e preservam falhas válidas; MTTR com apenas um braço informa a
   amostra existente e mantém medidas/redução ausentes como nulas. Decomposição exige vínculo

@@ -1,0 +1,23 @@
+flowchart TB
+  W["Operator in browser<br/>HTML / CSS / JavaScript interface"]
+  Z["Zabbix 7.0 LTS<br/>monitoring and events"]
+  subgraph P["Polaris server / Docker Compose"]
+    A["FastAPI<br/>web assets and HTTP contracts"]
+    S["Incident service and engine<br/>JSON rules, confidence and explanation"]
+    R["Reconciler<br/>separate process"]
+    B[("PostgreSQL 16<br/>operational audit and research rounds")]
+    E["Executor<br/>central script catalog"]
+    A --> S
+    R --> S
+    S <--> B
+    S -->|"Rereads persisted approval<br/>and hash before execution"| E
+  end
+  T["Linux system target<br/>nginx, CPU and isolated filesystem"]
+  I["Separate experiment instruments<br/>explicit CLI, controller and observer"]
+  W <-->|"Read requests, approval or rejection"| A
+  Z -->|"Authenticated webhook"| A
+  R -->|"Queries events and closed problems"| Z
+  E -->|"SSH stdin: privileged remediation<br/>and verification without sudo"| T
+  T -.->|"Agent telemetry"| Z
+  I -.->|"Administrative injection and reset;<br/>independent observation without sudo"| T
+  I -->|"t0/t5 registration and explicit assessment"| B

@@ -51,8 +51,10 @@ between rounds. Record exact tool versions and any protocol deviation.
 Open three separate working areas:
 
 1. Instrumentation: server terminal for the controller and this preparation page.
-2. Operator: Zabbix plus an administrative terminal for baseline; Zabbix plus Polaris for HITL.
-   Baseline operator starts on the actual Zabbix alert, without using the Polaris recommendation.
+2. Operator: Zabbix already open for baseline; Polaris already open for HITL. Keep the administrative
+   terminal available for manual recovery. Start only on the real alert/card in the selected tool;
+   never use controller output as the operator's detection signal. Count all actual actions after
+   that point, including navigation and extra confirmations. Browser startup/login is preparation.
 3. Evidence: screen recording/prints, literal actions and output location on the collection host.
 
 The page defaults to R003 and baseline; enter the actual operator, frozen version label and full
@@ -94,6 +96,7 @@ python3 experiment/lab.py run --scenario <service_down|cpu_high|disk_full> --arm
 This command changes the selected target scenario. It commits t0 before arming observation and
 injection. Keep the terminal open, save the printed `run_id`, then let the operator perform the
 selected arm only after the real alert. A successful health observation records t5, not correctness.
+The controller starts its own observer before injection; do not launch an additional watcher.
 CPU observation must be at most 1800 seconds, below the safety expiry. Errors/interruption do not
 reset automatically; inspect the reported row and target rather than blindly rerunning.
 
@@ -136,6 +139,9 @@ refused; a failed dump remains `.partial` and is not a complete backup. Report e
 CSV/Markdown/manifest without graphs to the **host**, using the checked-out `experiment/analysis`
 mounted read-only only in that temporary process (analysis is excluded from the API image).
 Use the frozen, verified analysis revision. Both outputs persist after removing the container.
+`--kind collected` means observations came from actual runs, not that they are an official sample.
+A rehearsal report must be labeled as rehearsal: its discarded rows remain in the raw export and
+are excluded by eligibility checks. Do not present an empty eligible cohort as completed research.
 Backup and report are separate snapshots; run them after recording/discarding and before reset,
 when the round is stable. For synthetic fixtures use `--kind synthetic`, never relabel them collected.
 Local evidence is excluded from Git and image builds. Raw publication remains a separate review.
@@ -144,6 +150,9 @@ Reset is explicit instrumentation, not baseline remediation. It accepts only the
 round, restores its scenario and then checks all scenarios. A dirty unrelated scenario can make
 global confirmation fail after the selected reset; no further repairs are attempted. Confirm
 collateral effects, alert closure/rearming and the five-minute interval before the next round.
+Resolve pending baseline recommendations separately through the normal UI after the measured
+operator task and record that administrative cleanup; they can otherwise block reset. Do not
+approve them merely to clear a queue. Instrumentation cleanup is outside the baseline step count.
 Do not use a successful health check as a human correctness assessment.
 
 For direct CLI contracts see [rounds](rounds.md), [R003](scenarios/service_controller.md),

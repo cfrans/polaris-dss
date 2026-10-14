@@ -16,8 +16,8 @@ by the protocol. Operator actions start only after the actual monitoring alert.
 The existing `TARGET_SSH_HOST`, `TARGET_SSH_USER`, `TARGET_SSH_KEY_PATH` and database configuration
 are used for independent read-only verification. Supply a **separate administrative SSH username
 and private key** for injection and post-round reset; the service username and key path are refused.
-This checks configured identities/paths, not whether copied files contain the same key. The
-administrator must establish distinct credentials and permissions before the laboratory rehearsal.
+The host helper also compares private-file bytes and refuses a copied service key, even under
+another path. The administrator must establish distinct credentials and permissions before rehearsal.
 Non-root administrative users need noninteractive sudo for the fixed timeout/bash command; root
 runs it directly. Unknown or changed SSH host keys are rejected by the existing transport.
 

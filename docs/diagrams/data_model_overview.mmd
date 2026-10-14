@@ -1,0 +1,31 @@
+erDiagram
+  direction LR
+  experiment_run o|--o{ audit_log : "optional link"
+  audit_log ||--o{ evento_ingestao : "idempotency"
+  experiment_run {
+    bigint id PK
+    varchar cenario
+    varchar braco
+    smallint rodada
+    boolean descartada
+    timestamptz ts_injecao
+    timestamptz ts_verificado_ok
+    smallint passos_manuais
+    boolean resolvido
+  }
+  audit_log {
+    bigint id PK
+    varchar id_evento
+    varchar regra_disparada
+    jsonb explicabilidade
+    boolean decisao_humana
+    char versao_scripts
+    varchar status_execucao
+    timestamptz ts_aprovacao
+    bigint experiment_run_id FK
+  }
+  evento_ingestao {
+    varchar id_evento PK
+    bigint incidente_id FK
+    timestamptz registrado_em
+  }

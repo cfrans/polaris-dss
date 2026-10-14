@@ -1,7 +1,7 @@
 # Round registration, incident linking and human assessment
 
-Status: tested with simulated database responses on 2026-10-06. Actual PostgreSQL
-transactions, locks and integration with the laboratory have **not been validated**.
+Status: simulated responses and actual transactions/locks were tested in disposable PostgreSQL;
+reviewed on 2026-10-14. Integration with the laboratory has **not been validated**.
 These tools do not approve incidents or execute recovery commands. No results have been collected.
 
 ## Registration contract for an injection controller
@@ -24,8 +24,9 @@ original timestamp. The exception message is not stored because it might contain
 exception reports that fact; inspect the row and target before retrying. There is no automatic reset. Keep callback setup outside the measured interval; the committed ID
 allows the controller to coordinate the observer and the declared injection.
 
-An R003 controller is now prepared in [scenarios/service_controller.md](scenarios/service_controller.md);
-its real SSH/PostgreSQL integration remains unvalidated. Other scenario controllers are still absent.
+Controllers for all three scenarios are prepared: [R003](scenarios/service_controller.md) and
+[R001/R002](scenarios/resource_controller.md), through [lab.py](laboratorio.md).
+Their integrated laboratory workflow remains unvalidated.
 There is deliberately no retrospective CLI registration: never invent `t0` after a manual fault.
 The helper cannot verify the callback's scope, software metadata or clean environment; its caller
 must establish those conditions. For the R003 observer, `target` must equal `TARGET_SSH_HOST`.
@@ -44,6 +45,12 @@ explicit incident/event IDs, target, knowledge-base version and timestamps:
 otherwise the database's current time bounds the incident. Future times and missing detection
 times are refused. Target IPs are compared as addresses; a hostname is matched literally.
 Clock skew and timestamp precision problems must be investigated, not bypassed by altering evidence.
+
+For an IP-configured target, the incident must contain that address. Webhooks preserve valid
+`host_ip`; reconciliation reads the single primary IP-based agent interface of a single host.
+Ambiguous, DNS-based or invalid interfaces leave the address absent, and the link remains refused.
+Historical rows with a missing IP are not backfilled. Use a new, properly rearmed event after
+deployment; replaying an old event is idempotent and does not repair its metadata.
 
 Only `audit_log.experiment_run_id` is updated. Another incident cannot replace the round's link,
 and an incident cannot be reassigned to another round. Repeating the same link is idempotent while
