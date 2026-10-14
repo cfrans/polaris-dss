@@ -12,15 +12,16 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
   indicado no tooltip. Painel compacto de CPU/memória do servidor via GET `/api/v1/servidor`
   e host técnico explícito em `POLARIS_ZABBIX_HOST`; somente leitura de itens no Zabbix,
   sem SSH ou eventos. Amostras inválidas/ausentes/antigas não viram zero ou estado saudável.
-  Testes com dependências simuladas aprovados; **[NÃO VERIFICADO NO LABORATÓRIO]** implantação
-  do endpoint. Agente/host do servidor e coleta dos dois itens confirmados separadamente.
+  Testes com dependências simuladas aprovados; endpoint implantado no laboratório em
+  13/Out/2026, com métricas reais confirmadas pela API e exibidas na prévia da interface.
+  Agente/host do servidor e coleta dos dois itens também confirmados.
   Regressão Linux com PostgreSQL 16.15 descartável: 497 testes aprovados e dois testes
   opcionais de gráficos pulados por Matplotlib ausente; 22 testes JavaScript aprovados.
 - Endpoint `/api/v1/conectividade` para indicadores do cabeçalho: consulta somente `SELECT 1`
   no banco e acesso autenticado à API do Zabbix, com timeouts curtos, estados independentes,
   latência e horário UTC. Não chama SSH, coleta eventos ou devolve configuração/erros brutos.
   Casos de token inválido, senha, rede, banco e configuração ausente validados com dependências
-  simuladas; **[NÃO VERIFICADO NO LABORATÓRIO]** implantação do endpoint.
+  simuladas; endpoint implantado e consulta real confirmou banco/Zabbix em ok em 13/Out/2026.
 - Tela de laboratório com etapas de preparação, condução, registro e preservação/reset;
   seleção de cenário/braço, comandos prontos, diagnóstico sob demanda e avaliação JSON com
   resultado e passos humanos explícitos. Sem injeção, aprovação ou escrita de rodadas via HTTP.
