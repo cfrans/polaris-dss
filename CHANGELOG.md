@@ -8,6 +8,19 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 ## [Não lançado]        <!-- alvo: v0.5.0 telemetria · v0.6.0 remediação · preparação v0.7.0 -->
 
 ### Adicionado
+- Relógio local com segundos/data no cabeçalho da interface e do laboratório, com fuso
+  indicado no tooltip. Painel compacto de CPU/memória do servidor via GET `/api/v1/servidor`
+  e host técnico explícito em `POLARIS_ZABBIX_HOST`; somente leitura de itens no Zabbix,
+  sem SSH ou eventos. Amostras inválidas/ausentes/antigas não viram zero ou estado saudável.
+  Testes com dependências simuladas aprovados; **[NÃO VERIFICADO NO LABORATÓRIO]** implantação
+  do endpoint. Agente/host do servidor e coleta dos dois itens confirmados separadamente.
+  Regressão Linux com PostgreSQL 16.15 descartável: 497 testes aprovados e dois testes
+  opcionais de gráficos pulados por Matplotlib ausente; 22 testes JavaScript aprovados.
+- Endpoint `/api/v1/conectividade` para indicadores do cabeçalho: consulta somente `SELECT 1`
+  no banco e acesso autenticado à API do Zabbix, com timeouts curtos, estados independentes,
+  latência e horário UTC. Não chama SSH, coleta eventos ou devolve configuração/erros brutos.
+  Casos de token inválido, senha, rede, banco e configuração ausente validados com dependências
+  simuladas; **[NÃO VERIFICADO NO LABORATÓRIO]** implantação do endpoint.
 - Tela de laboratório com etapas de preparação, condução, registro e preservação/reset;
   seleção de cenário/braço, comandos prontos, diagnóstico sob demanda e avaliação JSON com
   resultado e passos humanos explícitos. Sem injeção, aprovação ou escrita de rodadas via HTTP.
@@ -82,7 +95,8 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
   amostra existente e mantém medidas/redução ausentes como nulas. Decomposição exige vínculo
   único e horários completos/ordenados, terminando no t5 independente para que as fases somem
   o total. Campos atuais da API, KPI 03 e dados primários preservados. Validação com PostgreSQL
-  descartável e rodadas sintéticas; **[NÃO VERIFICADO NO LABORATÓRIO]** implantação da migração.
+  descartável e rodadas sintéticas. Implantação 008 confirmada em 13/Out/2026, com oito migrações
+  e cinco dependências em ok. Conferência com amostra preenchida de ensaio ainda pendente.
 - Cursor de mão padronizado nos links, botões e demais controles clicáveis; controles
   desabilitados indicam indisponibilidade. Explicação dos scripts abre e fecha com transição
   curta de altura, respeitando a preferência de movimento reduzido e cliques durante a animação.
@@ -119,6 +133,30 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
   permanecem preservadas na auditoria e a primeira ingestão vira a referência canônica.
 
 ### Alterado
+- Página inicial mostra decisões pendentes, execuções em andamento, conexão da API/banco,
+  última reconciliação e até seis registros recentes com filtro por estado. Fila vazia ocupa
+  a largura disponível; falha de consulta aparece como indisponibilidade. Consultas de fundo
+  não abrem incidentes nem registram sua exibição. Marca vetorial original e título retornam
+  à home; cabeçalho compacto reúne ferramentas em menu e exibe a versão declarada pela API,
+  inclusive no laboratório. Navegação e 20 testes JavaScript conferidos localmente;
+  **[NÃO VERIFICADO NO LABORATÓRIO]** implantação e aceite visual deste lote.
+- Cabeçalho permanece fixo e reduz a altura ao rolar, com vidro fosco. Indicadores discretos
+  de Zabbix/banco e estados verdes, âmbar, vermelhos ou cinza distinguem conexão confirmada,
+  atenção, falha e consulta indisponível. Engrenagem abre menu com ícones e transição; painéis
+  respeitam movimento reduzido e ficam inertes quando recolhidos. Fundo espacial vetorial
+  estático e sutil, sem bibliotecas ou recursos externos. Prévia conferida em desktop e mobile.
+- Registros recentes podem ser ocultos e restaurados numa área própria. Preferência local do
+  navegador guarda identificação/metadados, sem persistir estado de execução como atual e sem
+  alterar auditoria, contagens ou fila de decisões. Armazenamento indisponível limita a preferência
+  à sessão e informa isso ao operador. Persistência/restauração conferidas localmente.
+- Reconciliação mantém resumo e contagens visíveis, com atividade registrada recolhida em
+  painel de altura limitada e rolagem. O botão do topo expande/recolhe o painel com transição,
+  sem trocar a tela nem o incidente selecionado, e recebe destaque correspondente ao painel.
+  Botão Atualizar consulta novamente os dados; histórico
+  preserva horários, contagens e erros como texto literal. Falha na atualização limpa valores
+  antigos para não apresentá-los como atuais. A interface informa que o histórico contém
+  até 20 atividades significativas, sem prometer log completo. Prévia local e testes JavaScript
+  conferidos; **[NÃO VERIFICADO NO LABORATÓRIO]** implantação deste acabamento.
 - A chave pública validada do host alvo passa a persistir em `secrets/known_hosts` e é montada em
   leitura apenas no container; recriar a API não apaga a confiança SSH. Hosts desconhecidos ou com
   chave alterada continuam recusados.

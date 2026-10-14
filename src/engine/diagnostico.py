@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import time
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -79,6 +80,42 @@ def executar(kb=None) -> Diagnostico:
                         verificacao.detalhe, ms)
         )
     return d
+
+
+def check_connections() -> dict[str, Any]:
+    """Probe only database/API connectivity; never run SSH or expose exception details."""
+    from ..db.connection import conectar
+    from .zabbix_client import ZabbixClient
+
+    checks = []
+    started = time.perf_counter()
+    try:
+        with conectar(connect_timeout=3) as conn:
+            with conn.cursor() as cursor:
+                cursor.execute("SELECT 1")
+        db_state = OK
+    except Exception:
+        db_state = FALHA
+    checks.append({"id": "banco", "estado": db_state,
+                   "latencia_ms": int((time.perf_counter() - started) * 1000)})
+
+    settings = get_settings()
+    started = time.perf_counter()
+    if not settings.zabbix_url:
+        zabbix_state = NAO_CONFIGURADO
+    elif not (settings.zabbix_token or (settings.zabbix_user and settings.zabbix_password)):
+        zabbix_state = AVISO
+    else:
+        try:
+            client = ZabbixClient(url=settings.zabbix_url, usuario=settings.zabbix_user,
+                                  senha=settings.zabbix_password, token=settings.zabbix_token, timeout=3)
+            client.check_access()
+            zabbix_state = OK
+        except Exception:
+            zabbix_state = FALHA
+    checks.append({"id": "zabbix", "estado": zabbix_state,
+                   "latencia_ms": int((time.perf_counter() - started) * 1000)})
+    return {"verificado_em": datetime.now(timezone.utc).isoformat(), "verificacoes": checks}
 
 
 # ---------------------------------------------------------------------------

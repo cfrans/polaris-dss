@@ -204,6 +204,10 @@ class ZabbixClient:
     def versao(self) -> str:
         return self._chamar("apiinfo.version", autenticado=False)
 
+    def check_access(self) -> None:
+        """Check authenticated API access without collecting events or changing hosts."""
+        self._chamar("host.get", {"output": ["hostid"], "limit": 1})
+
     def autenticar(self) -> str:
         if self.token:
             return self.token

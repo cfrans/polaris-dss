@@ -77,6 +77,19 @@ The system is organized into **three layers**:
    needed on each target host.
 7. **Audit log** records the full incident lifecycle with timestamps for MTTR calculation
 
+Use Zabbix as the primary infrastructure monitor and Polaris to review decisions and follow
+remediation results. The Polaris home page shows pending decisions, running actions, API/database
+connectivity, the last reconciliation cycle, and up to six incident records filtered by state.
+An empty queue does not establish infrastructure health. Polaris does not send operator
+notifications; use your existing Zabbix alert channel. Click the Polaris brand to return home;
+diagnostics, script information, and the experiment laboratory are in the gear menu (**Ferramentas**). The version
+beside the brand comes from `/health` and is separate from the knowledge base version.
+
+The header stays visible while scrolling. Its Zabbix/database indicators report connection
+checks; hover or focus them for the state and check time, or click for diagnostics. Reconciliation
+expands below the header and leaves the current view selected. The eye controls hide or restore
+recent records only in this browser, without changing the audit log or the pending decision queue.
+
 ---
 
 ## ✨ Features
@@ -264,6 +277,24 @@ confirmation. A recurring incident gets its own warning recommending manual inve
 reapplying the same fix. No band ever executes on its own.
 
 ### Running the full stack
+
+The header clock uses the browser's local time zone (shown in its tooltip). For optional
+whole-server CPU and memory gauges, set `POLARIS_ZABBIX_HOST` to the **exact technical host
+name** already monitored by Zabbix, then recreate the API service so the environment is applied.
+The browser only reads `GET /api/v1/servidor`; Zabbix credentials stay on the API server.
+This setting is independent of the SSH remediation target.
+
+The monitored host needs enabled, supported percentage items collected at least every 30 seconds:
+`system.cpu.util[,idle]` for CPU, and `vm.memory.size[pavailable]` for memory.
+CPU usage is `100 - idle`; memory usage is `100 - pavailable` (or the standard derived
+`vm.memory.utilization` item when available). A bare agent `system.cpu.util` measures user CPU
+by default and is deliberately not used as total CPU usage. Values older than five minutes,
+invalid values and missing items appear as unavailable. The panel shows each sample time;
+blue bars indicate usage without defining new alarm thresholds.
+
+Use an observability host with these items and no triggers or remediation template when preparing
+server gauges only. Creating this host does not authorize remediation of the Polaris server.
+The header refreshes every 30 seconds while visible; refreshes do not change hosts or ingest events.
 
 ```bash
 # Start the Polaris API server

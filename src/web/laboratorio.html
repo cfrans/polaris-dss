@@ -4,17 +4,24 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Laboratório — Polaris DSS</title>
+  <link rel="icon" href="polaris-mark.svg" type="image/svg+xml">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="laboratorio.css">
 </head>
 <body>
 <header class="topo">
-  <div class="marca"><span class="estrela" aria-hidden="true">&#9733;</span><div>
-    <h1>Laboratório de ensaios</h1><p class="subtitulo">Prepare, acompanhe e preserve cada rodada</p>
-  </div></div>
-  <a class="btn btn-secundario" href="/" target="_blank" rel="noopener">Abrir Polaris ↗</a>
+  <a class="marca" href="./" aria-label="Polaris DSS — página inicial">
+    <img class="brand-mark" src="polaris-mark.svg" width="38" height="38" alt="">
+    <span class="brand-name">Polaris <span class="brand-suffix">DSS</span></span>
+    <span id="system-version" class="system-version">v—</span>
+  </a>
+  <div class="estado">
+    <time id="header-clock" class="header-clock" aria-live="off"><span id="clock-time">—:—:—</span><small id="clock-date"></small></time>
+    <a class="btn btn-secundario" href="/" target="_blank" rel="noopener">Abrir Polaris ↗</a>
+  </div>
 </header>
 <main class="lab-page">
+  <h1 class="lab-title">Laboratório de ensaios</h1>
   <p class="lab-intro">Escolha o cenário e siga as etapas. Os comandos são executados no terminal
     do servidor; copiar um comando não inicia uma rodada. No braço manual, espere o alerta real
     no Zabbix antes de agir.</p>
@@ -104,6 +111,7 @@
   </section>
   <p id="lab-message" role="status" class="nota"></p>
 </main>
+<script src="ui.js"></script>
 <script src="laboratorio.js"></script>
 </body>
 </html>

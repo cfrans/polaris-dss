@@ -1,0 +1,66 @@
+(function(root) {
+  "use strict";
+  function icon(name) {
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("class", "icon");
+    svg.setAttribute("aria-hidden", "true");
+    const use = document.createElementNS("http://www.w3.org/2000/svg", "use");
+    use.setAttribute("href", `icons.svg#${name}`);
+    svg.appendChild(use);
+    return svg;
+  }
+
+  function setDisclosure(panel, trigger, open) {
+    panel.classList.toggle("is-open", open);
+    panel.setAttribute("aria-hidden", String(!open));
+    panel.querySelector(".disclosure-clip").inert = !open;
+    trigger.setAttribute("aria-expanded", String(open));
+    trigger.classList.toggle("is-active", open);
+  }
+
+  function setConnection(element, state, checkedAt, latency) {
+    const labels = {ok: "conectado", falha: "falha na conexão", aviso: "sem credenciais",
+      nao_configurado: "não configurado", unknown: "não foi possível verificar"};
+    const safeState = Object.hasOwn(labels, state) ? state : "unknown";
+    element.dataset.state = safeState;
+    const time = checkedAt ? ` · verificado às ${new Date(checkedAt).toLocaleTimeString("pt-BR")}` : "";
+    const duration = latency == null ? "" : ` · ${latency} ms`;
+    const label = `${element.dataset.service}: ${labels[safeState]}${time}${duration}`;
+    element.title = label;
+    element.setAttribute("aria-label", label);
+  }
+
+  function formatClock(date, timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone) {
+    const options = {timeZone};
+    return {
+      time: new Intl.DateTimeFormat("pt-BR", {...options, hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23"}).format(date),
+      date: new Intl.DateTimeFormat("pt-BR", {...options, day: "2-digit", month: "short"}).format(date),
+      label: new Intl.DateTimeFormat("pt-BR", {...options, dateStyle: "full", timeStyle: "long"}).format(date),
+      zone: timeZone,
+    };
+  }
+
+  const api = {icon, setDisclosure, setConnection, formatClock};
+  if (typeof module !== "undefined" && module.exports) module.exports = api;
+  root.PolarisUI = api;
+  if (!root.document) return;
+  const header = document.querySelector(".topo");
+  const updateHeader = () => header.classList.toggle("is-scrolled", root.scrollY > 16);
+  root.addEventListener("scroll", updateHeader, {passive: true});
+  updateHeader();
+  const clock = document.getElementById("header-clock");
+  if (clock) {
+    const updateClock = () => {
+      const now = new Date();
+      const value = formatClock(now);
+      document.getElementById("clock-time").textContent = value.time;
+      document.getElementById("clock-date").textContent = value.date;
+      clock.dateTime = now.toISOString();
+      clock.title = `Horário local do navegador · ${value.zone}`;
+      clock.setAttribute("aria-label", `${value.label} · ${value.zone}`);
+    };
+    updateClock();
+    root.setInterval(() => { if (!document.hidden) updateClock(); }, 1000);
+    document.addEventListener("visibilitychange", () => { if (!document.hidden) updateClock(); });
+  }
+})(typeof globalThis !== "undefined" ? globalThis : this);

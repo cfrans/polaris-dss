@@ -27,6 +27,7 @@ class Settings(BaseSettings):
     zabbix_user: str = ""
     zabbix_password: str = ""
     zabbix_token: str = ""
+    polaris_zabbix_host: str = ""
 
     db_host: str = "localhost"
     db_port: int = 5432

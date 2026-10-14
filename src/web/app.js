@@ -31,6 +31,172 @@ async function api(caminho, opcoes = {}) {
 
 const pct = (v) => (v == null ? "—" : `${Math.round(v * 100)}%`);
 
+/* ---------- home ---------- */
+
+let pendingTotal = null;
+let pendingCheckedAt = null;
+let recentRequest = 0;
+let recentSignature = null;
+let recentItems = [];
+let recentAvailable = false;
+const hiddenStorageKey = "polaris.hidden.incidents.v1";
+const hiddenRecords = readHiddenRecords();
+
+function readHiddenRecords() {
+  try {
+    const stored = JSON.parse(localStorage.getItem(hiddenStorageKey) || "[]");
+    return new Map(Array.isArray(stored) ? stored.filter(item => Number.isSafeInteger(item?.id) && item.id > 0)
+      .map(item => [item.id, {id: item.id, nome_regra: String(item.nome_regra ?? "Incidente"),
+        hostname: String(item.hostname ?? "—"), ts_criacao: item.ts_criacao}]) : []);
+  } catch { return new Map(); }
+}
+
+function closeTools() {
+  window.PolarisUI.setDisclosure($("tools-panel"), $("tools-toggle"), false);
+}
+
+function updateHomeQueue(total, checkedAt = new Date()) {
+  pendingTotal = total;
+  pendingCheckedAt = checkedAt;
+  $("home-state").dataset.state = total == null ? "unknown" : total === 0 ? "ok" : "attention";
+  document.querySelector(".painel").classList.toggle("queue-empty", total === 0 && estado.selecionado == null);
+  $("home-pending").textContent = total == null ? "—" : total >= 50 ? "50+" : total;
+  $("home-title").textContent = total == null ? "Não foi possível consultar a fila"
+    : total === 0 ? "Nenhuma decisão pendente"
+    : `${total >= 50 ? "50 ou mais" : total} incidente(s) aguardando sua análise`;
+  $("home-description").textContent = total == null
+    ? "Confira a conexão antes de considerar a fila vazia. O diagnóstico está no menu Ferramentas."
+    : total === 0
+      ? "Continue acompanhando os alertas no Zabbix. Quando houver uma sugestão para analisar, ela aparecerá aqui."
+      : "Selecione um incidente na fila para conferir as evidências e a ação sugerida antes de decidir.";
+  $("home-queue-time").textContent = total == null ? "Consulta indisponível"
+    : `Consultada às ${checkedAt.toLocaleTimeString("pt-BR")}`;
+  document.title = total > 0 ? `(${total >= 50 ? "50+" : total}) Polaris DSS` : "Polaris DSS — Suporte à Decisão";
+}
+
+function showHome(event) {
+  if (event && (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey || event.button > 0)) return;
+  event?.preventDefault();
+  estado.selecionado = null;
+  estado.confirmandoBandaBaixa = false;
+  closeTools();
+  $("tela-diagnostico").classList.add("oculto");
+  $("detalhe").classList.add("oculto");
+  $("placeholder").classList.remove("oculto");
+  document.querySelector(".painel").classList.remove("oculto");
+  document.querySelectorAll(".item.ativo").forEach(item => item.classList.remove("ativo"));
+  updateHomeQueue(pendingTotal, pendingCheckedAt);
+}
+
+const incidentLabels = {
+  pendente: "Aguardando decisão", executando: "Em execução", sucesso: "Sucesso",
+  falha: "Falha", timeout: "Tempo esgotado", rejeitado: "Rejeitado",
+  encerrado_na_origem: "Encerrado no Zabbix", no_match: "Sem regra compatível",
+};
+
+async function loadRecentIncidents() {
+  const request = ++recentRequest;
+  const filter = $("recent-filter").value;
+  let data;
+  try {
+    data = await api(`/api/v1/incidentes?status=${encodeURIComponent(filter)}&limit=6`);
+  } catch {
+    if (request !== recentRequest) return;
+    recentSignature = null;
+    recentAvailable = false;
+    recentItems = [];
+    $("recent-incidents").replaceChildren();
+    $("recent-message").textContent = "Não foi possível consultar os registros. Nova tentativa em até 15 segundos.";
+    $("recent-message").classList.remove("oculto");
+    return;
+  }
+  if (request !== recentRequest) return;
+  recentAvailable = true;
+  const signature = JSON.stringify([filter, data.itens, [...hiddenRecords.keys()]]);
+  if (signature === recentSignature) return;
+  recentSignature = signature;
+  recentItems = data.itens;
+  renderRecentIncidents();
+}
+
+function renderRecentIncidents() {
+  if (!recentAvailable) {
+    $("recent-incidents").replaceChildren();
+    $("recent-message").textContent = "Não foi possível consultar os registros. Nova tentativa em até 15 segundos.";
+    $("recent-message").classList.remove("oculto");
+    renderHiddenRecords();
+    return;
+  }
+  const visible = recentItems.filter(item => !hiddenRecords.has(item.id));
+  $("recent-message").classList.toggle("oculto", visible.length > 0);
+  $("recent-message").textContent = recentItems.length > 0
+    ? "Os registros deste filtro estão na área de ocultos." : "Nenhum incidente neste filtro.";
+  const list = $("recent-incidents");
+  list.replaceChildren();
+  for (const item of visible) list.appendChild(createRecentRow(item));
+  renderHiddenRecords();
+}
+
+function createRecentRow(item, hidden = false) {
+    const row = document.createElement("li");
+    row.className = `recent-row ${hidden ? "is-hidden" : `record-${item.status}`}`;
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "recent-item";
+    for (const [className, text] of [
+      ["recent-name", `#${item.id} · ${item.nome_regra ?? "Incidente sem heurística formalizada"}`],
+      ["recent-meta", `${item.hostname ?? "—"} · entrada ${formatarData(item.ts_criacao)}`],
+      [`recent-status status-${hidden ? "hidden" : Object.hasOwn(incidentLabels, item.status) ? item.status : "unknown"}`,
+        hidden ? "Oculto" : incidentLabels[item.status] ?? item.status],
+    ]) {
+      const field = document.createElement("span");
+      field.className = className;
+      field.textContent = text;
+      button.appendChild(field);
+    }
+    button.addEventListener("click", () => abrir(item.id));
+    row.appendChild(button);
+    const visibility = document.createElement("button");
+    visibility.type = "button";
+    visibility.className = "icon-button visibility-button";
+    const label = `${hidden ? "Exibir novamente" : "Ocultar dos recentes"} o incidente #${item.id}`;
+    visibility.title = label;
+    visibility.setAttribute("aria-label", label);
+    visibility.appendChild(window.PolarisUI.icon(hidden ? "eye" : "eye-off"));
+    visibility.addEventListener("click", () => setRecordHidden(item, !hidden));
+    row.appendChild(visibility);
+    return row;
+}
+
+function renderHiddenRecords() {
+  $("hidden-count").textContent = hiddenRecords.size;
+  const list = $("hidden-incidents");
+  list.replaceChildren();
+  for (const item of hiddenRecords.values()) list.appendChild(createRecentRow(item, true));
+  if (!hiddenRecords.size) {
+    const empty = document.createElement("li");
+    empty.className = "hidden-empty";
+    empty.textContent = "Nenhum registro oculto.";
+    list.appendChild(empty);
+  }
+}
+
+function setRecordHidden(item, hidden) {
+  if (hidden) hiddenRecords.set(item.id, {id: item.id, nome_regra: item.nome_regra,
+    hostname: item.hostname, ts_criacao: item.ts_criacao});
+  else hiddenRecords.delete(item.id);
+  let saved = true;
+  try { localStorage.setItem(hiddenStorageKey, JSON.stringify([...hiddenRecords.values()])); }
+  catch { saved = false; }
+  recentSignature = null;
+  renderRecentIncidents();
+  $("hidden-feedback").textContent = saved
+    ? `Incidente #${item.id} ${hidden ? "oculto dos recentes" : "deixou de ficar oculto"}.`
+    : "Preferência aplicada apenas nesta sessão; o navegador não permitiu salvá-la.";
+  $("hidden-feedback").classList.remove("oculto");
+  $("hidden-records").querySelector("summary").focus();
+}
+
 /* ---------- ciência sobre a execução remota ---------- */
 
 const CHAVE_CIENCIA = "polaris.ciencia.scripts";
@@ -147,6 +313,10 @@ function continuarAposCiencia() {
 async function atualizarSaude() {
   try {
     const s = await api("/health");
+    $("system-version").textContent = s.versao ? `v${s.versao}` : "versão —";
+    $("home-connection").textContent = s.db === "ok" ? "Conectados" : "Verificar banco";
+    $("connection-stat").dataset.state = s.db === "ok" ? "ok" : "falha";
+    window.PolarisUI.setConnection($("connection-db"), s.db === "ok" ? "ok" : "falha", new Date());
     $("estado-kb").textContent = `base v${s.versao_kb ?? "—"}`;
     $("estado-db").textContent = `banco ${s.db}`;
     $("estado-db").classList.toggle("ruim", s.db !== "ok");
@@ -155,8 +325,36 @@ async function atualizarSaude() {
     estado.debug = s.debug === true;
     $("btn-simular").classList.toggle("oculto", !estado.debug);
   } catch {
-    $("estado-db").textContent = "banco indisponível";
+    $("system-version").textContent = "versão —";
+    $("estado-kb").textContent = "base indisponível";
+    $("home-connection").textContent = "Indisponíveis";
+    $("connection-stat").dataset.state = "unknown";
+    window.PolarisUI.setConnection($("connection-db"), "unknown");
+    $("estado-db").textContent = "banco não verificado";
     $("estado-db").classList.add("ruim");
+  }
+}
+
+let checkingConnections = false;
+let connectionsCheckedAt = 0;
+async function refreshConnections() {
+  if (checkingConnections) return;
+  checkingConnections = true;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 15000);
+  try {
+    const data = await api("/api/v1/conectividade", {signal: controller.signal});
+    for (const check of data.verificacoes) {
+      const indicator = check.id === "banco" ? $("connection-db")
+        : check.id === "zabbix" ? $("connection-zabbix") : null;
+      if (indicator) window.PolarisUI.setConnection(indicator, check.estado, data.verificado_em, check.latencia_ms);
+    }
+  } catch {
+    window.PolarisUI.setConnection($("connection-zabbix"), "unknown");
+  } finally {
+    clearTimeout(timer);
+    connectionsCheckedAt = Date.now();
+    checkingConnections = false;
   }
 }
 
@@ -176,9 +374,9 @@ const formatarData = (valor) => valor
 
 function resumoCiclo(ciclo) {
   if (!ciclo) return "nenhum ciclo registrado";
-  if (ciclo.status === "erro") return ciclo.mensagem_erro || "erro sem detalhe";
-  return `${ciclo.recuperados} recuperado(s), ${ciclo.ja_conhecidos} conhecido(s), `
+  const counts = `${ciclo.recuperados} recuperado(s), ${ciclo.ja_conhecidos} conhecido(s), `
     + `${ciclo.encerrados_na_origem} encerrado(s) na origem`;
+  return ciclo.status === "erro" ? `${ciclo.mensagem_erro || "erro sem detalhe"}\n${counts}` : counts;
 }
 
 async function obterReconciliacao() {
@@ -189,28 +387,41 @@ async function atualizarReconciliacao() {
   const badge = $("estado-reconciliacao");
   try {
     const dados = await obterReconciliacao();
-    badge.textContent = `reconciliação ${ROTULO_RECONCILIACAO[dados.status] ?? dados.status}`;
+    $("reconciliation-label").textContent = `Reconciliação ${ROTULO_RECONCILIACAO[dados.status] ?? dados.status}`;
+    badge.dataset.state = dados.status === "sucesso" ? "ok" : dados.status === "erro" ? "falha" : "attention";
+    badge.title = `Reconciliação: ${ROTULO_RECONCILIACAO[dados.status] ?? dados.status}`;
     badge.classList.toggle("ruim", dados.status === "erro" || dados.status === "atrasada");
     badge.classList.toggle("atencao", dados.status === "aguardando_primeiro_ciclo");
+    $("home-running").textContent = dados.contagens_incidentes.executando ?? 0;
+    $("home-last-cycle").textContent = formatarData(dados.ultimo_ciclo?.ts_conclusao);
+    $("home-reconciliation").textContent = ROTULO_RECONCILIACAO[dados.status] ?? dados.status;
+    $("reconciliation-stat").dataset.state = badge.dataset.state;
   } catch {
-    badge.textContent = "reconciliação indisponível";
+    $("reconciliation-label").textContent = "Reconciliação indisponível";
+    badge.dataset.state = "unknown";
     badge.classList.add("ruim");
+    badge.classList.remove("atencao");
+    $("home-running").textContent = "—";
+    $("home-last-cycle").textContent = "—";
+    $("home-reconciliation").textContent = "Consulta indisponível";
+    $("reconciliation-stat").dataset.state = "unknown";
   }
 }
 
 async function abrirReconciliacao() {
-  document.querySelector(".painel").classList.add("oculto");
-  $("tela-diagnostico").classList.add("oculto");
-  $("tela-reconciliacao").classList.remove("oculto");
-  await carregarReconciliacao();
+  const open = $("estado-reconciliacao").getAttribute("aria-expanded") !== "true";
+  window.PolarisUI.setDisclosure($("reconciliation-shell"), $("estado-reconciliacao"), open);
+  if (open) await carregarReconciliacao();
 }
 
 function fecharReconciliacao() {
-  $("tela-reconciliacao").classList.add("oculto");
-  document.querySelector(".painel").classList.remove("oculto");
+  window.PolarisUI.setDisclosure($("reconciliation-shell"), $("estado-reconciliacao"), false);
+  $("estado-reconciliacao").focus();
 }
 
 async function carregarReconciliacao() {
+  const refreshButton = $("btn-refresh-reconciliation");
+  refreshButton.disabled = true;
   let dados;
   try {
     dados = await obterReconciliacao();
@@ -218,7 +429,14 @@ async function carregarReconciliacao() {
     const aviso = $("recon-aviso");
     aviso.textContent = `Não foi possível consultar a reconciliação: ${erro.message}`;
     aviso.classList.remove("oculto");
+    for (const id of ["recon-status", "recon-ultima", "recon-intervalo", "recon-resultado", "recon-history-count"]) {
+      $(id).textContent = "—";
+    }
+    $("recon-contagens").replaceChildren();
+    $("recon-historico").replaceChildren();
     return;
+  } finally {
+    refreshButton.disabled = false;
   }
 
   $("recon-aviso").classList.add("oculto");
@@ -244,22 +462,29 @@ async function carregarReconciliacao() {
   }
 
   const historico = $("recon-historico");
-  historico.innerHTML = "";
+  historico.replaceChildren();
+  $("recon-history-count").textContent = dados.historico.length;
   if (!dados.historico.length) {
-    historico.innerHTML = '<tr><td colspan="6" class="vazio-valor">Nenhuma atividade significativa registrada.</td></tr>';
+    const emptyMessage = document.createElement("li");
+    emptyMessage.className = "recon-empty";
+    emptyMessage.textContent = "Nenhuma atividade significativa registrada.";
+    historico.appendChild(emptyMessage);
     return;
   }
   for (const ciclo of dados.historico) {
-    const tr = document.createElement("tr");
-    for (const valor of [
-      formatarData(ciclo.ts_conclusao), ciclo.status, ciclo.recuperados,
-      ciclo.ja_conhecidos, ciclo.encerrados_na_origem, ciclo.mensagem_erro || "—",
+    const row = document.createElement("li");
+    row.className = "recon-line";
+    for (const [className, value] of [
+      ["recon-time", formatarData(ciclo.ts_conclusao)],
+      [ciclo.status === "erro" ? "recon-error" : "recon-ok", ciclo.status === "erro" ? "ERRO" : "OK"],
+      ["recon-message", resumoCiclo(ciclo)],
     ]) {
-      const td = document.createElement("td");
-      td.textContent = valor;
-      tr.appendChild(td);
+      const field = document.createElement("span");
+      field.className = className;
+      field.textContent = value;
+      row.appendChild(field);
     }
-    historico.appendChild(tr);
+    historico.appendChild(row);
   }
 }
 
@@ -270,10 +495,17 @@ async function carregarLista() {
   try {
     dados = await api("/api/v1/incidentes?status=pendente&limit=50");
   } catch {
+    updateHomeQueue(null);
+    $("contador").textContent = "—";
+    $("lista").replaceChildren();
+    $("lista-vazia").textContent = "Fila indisponível. Tentando novamente…";
+    $("lista-vazia").classList.remove("oculto");
     return;
   }
 
-  $("contador").textContent = dados.total;
+  updateHomeQueue(dados.total);
+  $("contador").textContent = dados.total >= 50 ? "50+" : dados.total;
+  $("lista-vazia").textContent = "Nenhum incidente aguardando decisão.";
   $("lista-vazia").classList.toggle("oculto", dados.total > 0);
 
   const lista = $("lista");
@@ -299,10 +531,21 @@ async function carregarLista() {
 /* ---------- detalhe ---------- */
 
 async function abrir(id) {
+  const previousSelection = estado.selecionado;
   estado.selecionado = id;
   estado.confirmandoBandaBaixa = false;
 
-  const inc = await api(`/api/v1/incidentes/${id}`);
+  let inc;
+  try {
+    inc = await api(`/api/v1/incidentes/${id}`);
+  } catch (error) {
+    if (estado.selecionado !== id) return;
+    estado.selecionado = previousSelection;
+    alert(`Não foi possível abrir o incidente: ${error.message}`);
+    return;
+  }
+  if (estado.selecionado !== id) return;
+  document.querySelector(".painel").classList.remove("queue-empty");
 
   $("placeholder").classList.add("oculto");
   $("detalhe").classList.remove("oculto");
@@ -507,6 +750,7 @@ async function mostrarResultado(id) {
 
   for (let tentativa = 0; tentativa < 30; tentativa += 1) {
     const r = await api(`/api/v1/incidentes/${id}/resultado`);
+    if (estado.selecionado !== id) return;
     if (r.status !== "executando") {
       const cor = r.status === "sucesso" ? "cor-alta" : r.status === "rejeitado" ? "" : "cor-baixa";
       corpo.innerHTML = `
@@ -521,7 +765,7 @@ async function mostrarResultado(id) {
     }
     await new Promise((r) => setTimeout(r, INTERVALO_RESULTADO_MS));
   }
-  corpo.innerHTML = `<p class="resultado-status cor-media">ainda em execução</p>`;
+  if (estado.selecionado === id) corpo.innerHTML = `<p class="resultado-status cor-media">ainda em execução</p>`;
 }
 
 /* ---------- simulação ---------- */
@@ -575,7 +819,6 @@ const ROTULO_ESTADO = {
 
 function abrirDiagnostico() {
   document.querySelector(".painel").classList.add("oculto");
-  $("tela-reconciliacao").classList.add("oculto");
   $("tela-diagnostico").classList.remove("oculto");
   carregarDiagnostico();
 }
@@ -662,8 +905,35 @@ async function recarregarBase() {
 
 
 $("btn-simular").addEventListener("click", simular);
+$("brand-home").addEventListener("click", showHome);
+$("recent-filter").addEventListener("change", () => {
+  recentSignature = null;
+  $("recent-incidents").replaceChildren();
+  $("recent-message").textContent = "Consultando registros…";
+  $("recent-message").classList.remove("oculto");
+  loadRecentIncidents();
+});
+$("tools-toggle").addEventListener("click", () => window.PolarisUI.setDisclosure($("tools-panel"),
+  $("tools-toggle"), $("tools-toggle").getAttribute("aria-expanded") !== "true"));
+document.querySelectorAll(".tools-links button, .tools-links a").forEach(item => item.addEventListener("click", closeTools));
+document.addEventListener("keydown", event => {
+  if (event.key !== "Escape") return;
+  if ($("tools-toggle").getAttribute("aria-expanded") === "true") {
+    closeTools();
+    $("tools-toggle").focus();
+  } else if ($("estado-reconciliacao").getAttribute("aria-expanded") === "true") fecharReconciliacao();
+});
+document.addEventListener("click", event => {
+  if (!$("tools-menu").contains(event.target)) closeTools();
+});
+$("connection-zabbix").addEventListener("click", abrirDiagnostico);
+$("connection-db").addEventListener("click", abrirDiagnostico);
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden && Date.now() - connectionsCheckedAt >= 60000) refreshConnections();
+});
 $("estado-reconciliacao").addEventListener("click", abrirReconciliacao);
 $("btn-fechar-reconciliacao").addEventListener("click", fecharReconciliacao);
+$("btn-refresh-reconciliation").addEventListener("click", carregarReconciliacao);
 $("btn-diagnostico").addEventListener("click", abrirDiagnostico);
 $("btn-fechar-diagnostico").addEventListener("click", fecharDiagnostico);
 $("btn-reverificar").addEventListener("click", carregarDiagnostico);
@@ -684,6 +954,11 @@ carregarScripts();
 atualizarSaude();
 atualizarReconciliacao();
 carregarLista();
+loadRecentIncidents();
+renderHiddenRecords();
+refreshConnections();
 setInterval(carregarLista, INTERVALO_LISTA_MS);
 setInterval(atualizarSaude, 15000);
 setInterval(atualizarReconciliacao, 15000);
+setInterval(loadRecentIncidents, 15000);
+setInterval(refreshConnections, 60000);

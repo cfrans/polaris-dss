@@ -63,6 +63,7 @@ services:
       ZABBIX_USER: ${ZABBIX_USER:-}
       ZABBIX_PASSWORD: ${ZABBIX_PASSWORD:-}
       ZABBIX_TOKEN: ${ZABBIX_TOKEN:-}
+      POLARIS_ZABBIX_HOST: ${POLARIS_ZABBIX_HOST:-}
 
       # Recepção de eventos. Sem token, o webhook responde 401 a tudo.
       POLARIS_WEBHOOK_TOKEN: ${POLARIS_WEBHOOK_TOKEN:-}

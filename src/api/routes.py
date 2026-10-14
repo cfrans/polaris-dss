@@ -19,6 +19,8 @@ from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request
 from ..db import queries
 from ..db.connection import conectar
 from ..engine.diagnostico import executar as executar_diagnostico
+from ..engine.diagnostico import check_connections
+from ..engine.server_metrics import get_server_metrics
 from ..engine.knowledge_base import KnowledgeBaseError
 from ..engine.knowledge_base import load as carregar_kb
 from ..engine.models import Alert
@@ -359,6 +361,18 @@ def diagnostico(request: Request) -> dict[str, Any]:
     dependência caiu, cada uma responde por si com estado e latência. Segredos aparecem mascarados.
     """
     return executar_diagnostico(getattr(request.app.state, "kb", None)).to_dict()
+
+
+@router.get("/api/v1/conectividade", tags=["diagnóstico"])
+def connectivity() -> dict[str, Any]:
+    """Read-only API/database probes for the header, without SSH or configuration values."""
+    return check_connections()
+
+
+@router.get("/api/v1/servidor", tags=["diagnóstico"])
+def server_metrics() -> dict[str, Any]:
+    """Read recent CPU and memory samples from the explicitly configured Zabbix host."""
+    return get_server_metrics()
 
 
 @router.get("/api/v1/kpis", tags=["kpis"])

@@ -4,36 +4,117 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Polaris DSS — Suporte à Decisão</title>
+  <link rel="icon" href="polaris-mark.svg" type="image/svg+xml">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
+<div class="topbar-shell">
 <header class="topo">
-  <div class="marca">
-    <span class="estrela" aria-hidden="true">&#9733;</span>
-    <div>
-      <h1>Polaris DSS</h1>
-      <p class="subtitulo">Suporte à decisão para remediação de incidentes</p>
-    </div>
-  </div>
+  <a id="brand-home" class="marca" href="./" aria-label="Polaris DSS — página inicial">
+    <img class="brand-mark" src="polaris-mark.svg" width="38" height="38" alt="">
+    <span class="brand-name">Polaris <span class="brand-suffix">DSS</span></span>
+    <span id="system-version" class="system-version">v—</span>
+  </a>
   <div class="estado">
-    <span id="estado-kb" class="pilula">base —</span>
-    <span id="estado-db" class="pilula">banco —</span>
-    <button id="estado-reconciliacao" class="pilula pilula-botao" type="button">
-      reconciliação —
+    <div class="connection-group" aria-label="Conectividade do Polaris">
+      <button id="connection-zabbix" class="connection-indicator" data-service="Zabbix" data-state="unknown"
+              type="button" aria-label="Zabbix: aguardando verificação"><span class="status-dot" aria-hidden="true"></span>Zabbix</button>
+      <button id="connection-db" class="connection-indicator" data-service="Banco" data-state="unknown"
+              type="button" aria-label="Banco: aguardando verificação"><span class="status-dot" aria-hidden="true"></span>Banco</button>
+    </div>
+    <div id="server-widget" class="server-widget">
+      <button id="server-toggle" class="server-toggle" type="button" aria-expanded="false" aria-controls="server-panel" title="Recursos do servidor Polaris">
+        <svg class="icon" aria-hidden="true"><use href="icons.svg#server"></use></svg>
+        <span class="server-caption">Servidor</span><span id="server-summary">Sem dados</span>
+      </button>
+      <div id="server-panel" class="server-popover disclosure-shell" aria-hidden="true">
+        <div class="disclosure-clip" inert>
+          <section class="server-resources" aria-labelledby="server-title">
+            <div class="server-heading"><h2 id="server-title">Servidor Polaris</h2>
+              <button id="server-refresh" class="icon-button" type="button" aria-label="Atualizar recursos" title="Atualizar recursos"><svg class="icon" aria-hidden="true"><use href="icons.svg#refresh"></use></svg></button>
+            </div>
+            <p id="server-source" class="server-source">Métricas pelo Zabbix</p>
+            <div class="resource-row"><span>CPU em uso</span><strong id="server-cpu-value">—</strong></div>
+            <div id="server-cpu-bar" class="resource-track" role="img" aria-label="CPU em uso: sem dados"><span></span></div>
+            <small id="server-cpu-time" class="resource-time">Sem coleta disponível</small>
+            <div class="resource-row"><span>Memória em uso</span><strong id="server-memory-value">—</strong></div>
+            <div id="server-memory-bar" class="resource-track" role="img" aria-label="Memória em uso: sem dados"><span></span></div>
+            <small id="server-memory-time" class="resource-time">Sem coleta disponível</small>
+            <p id="server-message" class="server-message" role="status">Consultando métricas…</p>
+          </section>
+        </div>
+      </div>
+    </div>
+    <button id="estado-reconciliacao" class="pilula pilula-botao recon-toggle" type="button"
+            aria-expanded="false" aria-controls="reconciliation-shell">
+      <span class="status-dot" aria-hidden="true"></span><span id="reconciliation-label">Reconciliação</span>
+      <svg class="icon chevron" aria-hidden="true"><use href="icons.svg#chevron"></use></svg>
     </button>
-    <button id="btn-simular" class="btn btn-secundario oculto" type="button">
-      Simular incidente
-    </button>
-    <button id="btn-diagnostico" class="btn btn-secundario" type="button">
-      Diagnóstico
-    </button>
-    <button id="btn-scripts" class="btn btn-secundario" type="button">
-      Scripts e ciência
-    </button>
-    <a class="btn btn-secundario" href="laboratorio.html">Laboratório</a>
+    <div id="tools-menu" class="tools-menu">
+      <button id="tools-toggle" class="icon-button settings-toggle" type="button" title="Ferramentas"
+              aria-label="Ferramentas" aria-expanded="false" aria-controls="tools-panel">
+        <svg class="icon" aria-hidden="true"><use href="icons.svg#settings"></use></svg>
+      </button>
+      <div id="tools-panel" class="tools-popover disclosure-shell" aria-hidden="true">
+        <div class="disclosure-clip" inert>
+          <nav class="tools-links" aria-label="Ferramentas do Polaris">
+            <button id="btn-diagnostico" type="button"><svg class="icon" aria-hidden="true"><use href="icons.svg#diagnostic"></use></svg>Diagnóstico</button>
+            <button id="btn-scripts" type="button"><svg class="icon" aria-hidden="true"><use href="icons.svg#code"></use></svg>Scripts e ciência</button>
+            <a href="laboratorio.html"><svg class="icon" aria-hidden="true"><use href="icons.svg#lab"></use></svg>Laboratório de ensaios</a>
+            <button id="btn-simular" class="oculto" type="button"><svg class="icon" aria-hidden="true"><use href="icons.svg#play"></use></svg>Simular incidente</button>
+          </nav>
+        </div>
+      </div>
+    </div>
+    <time id="header-clock" class="header-clock" aria-live="off">
+      <span id="clock-time">—:—:—</span><small id="clock-date"></small>
+    </time>
   </div>
 </header>
+<div id="reconciliation-shell" class="disclosure-shell reconciliation-shell" aria-hidden="true">
+<div class="disclosure-clip" inert>
+<section id="tela-reconciliacao" class="recon-panel" aria-labelledby="reconciliation-title">
+
+  <div class="diag-topo">
+    <div>
+      <h2 id="reconciliation-title">Reconciliação do Zabbix</h2>
+      <p class="diag-sub">
+        Estado do processo que recupera eventos perdidos e encerra incidentes resolvidos na origem.
+        Esses encerramentos não são remediações executadas pelo Polaris.
+      </p>
+    </div>
+    <div class="diag-acoes">
+      <button id="btn-refresh-reconciliation" class="btn btn-secundario" type="button"><svg class="icon" aria-hidden="true"><use href="icons.svg#refresh"></use></svg>Atualizar</button>
+      <button id="btn-fechar-reconciliacao" class="btn btn-secundario" type="button"><svg class="icon" aria-hidden="true"><use href="icons.svg#close"></use></svg>Fechar</button>
+    </div>
+  </div>
+
+  <div id="recon-aviso" class="aviso oculto"></div>
+
+  <div class="recon-resumo">
+    <div class="recon-cartao"><span>Estado</span><strong id="recon-status">—</strong></div>
+    <div class="recon-cartao"><span>Último ciclo</span><strong id="recon-ultima">—</strong></div>
+    <div class="recon-cartao"><span>Intervalo</span><strong id="recon-intervalo">—</strong></div>
+    <div class="recon-cartao"><span>Resultado do ciclo</span><strong id="recon-resultado">—</strong></div>
+  </div>
+
+  <div class="secao">
+    <h3>Incidentes por estado</h3>
+    <ul id="recon-contagens" class="recon-contagens"></ul>
+  </div>
+
+  <details class="recon-details">
+    <summary>Ver atividade registrada <span id="recon-history-count" class="recon-count">—</span></summary>
+    <p class="nota">Até 20 atividades significativas mais recentes, da mais nova para a mais antiga.
+      Ciclos sem mudança apenas atualizam o horário do último ciclo; esta lista não é um log completo.</p>
+    <ol id="recon-historico" class="recon-log" aria-label="Atividades registradas da reconciliação" tabindex="0"></ol>
+  </details>
+
+</section>
+</div>
+</div>
+</div>
 
 <div id="faixa-ciencia" class="faixa-ciencia oculto" role="status">
   <span>O Polaris executa ações privilegiadas nos hosts após sua aprovação. Confira o script e o
@@ -84,17 +165,57 @@
   <section class="coluna-lista" aria-label="Incidentes pendentes">
     <div class="cabecalho-coluna">
       <h2>Pendentes</h2>
-      <span id="contador" class="contador">0</span>
+      <span id="contador" class="contador">—</span>
     </div>
     <ul id="lista" class="lista"></ul>
-    <p id="lista-vazia" class="vazio">Nenhum incidente aguardando decisão.</p>
+    <p id="lista-vazia" class="vazio">Consultando decisões pendentes…</p>
   </section>
 
-  <section class="coluna-detalhe" aria-label="Detalhe do incidente">
+  <section class="coluna-detalhe" aria-label="Visão geral e detalhe do incidente">
 
-    <div id="placeholder" class="placeholder">
-      <span class="estrela-grande" aria-hidden="true">&#9733;</span>
-      <p>Selecione um incidente para analisar a sugestão.</p>
+    <div id="placeholder" class="home">
+      <div class="home-heading">
+        <div id="home-state" class="home-state" data-state="unknown"><svg class="icon" aria-hidden="true"><use href="icons.svg#check"></use></svg><span>Fila de decisões</span></div>
+        <h1 id="home-title">Consultando decisões pendentes…</h1>
+        <p id="home-description">O Zabbix monitora a infraestrutura. Aqui você analisa sugestões,
+          autoriza ações e acompanha os resultados.</p>
+      </div>
+      <div class="home-summary">
+        <div class="home-stat queue-stat"><span>Aguardando decisão</span><strong id="home-pending">—</strong>
+          <small id="home-queue-time">Consultando a fila</small></div>
+        <div class="home-stat"><span>Em execução</span><strong id="home-running">—</strong>
+          <small>Ações aprovadas em andamento</small></div>
+        <div id="connection-stat" class="home-stat" data-state="unknown"><span>API e banco</span><strong id="home-connection">—</strong>
+          <small id="estado-db">banco —</small></div>
+        <div id="reconciliation-stat" class="home-stat" data-state="unknown"><span>Última reconciliação</span><strong id="home-last-cycle">—</strong>
+          <small id="home-reconciliation">Consultando o processo</small></div>
+      </div>
+      <section class="home-recent" aria-labelledby="recent-title">
+        <div class="home-recent-heading">
+          <div><h2 id="recent-title">Registros recentes</h2>
+            <p class="nota">Até 6 incidentes, por data de entrada. Selecione um para consultar.</p></div>
+          <label class="recent-filter">Estado
+            <select id="recent-filter">
+              <option value="">Todos</option><option value="executando">Em execução</option>
+              <option value="falha">Falha</option><option value="timeout">Tempo esgotado</option>
+              <option value="sucesso">Sucesso</option><option value="rejeitado">Rejeitado</option>
+              <option value="encerrado_na_origem">Encerrado no Zabbix</option>
+              <option value="no_match">Sem regra compatível</option>
+            </select>
+          </label>
+        </div>
+        <p id="recent-message" class="nota" role="status">Consultando registros…</p>
+        <p id="hidden-feedback" class="nota oculto" role="status"></p>
+        <ul id="recent-incidents" class="recent-incidents"></ul>
+        <details id="hidden-records" class="hidden-records">
+          <summary><svg class="icon" aria-hidden="true"><use href="icons.svg#eye-off"></use></svg>
+            Ocultos neste navegador <span id="hidden-count" class="recon-count">0</span></summary>
+          <p class="nota">Ocultar afeta apenas esta lista. A auditoria e a fila de decisões permanecem disponíveis.</p>
+          <ul id="hidden-incidents" class="recent-incidents"></ul>
+        </details>
+      </section>
+      <footer class="home-footer"><span id="estado-kb">base —</span>
+        <span>Este resumo cobre o Polaris; continue acompanhando a infraestrutura no Zabbix.</span></footer>
     </div>
 
     <article id="detalhe" class="detalhe oculto">
@@ -192,9 +313,9 @@
       </p>
     </div>
     <div class="diag-acoes">
-      <button id="btn-reverificar" class="btn btn-secundario" type="button">Verificar novamente</button>
-      <button id="btn-recarregar-base" class="btn btn-secundario" type="button">Recarregar base de regras</button>
-      <button id="btn-fechar-diagnostico" class="btn btn-secundario" type="button">Fechar</button>
+      <button id="btn-reverificar" class="btn btn-secundario" type="button"><svg class="icon" aria-hidden="true"><use href="icons.svg#refresh"></use></svg>Verificar novamente</button>
+      <button id="btn-recarregar-base" class="btn btn-secundario" type="button"><svg class="icon" aria-hidden="true"><use href="icons.svg#database"></use></svg>Recarregar base de regras</button>
+      <button id="btn-fechar-diagnostico" class="btn btn-secundario" type="button"><svg class="icon" aria-hidden="true"><use href="icons.svg#close"></use></svg>Fechar</button>
     </div>
   </div>
 
@@ -215,47 +336,10 @@
 
 </section>
 
-<section id="tela-reconciliacao" class="tela-diag oculto" aria-label="Reconciliação do Zabbix">
 
-  <div class="diag-topo">
-    <div>
-      <h2>Reconciliação do Zabbix</h2>
-      <p class="diag-sub">
-        Estado do processo que recupera eventos perdidos e encerra incidentes resolvidos na origem.
-        Esses encerramentos não são remediações executadas pelo Polaris.
-      </p>
-    </div>
-    <button id="btn-fechar-reconciliacao" class="btn btn-secundario" type="button">Fechar</button>
-  </div>
 
-  <div id="recon-aviso" class="aviso oculto"></div>
-
-  <div class="recon-resumo">
-    <div class="recon-cartao"><span>Estado</span><strong id="recon-status">—</strong></div>
-    <div class="recon-cartao"><span>Último ciclo</span><strong id="recon-ultima">—</strong></div>
-    <div class="recon-cartao"><span>Intervalo</span><strong id="recon-intervalo">—</strong></div>
-    <div class="recon-cartao"><span>Resultado do ciclo</span><strong id="recon-resultado">—</strong></div>
-  </div>
-
-  <div class="secao">
-    <h3>Incidentes por estado</h3>
-    <ul id="recon-contagens" class="recon-contagens"></ul>
-  </div>
-
-  <div class="secao">
-    <h3>Atividade recente</h3>
-    <p class="nota">São preservados ciclos com recuperação, encerramento ou erro. Sondagens sem
-      mudança apenas atualizam o horário do último ciclo.</p>
-    <div class="tabela-rolagem">
-      <table class="diag-config recon-historico-tabela">
-        <thead><tr><th>Conclusão</th><th>Estado</th><th>Recuperados</th><th>Conhecidos</th><th>Encerrados na origem</th><th>Detalhe</th></tr></thead>
-        <tbody id="recon-historico"></tbody>
-      </table>
-    </div>
-  </div>
-
-</section>
-
+<script src="ui.js"></script>
+<script src="server-metrics.js"></script>
 <script src="script-viewer.js"></script>
 <script src="app.js"></script>
 </body>

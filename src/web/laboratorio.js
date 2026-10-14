@@ -210,5 +210,11 @@
       $("download-status").textContent = `JSON preparado. Confira o download e transfira para ${commands.assessmentPath} no servidor; ainda não foi gravado no banco.`;
     } catch (error) { $("download-status").textContent = error.message; }
   });
+  fetch("/health").then(response => {
+    if (!response.ok) throw new Error("health unavailable");
+    return response.json();
+  }).then(health => {
+    document.getElementById("system-version").textContent = health.versao ? `v${health.versao}` : "versão —";
+  }).catch(() => { document.getElementById("system-version").textContent = "versão —"; });
   render();
 })(typeof globalThis !== "undefined" ? globalThis : this);
