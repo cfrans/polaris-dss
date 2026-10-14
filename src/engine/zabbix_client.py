@@ -19,7 +19,7 @@ from typing import Any
 
 import httpx
 
-from .models import Alert
+from .models import Alert, normalize_ip
 
 # O Zabbix expõe a severidade ora como número, ora como rótulo, dependendo da macro usada.
 SEVERIDADE_POR_CODIGO = {
@@ -93,6 +93,7 @@ def normalizar_webhook(dados: dict[str, Any]) -> Alert:
         severidade=traduzir_severidade(dados.get("severity")),
         id_evento=str(dados["event_id"]).strip() if dados.get("event_id") else None,
         ts_deteccao=interpretar_data(dados.get("event_time")),
+        ip_address=dados.get("host_ip"),
     )
 
 
@@ -221,9 +222,8 @@ class ZabbixClient:
     def problemas_abertos(self) -> list[dict[str, Any]]:
         """Problemas ainda em aberto, já enriquecidos com o host de origem.
 
-        `problem.get` não devolve o host; a segunda chamada busca essa informação pelos ids de
-        evento. São duas chamadas, e não uma, porque a alternativa seria adivinhar o host pelo
-        texto do trigger.
+        `problem.get` não devolve o host; event.get associa os hosts e host.get consulta
+        sua interface principal de agente por IP. Identidade ausente/ambígua permanece sem IP.
         """
         problemas = self._chamar("problem.get", {
             "output": ["eventid", "name", "severity", "clock", "objectid"],
@@ -239,14 +239,30 @@ class ZabbixClient:
         eventos = self._chamar("event.get", {
             "eventids": [p["eventid"] for p in problemas],
             "output": ["eventid"],
-            "selectHosts": ["host"],
+            "selectHosts": ["hostid", "host"],
         }) or []
         host_por_evento = {
             e["eventid"]: (e.get("hosts") or [{}])[0].get("host", "") for e in eventos
         }
+        event_hosts = {e["eventid"]: e.get("hosts") or [] for e in eventos}
+        host_ids = sorted({str(hosts[0]["hostid"]) for hosts in event_hosts.values()
+                           if len(hosts) == 1 and hosts[0].get("hostid")})
+        addresses = {}
+        if host_ids:
+            hosts = self._chamar("host.get", {
+                "hostids": host_ids, "output": ["hostid"],
+                "selectInterfaces": ["ip", "type", "main", "useip"],
+            }) or []
+            for host in hosts:
+                primary = [interface for interface in host.get("interfaces", [])
+                           if all(str(interface.get(key)) == "1" for key in ("type", "main", "useip"))]
+                if len(primary) == 1:
+                    addresses[str(host["hostid"])] = normalize_ip(primary[0].get("ip"))
 
         for p in problemas:
             p["host"] = host_por_evento.get(p["eventid"], "")
+            hosts = event_hosts.get(p["eventid"], [])
+            p["host_ip"] = addresses.get(str(hosts[0].get("hostid"))) if len(hosts) == 1 else None
         return problemas
 
     def alertas_abertos(self) -> list[Alert]:
@@ -255,6 +271,7 @@ class ZabbixClient:
             normalizar_webhook({
                 "event_id": p["eventid"],
                 "host": p.get("host", ""),
+                "host_ip": p.get("host_ip"),
                 "trigger": p.get("name", ""),
                 "severity": p.get("severity"),
                 "event_time": p.get("clock"),

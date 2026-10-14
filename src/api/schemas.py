@@ -45,6 +45,7 @@ class IncidenteDetalhe(BaseModel):
     id: int
     id_evento: str | None = None
     hostname: str | None = None
+    ip_address: str | None = None
     severidade: str | None = None
     status: str
     regra: str | None = None

@@ -7,6 +7,7 @@ corresponderem ao Quadro 1 da monografia. O restante do código é em inglês.
 from __future__ import annotations
 
 import re
+import ipaddress
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
@@ -33,6 +34,16 @@ class ParametroInvalidoError(ValueError):
     """Placeholder sem parâmetro correspondente, ou valor fora do formato permitido."""
 
 
+def normalize_ip(value: Any) -> str | None:
+    """Keep only literal IPv4/IPv6 addresses supported by PostgreSQL inet; never resolve DNS."""
+    if not isinstance(value, str) or "%" in value:
+        return None
+    try:
+        return str(ipaddress.ip_address(value.strip()))
+    except ValueError:
+        return None
+
+
 @dataclass(frozen=True, slots=True)
 class Alert:
     """Evento normalizado. É o que o motor consome, venha do webhook, do polling ou de fixture."""
@@ -45,6 +56,10 @@ class Alert:
     severidade: str | None = None
     id_evento: str | None = None
     ts_deteccao: datetime | None = None
+    ip_address: str | None = None
+
+    def __post_init__(self):
+        object.__setattr__(self, "ip_address", normalize_ip(self.ip_address))
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> Alert:
@@ -61,6 +76,7 @@ class Alert:
             severidade=data.get("severidade"),
             id_evento=data.get("id_evento"),
             ts_deteccao=ts,
+            ip_address=data.get("ip_address"),
         )
 
 

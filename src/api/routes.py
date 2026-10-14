@@ -202,6 +202,7 @@ def detalhar(request: Request, incidente_id: int, conn=Depends(get_conn)) -> Inc
         id=registro["id"],
         id_evento=registro["id_evento"],
         hostname=registro["hostname"],
+        ip_address=str(registro["ip_address"]) if registro["ip_address"] is not None else None,
         severidade=registro["severidade"],
         status=registro["status_execucao"],
         regra=registro["regra_disparada"],

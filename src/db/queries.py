@@ -68,12 +68,12 @@ def criar_incidente(
         with conn.cursor() as cur:
             cur.execute(
                 """
-                INSERT INTO audit_log (id_evento, hostname, severidade, status_execucao,
+                INSERT INTO audit_log (id_evento, hostname, ip_address, severidade, status_execucao,
                                        ts_deteccao, experiment_run_id)
-                VALUES (%s, %s, %s, 'no_match', %s, %s)
+                VALUES (%s, %s, %s, %s, 'no_match', %s, %s)
                 RETURNING id
                 """,
-                (alert.id_evento, alert.hostname, alert.severidade,
+                (alert.id_evento, alert.hostname, alert.ip_address, alert.severidade,
                  alert.ts_deteccao, experiment_run_id),
             )
             incidente_id = cur.fetchone()["id"]
@@ -87,15 +87,15 @@ def criar_incidente(
     with conn.cursor() as cur:
         cur.execute(
             """
-            INSERT INTO audit_log (id_evento, hostname, severidade,
+            INSERT INTO audit_log (id_evento, hostname, ip_address, severidade,
                                    regra_disparada, confianca_calculada, banda_confianca,
                                    explicabilidade, versao_kb, versao_motor,
                                    comando_executado, comando_verificacao, status_execucao,
                                    ts_deteccao, experiment_run_id)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'pendente', %s, %s)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'pendente', %s, %s)
             RETURNING id
             """,
-            (alert.id_evento, alert.hostname, alert.severidade,
+            (alert.id_evento, alert.hostname, alert.ip_address, alert.severidade,
              sugestao.rule.id, trace.confianca_final, trace.banda.value,
              Jsonb(trace.to_dict()), trace.versao_kb, trace.versao_motor,
              sugestao.comando, sugestao.verificador, alert.ts_deteccao, experiment_run_id),

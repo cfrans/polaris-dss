@@ -97,6 +97,13 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
   sem migração 007 ainda usa desfechos aprovados e não equivale ao acerto do protocolo.
 
 ### Corrigido
+- IP do alvo preservado do webhook até audit_log, inclusive em alertas sem regra; o
+  reconciliador consulta a interface principal de agente por IP para eventos de um único host.
+  Endereços inválidos/ambíguos ficam ausentes, sem DNS ou inferência pelo nome. O detalhe HTTP
+  expõe o campo opcional já existente no banco. Corrige bloqueio do vínculo experimental quando
+  o alvo é configurado por IP; não altera destino SSH, aprovação ou registros históricos.
+  240 testes selecionados aprovados em PostgreSQL descartável, incluindo os dois caminhos reais
+  de ingestão até o vínculo. **[NÃO VERIFICADO NO LABORATÓRIO]** implantação e evento novo real.
 - Views de MTTR, passos e decomposição alinhadas ao relatório descritivo pela migração 008:
   exigem avaliação humana e preservam falhas válidas; MTTR com apenas um braço informa a
   amostra existente e mantém medidas/redução ausentes como nulas. Decomposição exige vínculo
