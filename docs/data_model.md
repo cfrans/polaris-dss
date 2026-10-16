@@ -62,6 +62,10 @@ rather than transaction-frozen `NOW()`, so `ts_conclusao` and `mttr_calculado` r
 wall-clock instant after remote execution and verification. Experimental `t5` and `mttr` remain in
 `experiment_run` (`ts_verificado_ok` and `mttr`).
 
+F3/F4 history windows use `statement_timestamp()`: their cutoff is current at the start of
+each query and constant across its rows, allowing temporal index conditions. They do not use
+the transaction start time or a cutoff that moves during the scan.
+
 ### `evento_ingestao`
 
 | Column | SQL type | Nullable | Stored generated |

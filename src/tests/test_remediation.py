@@ -245,7 +245,7 @@ def test_executor_padrao_e_simulado_sem_host_configurado(monkeypatch):
 
 
 def test_queries_operacionais_usam_clock_timestamp_e_nao_now_congelado(alerta, kb, config):
-    """Garante sem banco ativo que marcos operacionais e janelas F3/F4 usam clock_timestamp()."""
+    """Marcos usam o relógio real; janelas F3/F4 têm limite estável por consulta."""
     from datetime import datetime, timezone
     from src.db import queries
     from src.engine.engine import analisar
@@ -295,8 +295,13 @@ def test_queries_operacionais_usam_clock_timestamp_e_nao_now_congelado(alerta, k
     queries.recorrencia(conn, "vm-alvo", "R003", 30)
 
     assert len(sqls) == 10
-    for trecho in sqls:
+    for trecho in sqls[:8]:
         assert "clock_timestamp()" in trecho
+        assert "statement_timestamp()" not in trecho
+    for trecho in sqls[8:]:
+        assert "statement_timestamp()" in trecho
+        assert "clock_timestamp()" not in trecho
+    for trecho in sqls:
         assert "NOW()" not in trecho
 
     # Verifica também que service.executar relê a aprovação antes do executor e persiste ao final.
@@ -304,13 +309,11 @@ def test_queries_operacionais_usam_clock_timestamp_e_nao_now_congelado(alerta, k
 
     class ConnExecucao(ConnFalsa):
         def cursor(self):
-            outer = self
-
             class Cur(CursorFalso):
                 def execute(self, sql: str, params=None):
                     compacto = " ".join(sql.split())
                     sqls.append(compacto)
-                    if compacted_select := compacto.startswith("SELECT * FROM audit_log"):
+                    if compacto.startswith("SELECT * FROM audit_log"):
                         ordem.append("obter_incidente")
                     elif compacto.startswith("UPDATE audit_log SET status_execucao"):
                         ordem.append("registrar_execucao")

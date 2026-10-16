@@ -149,18 +149,26 @@ def test_conclusao_operacional_reflete_instante_apos_executor_demorado(conn, kb,
     conn.commit()
 
     simulado = ExecutorSimulado(saudavel=True)
+    executor_finished_at = None
 
     def executor_lento(comando: str, verificador: str | None = None,
                        timeout_segundos: int = 60):
+        nonlocal executor_finished_at
         time.sleep(0.15)
-        return simulado(comando, verificador=verificador, timeout_segundos=timeout_segundos)
+        result = simulado(comando, verificador=verificador, timeout_segundos=timeout_segundos)
+        with conn.cursor() as cursor:
+            cursor.execute("SELECT clock_timestamp() AS finished_at")
+            executor_finished_at = cursor.fetchone()["finished_at"]
+        return result
 
+    # Uma demora pré-execução não pode fazer NOW() passar como conclusão pós-executor.
+    time.sleep(0.15)
     executar(conn, ing.incidente_id, executor_lento)
     reg = queries.obter_incidente(conn, ing.incidente_id)
     assert reg["ts_aprovacao"] == aprovacao_antes
     assert reg["ts_conclusao"] is not None
-    duracao_s = (reg["ts_conclusao"] - reg["ts_aprovacao"]).total_seconds()
-    assert duracao_s >= 0.12
+    assert executor_finished_at is not None
+    assert reg["ts_conclusao"] >= executor_finished_at
 
 
 def test_trace_persiste_como_jsonb_consultavel(conn, kb, config, alerta):

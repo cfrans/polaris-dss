@@ -102,7 +102,7 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 
 ### Corrigido
 - Marcos operacionais de `audit_log` (`ts_criacao`, `ts_exibicao`, `ts_aprovacao`,
-  `ts_conclusao`), `evento_ingestao.registrado_em` e janelas relativas de F3/F4 passam a usar
+  `ts_conclusao`) e `evento_ingestao.registrado_em` passam a usar
   `clock_timestamp()` em `src/db/queries.py` em vez de `NOW()` congelado no início da transação.
   Corrige `ts_conclusao` quase simultâneo a `ts_aprovacao` quando `service.executar` abria a
   transação em `obter_incidente` antes do executor SSH e verificador remoto; preserva a
@@ -110,6 +110,11 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
   (`experiment_run.ts_verificado_ok`). Validado nos testes unitários e no PostgreSQL 16.15
   descartável (`18 passed` em `test_persistencia.py`; regressão completa Linux/PostgreSQL com
   `527 passed, 2 skipped` em `12,12s`); **[NÃO VERIFICADO NO LABORATÓRIO]** implantação no PCT 151.
+- Janelas F3/F4 usam `statement_timestamp()`, com limite fixo por consulta e compatível com
+  condições temporais de índice. O teste de conclusão compara `ts_conclusao` com o relógio do
+  PostgreSQL capturado ao final do executor simulado, incluindo atraso anterior à execução
+  para impedir falso positivo com `NOW()`. Testes portáveis aprovados; teste temporal revisado
+  em PostgreSQL real **[NÃO VERIFICADO]** nesta revisão.
 - Manual público do laboratório (`experiment/laboratorio.md`,
   `experiment/scenarios/reset_environment.md`) e runbooks (`experiment/runbook_baseline.md`,
   `experiment/runbook_resources.md`) harmonizados quanto ao reaproveitamento do check global

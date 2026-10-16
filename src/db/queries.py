@@ -271,7 +271,7 @@ def historico_regra(conn, regra: str, janela_dias: int = 90) -> HistoricoRegra:
              WHERE regra_disparada = %s
                AND decisao_humana IS TRUE
                AND status_execucao = ANY(%s)
-               AND ts_criacao >= clock_timestamp() - make_interval(days => %s)
+               AND ts_criacao >= statement_timestamp() - make_interval(days => %s)
             """,
             (regra, list(ESTADOS_CONCLUIDOS), janela_dias),
         )
@@ -294,7 +294,7 @@ def recorrencia(conn, hostname: str, regra: str, janela_minutos: int = 30) -> Re
                AND regra_disparada = %s
                AND decisao_humana IS TRUE
                AND status_execucao = 'sucesso'
-               AND ts_conclusao >= clock_timestamp() - make_interval(mins => %s)
+               AND ts_conclusao >= statement_timestamp() - make_interval(mins => %s)
             """,
             (hostname, regra, janela_minutos),
         )
