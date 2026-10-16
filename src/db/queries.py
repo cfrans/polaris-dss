@@ -69,8 +69,8 @@ def criar_incidente(
             cur.execute(
                 """
                 INSERT INTO audit_log (id_evento, hostname, ip_address, severidade, status_execucao,
-                                       ts_deteccao, experiment_run_id)
-                VALUES (%s, %s, %s, %s, 'no_match', %s, %s)
+                                       ts_deteccao, ts_criacao, experiment_run_id)
+                VALUES (%s, %s, %s, %s, 'no_match', %s, clock_timestamp(), %s)
                 RETURNING id
                 """,
                 (alert.id_evento, alert.hostname, alert.ip_address, alert.severidade,
@@ -78,7 +78,8 @@ def criar_incidente(
             )
             incidente_id = cur.fetchone()["id"]
             cur.execute(
-                "INSERT INTO evento_ingestao (id_evento, incidente_id) VALUES (%s, %s)",
+                "INSERT INTO evento_ingestao (id_evento, incidente_id, registrado_em) "
+                "VALUES (%s, %s, clock_timestamp())",
                 (alert.id_evento, incidente_id),
             )
             return Ingestao(incidente_id=incidente_id, sem_regra=True)
@@ -91,8 +92,9 @@ def criar_incidente(
                                    regra_disparada, confianca_calculada, banda_confianca,
                                    explicabilidade, versao_kb, versao_motor,
                                    comando_executado, comando_verificacao, status_execucao,
-                                   ts_deteccao, experiment_run_id)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'pendente', %s, %s)
+                                   ts_deteccao, ts_criacao, experiment_run_id)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'pendente',
+                    %s, clock_timestamp(), %s)
             RETURNING id
             """,
             (alert.id_evento, alert.hostname, alert.ip_address, alert.severidade,
@@ -102,7 +104,8 @@ def criar_incidente(
         )
         incidente_id = cur.fetchone()["id"]
         cur.execute(
-            "INSERT INTO evento_ingestao (id_evento, incidente_id) VALUES (%s, %s)",
+            "INSERT INTO evento_ingestao (id_evento, incidente_id, registrado_em) "
+            "VALUES (%s, %s, clock_timestamp())",
             (alert.id_evento, incidente_id),
         )
         return Ingestao(incidente_id=incidente_id)
@@ -113,7 +116,7 @@ def marcar_exibicao(conn, incidente_id: int) -> bool:
     tempo de decisão, senão o KPI de decisão humana fica subestimado."""
     with conn.cursor() as cur:
         cur.execute(
-            "UPDATE audit_log SET ts_exibicao = NOW() "
+            "UPDATE audit_log SET ts_exibicao = clock_timestamp() "
             "WHERE id = %s AND ts_exibicao IS NULL RETURNING id",
             (incidente_id,),
         )
@@ -137,7 +140,7 @@ def registrar_decisao(
                    operador = %s,
                    motivo_rejeicao = %s,
                    versao_scripts = %s,
-                   ts_aprovacao = NOW(),
+                   ts_aprovacao = clock_timestamp(),
                    status_execucao = CASE WHEN %s THEN 'executando' ELSE 'rejeitado' END
              WHERE id = %s AND status_execucao = 'pendente'
             RETURNING id
@@ -157,10 +160,14 @@ def registrar_execucao(
     erro: str | None = None,
     concluir: bool = True,
 ) -> None:
-    """Registra o resultado. `ts_conclusao` (t5) só é gravado quando o verificador confirmou saúde.
+    """Registra o resultado. `ts_conclusao` (conclusão operacional) só é gravado quando o
+    verificador confirmou saúde.
 
     O código de retorno do comando não fecha o incidente: um reinício de serviço pode retornar 0 e
-    o serviço cair em seguida. Daí `concluir` ser parâmetro separado de `status`.
+    o serviço cair em seguida. Daí `concluir` ser parâmetro separado de `status`. Usa
+    `clock_timestamp()` para gravar o instante efetivo após a execução remota e a verificação, e
+    não o início da transação aberta ao reler o incidente. No experimento, o marco `t5`
+    independente pertence a `experiment_run.ts_verificado_ok`.
     """
     if status not in ESTADOS_CONCLUIDOS:
         raise ValueError(f"status de execução inválido: {status}")
@@ -172,7 +179,7 @@ def registrar_execucao(
                    exit_code = %s,
                    output_execucao = %s,
                    output_erro = %s,
-                   ts_conclusao = CASE WHEN %s THEN NOW() ELSE ts_conclusao END
+                   ts_conclusao = CASE WHEN %s THEN clock_timestamp() ELSE ts_conclusao END
              WHERE id = %s
             """,
             (status, exit_code, saida, erro, concluir, incidente_id),
@@ -264,7 +271,7 @@ def historico_regra(conn, regra: str, janela_dias: int = 90) -> HistoricoRegra:
              WHERE regra_disparada = %s
                AND decisao_humana IS TRUE
                AND status_execucao = ANY(%s)
-               AND ts_criacao >= NOW() - make_interval(days => %s)
+               AND ts_criacao >= clock_timestamp() - make_interval(days => %s)
             """,
             (regra, list(ESTADOS_CONCLUIDOS), janela_dias),
         )
@@ -287,7 +294,7 @@ def recorrencia(conn, hostname: str, regra: str, janela_minutos: int = 30) -> Re
                AND regra_disparada = %s
                AND decisao_humana IS TRUE
                AND status_execucao = 'sucesso'
-               AND ts_conclusao >= NOW() - make_interval(mins => %s)
+               AND ts_conclusao >= clock_timestamp() - make_interval(mins => %s)
             """,
             (hostname, regra, janela_minutos),
         )
@@ -413,7 +420,7 @@ def encerrar_por_origem(conn, incidente_id: int) -> None:
     """
     with conn.cursor() as cur:
         cur.execute(
-            "UPDATE audit_log SET status_execucao = 'encerrado_na_origem', ts_conclusao = NOW() "
+            "UPDATE audit_log SET status_execucao = 'encerrado_na_origem', ts_conclusao = clock_timestamp() "
             "WHERE id = %s AND status_execucao = ANY(%s)",
             (incidente_id, list(ESTADOS_ABERTOS)),
         )

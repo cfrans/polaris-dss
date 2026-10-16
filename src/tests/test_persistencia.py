@@ -136,6 +136,33 @@ def test_falha_de_execucao_nao_fecha_o_incidente(conn, kb, config, alerta):
     assert reg["ts_conclusao"] is None
 
 
+def test_conclusao_operacional_reflete_instante_apos_executor_demorado(conn, kb, config, alerta):
+    """obter_incidente abre a transação antes do executor SSH; ts_conclusao precisa usar
+    clock_timestamp() para medir o instante após o executor+verificador, não o início da transação.
+    """
+    import time
+
+    ing = ingerir(conn, alerta("service_down", id_evento="ev-clock-ts"), kb, config,
+                  usar_historico=False)
+    assert decidir(conn, ing.incidente_id, True, "tester") is True
+    aprovacao_antes = queries.obter_incidente(conn, ing.incidente_id)["ts_aprovacao"]
+    conn.commit()
+
+    simulado = ExecutorSimulado(saudavel=True)
+
+    def executor_lento(comando: str, verificador: str | None = None,
+                       timeout_segundos: int = 60):
+        time.sleep(0.15)
+        return simulado(comando, verificador=verificador, timeout_segundos=timeout_segundos)
+
+    executar(conn, ing.incidente_id, executor_lento)
+    reg = queries.obter_incidente(conn, ing.incidente_id)
+    assert reg["ts_aprovacao"] == aprovacao_antes
+    assert reg["ts_conclusao"] is not None
+    duracao_s = (reg["ts_conclusao"] - reg["ts_aprovacao"]).total_seconds()
+    assert duracao_s >= 0.12
+
+
 def test_trace_persiste_como_jsonb_consultavel(conn, kb, config, alerta):
     ing = ingerir(conn, alerta("disk_full", id_evento="ev-trace"), kb, config,
                   usar_historico=False)

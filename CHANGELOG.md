@@ -101,6 +101,22 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
   sem migração 007 ainda usa desfechos aprovados e não equivale ao acerto do protocolo.
 
 ### Corrigido
+- Marcos operacionais de `audit_log` (`ts_criacao`, `ts_exibicao`, `ts_aprovacao`,
+  `ts_conclusao`), `evento_ingestao.registrado_em` e janelas relativas de F3/F4 passam a usar
+  `clock_timestamp()` em `src/db/queries.py` em vez de `NOW()` congelado no início da transação.
+  Corrige `ts_conclusao` quase simultâneo a `ts_aprovacao` quando `service.executar` abria a
+  transação em `obter_incidente` antes do executor SSH e verificador remoto; preserva a
+  invariante de aprovação humana, registros históricos e o `t5` experimental independente
+  (`experiment_run.ts_verificado_ok`). Validado em testes unitários offline;
+  **[NÃO VERIFICADO]** teste de integração em PostgreSQL descartável e implantação no PCT 151.
+- Manual público do laboratório (`experiment/laboratorio.md`,
+  `experiment/scenarios/reset_environment.md`) e runbooks (`experiment/runbook_baseline.md`,
+  `experiment/runbook_resources.md`) harmonizados quanto ao reaproveitamento do check global
+  embutido no `reset` explícito para rodadas subsequentes de serviço/CPU (mantendo `check`
+  explícito na primeira rodada, em retomadas e após `prepare` de disco) e à fronteira de
+  contagem de passos manuais (preparação pré-alerta vs. conexão SSH pós-alerta, seleção/cópia e
+  `Ctrl+C` antes de Enter vs. comandos submetidos, troca de aba/refresh com nova informação vs.
+  leitura passiva e limpeza administrativa pós-atendimento).
 - Runbooks atualizados para usar o observador já armado pelo controlador, sem iniciar outro
   depois da falha. Três controladores, transações locais, identidade por IP, início por alerta
   real, contagem de ações e distinção entre ensaio e coleta passam a refletir o comportamento

@@ -242,3 +242,104 @@ def test_executor_padrao_e_simulado_sem_host_configurado(monkeypatch):
         assert isinstance(executor_padrao(), ExecutorSimulado)
     finally:
         get_settings.cache_clear()
+
+
+def test_queries_operacionais_usam_clock_timestamp_e_nao_now_congelado(alerta, kb, config):
+    """Garante sem banco ativo que marcos operacionais e janelas F3/F4 usam clock_timestamp()."""
+    from datetime import datetime, timezone
+    from src.db import queries
+    from src.engine.engine import analisar
+    from src.engine.service import ExecutorSimulado, executar
+
+    sqls: list[str] = []
+
+    class CursorFalso:
+        def __init__(self):
+            self.rowcount = 1
+            self._row = {"id": 1, "n": 2, "sucessos": 2, "k": 1}
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return False
+
+        def execute(self, sql: str, params=None):
+            sqls.append(" ".join(sql.split()))
+
+        def fetchone(self):
+            return self._row
+
+    class ConnFalsa:
+        def __init__(self):
+            self.commits = 0
+
+        def cursor(self):
+            return CursorFalso()
+
+        def commit(self):
+            self.commits += 1
+
+    conn = ConnFalsa()
+    agora = datetime.now(timezone.utc)
+    a_sem_regra = alerta("sem_regra", id_evento="")
+    a_com_regra = alerta("service_down", id_evento="")
+    sug = analisar(a_com_regra, kb, config)
+    queries.criar_incidente(conn, a_sem_regra, sugestao=None)
+    queries.criar_incidente(conn, a_com_regra, sugestao=sug)
+    queries.marcar_exibicao(conn, 1)
+    queries.registrar_decisao(conn, 1, True, "operador", None)
+    queries.registrar_execucao(conn, 1, "sucesso", 0, "ok", None, concluir=True)
+    queries.encerrar_por_origem(conn, 1)
+    queries.historico_regra(conn, "R003", 90)
+    queries.recorrencia(conn, "vm-alvo", "R003", 30)
+
+    assert len(sqls) == 10
+    for trecho in sqls:
+        assert "clock_timestamp()" in trecho
+        assert "NOW()" not in trecho
+
+    # Verifica também que service.executar relê a aprovação antes do executor e persiste ao final.
+    ordem: list[str] = []
+
+    class ConnExecucao(ConnFalsa):
+        def cursor(self):
+            outer = self
+
+            class Cur(CursorFalso):
+                def execute(self, sql: str, params=None):
+                    compacto = " ".join(sql.split())
+                    sqls.append(compacto)
+                    if compacted_select := compacto.startswith("SELECT * FROM audit_log"):
+                        ordem.append("obter_incidente")
+                    elif compacto.startswith("UPDATE audit_log SET status_execucao"):
+                        ordem.append("registrar_execucao")
+
+                def fetchone(self):
+                    return {
+                        "id": 42,
+                        "decisao_humana": True,
+                        "ts_aprovacao": agora,
+                        "status_execucao": "executando",
+                        "comando_executado": "systemctl restart nginx",
+                        "comando_verificacao": "verify_service.sh nginx",
+                        "versao_scripts": None,
+                    }
+
+            return Cur()
+
+        def commit(self):
+            ordem.append("commit")
+            super().commit()
+
+    conn_exec = ConnExecucao()
+    simulado = ExecutorSimulado(saudavel=True)
+
+    def executor_rastreado(cmd: str, verificador: str | None = None, timeout_segundos: int = 60):
+        ordem.append("executor")
+        return simulado(cmd, verificador=verificador, timeout_segundos=timeout_segundos)
+
+    res = executar(conn_exec, 42, executor_rastreado)
+    assert res.status == "sucesso"
+    assert ordem == ["obter_incidente", "executor", "registrar_execucao", "commit"]
+    assert "ts_conclusao = CASE WHEN %s THEN clock_timestamp() ELSE ts_conclusao END" in sqls[-1]

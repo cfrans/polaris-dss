@@ -56,6 +56,12 @@ CHECK (((severidade)::text = ANY ((ARRAY['baixa'::character varying, 'media'::ch
 CHECK (((status_execucao)::text = ANY ((ARRAY['pendente'::character varying, 'executando'::character varying, 'sucesso'::character varying, 'falha'::character varying, 'timeout'::character varying, 'rejeitado'::character varying, 'no_match'::character varying, 'encerrado_na_origem'::character varying])::text[])))
 ```
 
+Operational timestamps (`ts_criacao`, `ts_exibicao`, `ts_aprovacao`, `ts_conclusao`) and
+`evento_ingestao.registrado_em` are written by `src/db/queries.py` using `clock_timestamp()`
+rather than transaction-frozen `NOW()`, so `ts_conclusao` and `mttr_calculado` reflect the actual
+wall-clock instant after remote execution and verification. Experimental `t5` and `mttr` remain in
+`experiment_run` (`ts_verificado_ok` and `mttr`).
+
 ### `evento_ingestao`
 
 | Column | SQL type | Nullable | Stored generated |

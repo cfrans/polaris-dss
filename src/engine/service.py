@@ -180,8 +180,10 @@ def executar(conn, incidente_id: int, executor: Executor,
         timeout_segundos=timeout_segundos,
     )
 
-    # t5 só é gravado com a saúde confirmada: código de retorno zero não é prova de
-    # restabelecimento, e fechar por ele superestimaria a taxa de acerto das heurísticas.
+    # ts_conclusao operacional só é gravado com a saúde confirmada pelo verificador da regra
+    # (distinto do t5 experimental, experiment_run.ts_verificado_ok, medido pelo vigia externo):
+    # código de retorno zero não é prova de restabelecimento, e fechar por ele superestimaria a
+    # taxa de acerto das heurísticas.
     queries.registrar_execucao(
         conn,
         incidente_id,
