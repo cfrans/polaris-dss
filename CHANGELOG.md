@@ -107,8 +107,9 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
   Corrige `ts_conclusao` quase simultâneo a `ts_aprovacao` quando `service.executar` abria a
   transação em `obter_incidente` antes do executor SSH e verificador remoto; preserva a
   invariante de aprovação humana, registros históricos e o `t5` experimental independente
-  (`experiment_run.ts_verificado_ok`). Validado em testes unitários offline;
-  **[NÃO VERIFICADO]** teste de integração em PostgreSQL descartável e implantação no PCT 151.
+  (`experiment_run.ts_verificado_ok`). Validado nos testes unitários e no PostgreSQL 16.15
+  descartável (`18 passed` em `test_persistencia.py`; regressão completa Linux/PostgreSQL com
+  `527 passed, 2 skipped` em `12,12s`); **[NÃO VERIFICADO NO LABORATÓRIO]** implantação no PCT 151.
 - Manual público do laboratório (`experiment/laboratorio.md`,
   `experiment/scenarios/reset_environment.md`) e runbooks (`experiment/runbook_baseline.md`,
   `experiment/runbook_resources.md`) harmonizados quanto ao reaproveitamento do check global
