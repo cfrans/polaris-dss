@@ -113,8 +113,10 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 - Janelas F3/F4 usam `statement_timestamp()`, com limite fixo por consulta e compatível com
   condições temporais de índice. O teste de conclusão compara `ts_conclusao` com o relógio do
   PostgreSQL capturado ao final do executor simulado, incluindo atraso anterior à execução
-  para impedir falso positivo com `NOW()`. Testes portáveis aprovados; teste temporal revisado
-  em PostgreSQL real **[NÃO VERIFICADO]** nesta revisão.
+  para impedir falso positivo com `NOW()`. Validado em PostgreSQL 16.15 descartável:
+  `18 passed` em persistência; controle negativo com `NOW()` rejeitado pelo teste revisado,
+  embora a asserção anterior passasse; suíte completa Linux com `527 passed, 2 skipped`
+  (Matplotlib opcional ausente) em `11,83s`. Implantação no laboratório permanece pendente.
 - Manual público do laboratório (`experiment/laboratorio.md`,
   `experiment/scenarios/reset_environment.md`) e runbooks (`experiment/runbook_baseline.md`,
   `experiment/runbook_resources.md`) harmonizados quanto ao reaproveitamento do check global
