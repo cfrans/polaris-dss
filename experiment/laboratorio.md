@@ -76,7 +76,16 @@ The global check inspects all three scenarios twice, separated by 60 seconds. It
 unassessed rounds, pending/executing incidents and unrelated fixture data. It does not replace
 clock/alert/image/order/interval checks and does not certify readiness for collection.
 
-For R001 only, prepare the tracked disposable gzip **before** the disk-specific global check:
+Run an explicit `check` before the first round of a session, when resuming with uncertain state,
+or after any intermediate intervention on the target. Because explicit post-round `reset` already
+runs the same two-pass global inspection (60 seconds apart) under the shared target lock, the next
+`service_down` or `cpu_high` round on the same target and frozen software revision—when no
+services, processes, volumes or manual changes occurred since the approved `reset`—may reuse that
+global check without repeating a separate `check` before `run` (the scenario controller still runs
+its own two-pass scenario check and 60-second wait).
+
+For R001 (`disk_full`), always prepare the tracked disposable gzip **and** run the disk-specific
+global check after `prepare`, because `prepare` modifies the isolated volume after `reset`:
 
 ```bash
 python3 experiment/lab.py prepare --scenario disk_full --admin-user root --admin-key-file '~/.ssh/id_ed25519'

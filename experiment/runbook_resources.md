@@ -51,7 +51,8 @@ invalid measurements with a reason. Preserve database backup, screen recording a
 before an explicit post-round reset, and allow the monitoring alert to close before repeating.
 
 
-Use the [global environment checklist](scenarios/reset_environment.md) before the next round and
-after the explicit post-round reset. Preserve the raw evidence before cleanup; a successful health
-check does not replace human correctness assessment. [Report analysis](analysis/report.md) exports
-MTTR, recorded manual steps and human-assessed accuracy without editing primary data.
+Use the [global environment checklist](scenarios/reset_environment.md) before the first round (or
+via the immediately preceding approved post-round reset when eligible for service/CPU, and explicitly
+after `prepare` for disk). Preserve the raw evidence before cleanup; a successful health check does
+not replace human correctness assessment. [Report analysis](analysis/report.md) exports MTTR,
+recorded manual steps and human-assessed accuracy without editing primary data.

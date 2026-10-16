@@ -75,6 +75,22 @@ Record any deviation and decide whether the round must be discarded before analy
 assessment command in [rounds.md](rounds.md) after checking the measured recovery and the protocol's
 correctness criteria. A valid failed outcome is recorded as `resolvido=false`, not discarded.
 
+Step-counting boundary (both arms):
+
+- **Pre-alert preparation (0 steps):** browser and monitoring/Polaris pages already open, workstation
+  login, VPN or an empty local terminal window prepared before the alert. Any SSH session to the
+  target initiated **after** the alert becomes visible counts as **1 step**.
+- **Terminal input:** each command line submitted with Enter counts as **1 step** (a single pipeline
+  or `&&` chain submitted with one Enter is 1 step; each retry or mistyped command submitted with
+  Enter is 1 step). Selecting/copying text (such as an IP address) or cancelling an unsubmitted line
+  with `Ctrl+C` before Enter counts as **0 steps**.
+- **UI navigation and refreshes during attendance:** opening a screen, switching to another
+  tab/panel (such as Proxmox VE graphs or Zabbix details) to obtain diagnostic/confirmation
+  information, or refreshing a page to confirm resolution during attendance counts as **1 step** per
+  discrete action. Passive reading, waiting or pointer movement counts as **0 steps**. Post-round
+  administrative cleanup (such as rejecting a leftover baseline card after attendance or running
+  reset/backup) is outside the attendance step count.
+
 For HITL, keep Polaris open before the round, wait for its actual alert/card, read the recommendation and
 record each actual action, including approval. Normal persisted human approval remains mandatory
 before the existing remediation executor can run. This runbook adds no alternative execution path.
@@ -103,7 +119,8 @@ and personal information before publishing raw data. Back up the database after 
 The prepared CPU/disk manual procedures are in [runbook_resources.md](runbook_resources.md).
 
 
-Use the [global environment checklist](scenarios/reset_environment.md) before the next round and
-after the explicit post-round reset. Preserve the raw evidence before cleanup; a successful health
-check does not replace human correctness assessment. [Report analysis](analysis/report.md) exports
-MTTR, recorded manual steps and human-assessed accuracy without editing primary data.
+Use the [global environment checklist](scenarios/reset_environment.md) before the first round (or
+via the immediately preceding approved post-round reset when eligible for service/CPU, and explicitly
+after `prepare` for disk). Preserve the raw evidence before cleanup; a successful health check does
+not replace human correctness assessment. [Report analysis](analysis/report.md) exports MTTR,
+recorded manual steps and human-assessed accuracy without editing primary data.

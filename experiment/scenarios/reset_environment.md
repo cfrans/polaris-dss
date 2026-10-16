@@ -55,6 +55,14 @@ timestamps, approvals and operational audit records are unchanged. If another sc
 following reset, the command reports failure rather than cleaning it. A failure after reset may
 mean its action already occurred; inspect the target and existing evidence before retrying.
 
+Because explicit reset already executes both global inspection passes (60 seconds apart) under the
+shared target lock, a subsequent `service_down` or `cpu_high` round on the same target and frozen
+revision—with no changes to services, processes, volumes or external intervention since that
+approved reset—may reuse the reset's global inspection instead of running a separate `--check`
+command before invoking the scenario controller (which still runs its own scenario checks and
+60-second wait). An explicit `--check` remains required before the first round of a session, after
+any resumption or intermediate intervention, and for `disk_full` after preparing the disk fixture.
+
 Exit 0 emits JSON with `automatic_checks_passed`, target, optional `reset_run_id` and an explicit
 `manual_checks_required` list. Exit 2 means inspection/reset was not fully confirmed. Unknown or
 changed host keys and unexpected script output are refused; credentials and remote stderr are not
@@ -68,7 +76,9 @@ printed. Check evidence after interruption or transport error; no automatic rese
 - Confirm frozen SHA/image/KB, scenario/arm order and identical monitoring intervals.
 - Save raw round/audit evidence before reset and inspect unrelated services/files for collateral effects.
 
-Use this checklist before each controller invocation. The existing controllers retain their own
-scenario checks; invoking one alone does not invoke this global checklist. No shell script performs
-a bulk reset of unrelated workloads. The HITL executor still requires persisted human approval;
-administrative laboratory reset is a separate, explicit operation.
+Use this manual checklist before each controller invocation (with the automatic global check run
+explicitly or satisfied by the immediately preceding approved reset as specified above). The
+existing controllers retain their own scenario checks; invoking one alone does not invoke this
+global checklist. No shell script performs a bulk reset of unrelated workloads. The HITL executor
+still requires persisted human approval; administrative laboratory reset is a separate, explicit
+operation.
