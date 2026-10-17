@@ -13,9 +13,11 @@ O caminho primário de ingestão é o webhook; o cliente é a rede de proteção
 from __future__ import annotations
 
 import re
+import posixpath
 from dataclasses import dataclass, replace
 from datetime import datetime, timezone
 from typing import Any
+from urllib.parse import urlencode, urlparse, urlunparse
 
 import httpx
 
@@ -293,6 +295,30 @@ class ZabbixClient:
         if not eventos:
             return None
         return interpretar_data(eventos[0].get("clock"))
+
+    def url_host_do_evento(self, id_evento: str) -> str | None:
+        """Build a same-instance host URL only for one host returned by the event API."""
+        eventos = self._chamar("event.get", {
+            "eventids": [str(id_evento)],
+            "output": ["eventid"],
+            "selectHosts": ["hostid"],
+        }) or []
+        if len(eventos) != 1:
+            return None
+        hosts = eventos[0].get("hosts") or []
+        if len(hosts) != 1:
+            return None
+        host_id = str(hosts[0].get("hostid", ""))
+        if not host_id.isdecimal():
+            return None
+
+        base = urlparse(self.url)
+        if base.scheme not in ("http", "https") or not base.netloc or base.username or base.password:
+            return None
+        directory = posixpath.dirname(base.path.rstrip("/")).rstrip("/")
+        page = f"{directory}/zabbix.php" if directory else "/zabbix.php"
+        query = urlencode({"action": "host.edit", "hostid": host_id})
+        return urlunparse((base.scheme, base.netloc, page, "", query, ""))
 
 
 def enriquecer_timestamp(alerta: Alert, cliente: ZabbixClient) -> Alert:

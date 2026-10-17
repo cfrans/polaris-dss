@@ -1,4 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+  <symbol id="back" viewBox="0 0 24 24"><path d="M19 12H5m7 7-7-7 7-7"/></symbol>
   <symbol id="settings" viewBox="0 0 24 24"><path d="m9 3-.7 2.2-2 .9-2.1-.5-1.5 2.6 1.5 1.7V12L2.7 14l1.5 2.6 2.2-.4 2 1 .6 2.2h3l.7-2.2 2-1 2.1.4 1.5-2.6-1.5-1.8V10l1.5-1.8-1.5-2.6-2.2.5-2-.9L12 3z" transform="translate(1 1)"/><circle cx="11.5" cy="12" r="3"/></symbol>
   <symbol id="diagnostic" viewBox="0 0 24 24"><path d="M3 12h4l3-7 4 14 3-7h4"/></symbol>
   <symbol id="code" viewBox="0 0 24 24"><path d="m7 7-5 5 5 5m10-10 5 5-5 5m-4-14-2 18"/></symbol>

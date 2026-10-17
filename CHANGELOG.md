@@ -8,6 +8,25 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 ## [Não lançado]        <!-- alvo: v0.5.0 telemetria · v0.6.0 remediação · preparação v0.7.0 -->
 
 ### Adicionado
+- [NÃO VERIFICADO] Cartão de incidente ajustado: início e fim ficam empilhados numa caixa única compacta;
+  confiança, faixa, teto e explicação ficam no canto superior direito; a explicação preserva a dica
+  por hover/foco e também abre em modal por clique; evidências em duas colunas, adaptadas a telas estreitas.
+- [NÃO VERIFICADO] Preferências permitem definir o período (1–365 dias, padrão 30) da contagem de ocorrências da
+  mesma regra no mesmo host, exibida no cartão do incidente. A configuração não altera a confiança
+  nem invalida planos pendentes.
+- [NÃO VERIFICADO] Cartão de incidente mais compacto, retorno animado entre preferências e tela anterior,
+  ícone de preferências e estilos próprios para campos numéricos e listas suspensas.
+- [NÃO VERIFICADO] Preferências exibidas em tela própria, agrupadas em recomendações e histórico de incidentes;
+  detalhes do incidente reorganizados em duas colunas, com host/IP, horários com segundos e histórico
+  filtrado por host, regra e período configurado.
+- [NÃO VERIFICADO] Link do host para a interface do Zabbix disponível somente quando `event.get` retorna
+  um único host com identificador válido; link abre em nova aba e não impede o cartão quando indisponível.
+- [NÃO VERIFICADO] Explicação da confiança aparece como dica flutuante com ícone informativo; ocorrências
+  abrem em modal com cada registro selecionável para consultar seu cartão.
+- [NÃO VERIFICADO] Cinco verificações de diagnóstico são apresentadas em cards horizontais, com a
+  quantidade de colunas adaptada à largura disponível.
+- [NÃO VERIFICADO] Abertura e fechamento animados para ciência de scripts, aviso de segurança, preferências,
+  diagnóstico e cartões, respeitando a opção de movimento reduzido do sistema.
 - [NÃO VERIFICADO NO LABORATÓRIO] novo fluxo completo de remediação com planos, escolhas e
   preferências; coletor de leitura exercitado no alvo, aplicação/ensaios gerais ainda pendentes.
 - Diagnóstico SSH limitado e somente de leitura antes da apresentação de R001/R002/R003,

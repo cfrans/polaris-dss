@@ -13,6 +13,10 @@ const estado = {
   debug: false,
   catalogo: null,
   indiceScript: 0,
+  retornoDiagnostico: "inicio",
+  telaAtual: "home",
+  retornoPreferencias: "home",
+  cienciaGeneration: 0,
 };
 
 const $ = (id) => document.getElementById(id);
@@ -100,11 +104,13 @@ function showHome(event) {
   event?.preventDefault();
   estado.selecionado = null;
   estado.confirmandoBandaBaixa = false;
+  estado.telaAtual = "home";
   closeTools();
-  $("tela-diagnostico").classList.add("oculto");
-  $("detalhe").classList.add("oculto");
-  $("placeholder").classList.remove("oculto");
-  document.querySelector(".painel").classList.remove("oculto");
+  window.PolarisUI.setVisibility($("tela-diagnostico"), false);
+  window.PolarisUI.setVisibility($("tela-preferencias"), false);
+  window.PolarisUI.setVisibility($("detalhe"), false);
+  window.PolarisUI.setVisibility($("placeholder"), true);
+  window.PolarisUI.setVisibility(document.querySelector(".painel"), true);
   document.querySelectorAll(".item.ativo").forEach(item => item.classList.remove("ativo"));
   updateHomeQueue(pendingTotal, pendingCheckedAt);
 }
@@ -285,7 +291,7 @@ function atualizarFaixa() {
   const versao = estado.catalogo?.versao;
   const mostrar = versao && lerPreferencia(CHAVE_CIENCIA) === versao
     && lerPreferencia(CHAVE_FAIXA) !== versao;
-  $("faixa-ciencia").classList.toggle("oculto", !mostrar);
+  window.PolarisUI.setVisibility($("faixa-ciencia"), Boolean(mostrar));
 }
 
 function mostrarScript(indice) {
@@ -304,21 +310,27 @@ function mostrarScript(indice) {
 }
 
 async function carregarScripts(forcarExibicao = false) {
-  $("tela-ciencia").classList.remove("oculto");
+  const generation = ++estado.cienciaGeneration;
+  window.PolarisUI.setVisibility($("tela-ciencia"), true);
   resetScriptDescription();
   $("tela-ciencia").scrollTop = 0;
   $("btn-continuar-ciencia").disabled = true;
   try {
     estado.catalogo = await api("/api/v1/scripts-padrao");
+    if (generation !== estado.cienciaGeneration) return;
     mostrarScript(0);
     $("ciencia-erro").classList.add("oculto");
     $("btn-recarregar-scripts").classList.add("oculto");
     $("btn-continuar-ciencia").disabled = false;
     if (!forcarExibicao && lerPreferencia(CHAVE_CIENCIA) === estado.catalogo.versao) {
-      $("tela-ciencia").classList.add("oculto");
+      window.PolarisUI.setVisibility($("tela-ciencia"), false);
       atualizarFaixa();
+    } else {
+      window.PolarisUI.setVisibility($("tela-ciencia"), true);
     }
   } catch (erro) {
+    if (generation !== estado.cienciaGeneration) return;
+    window.PolarisUI.setVisibility($("tela-ciencia"), true);
     $("ciencia-erro").textContent = `Não foi possível carregar os scripts: ${erro.message}`;
     $("ciencia-erro").classList.remove("oculto");
     $("btn-recarregar-scripts").classList.remove("oculto");
@@ -327,8 +339,9 @@ async function carregarScripts(forcarExibicao = false) {
 
 function continuarAposCiencia() {
   if (!estado.catalogo) return;
+  estado.cienciaGeneration += 1;
   guardarPreferencia(CHAVE_CIENCIA, estado.catalogo.versao);
-  $("tela-ciencia").classList.add("oculto");
+  window.PolarisUI.setVisibility($("tela-ciencia"), false);
   atualizarFaixa();
 }
 
@@ -569,14 +582,31 @@ async function abrir(id) {
     return;
   }
   if (estado.selecionado !== id) return;
+  estado.telaAtual = "detalhe";
   document.querySelector(".painel").classList.remove("queue-empty");
 
-  $("placeholder").classList.add("oculto");
-  $("detalhe").classList.remove("oculto");
+  window.PolarisUI.setVisibility($("placeholder"), false);
+  window.PolarisUI.setVisibility($("detalhe"), true);
 
   $("d-regra").textContent = inc.regra ?? "—";
   $("d-nome").textContent = inc.nome_regra ?? "Incidente sem heurística formalizada";
-  $("d-host").textContent = `${inc.hostname ?? "—"} · evento ${inc.id_evento ?? "—"} · severidade ${inc.severidade ?? "—"}`;
+  renderHostIdentity(inc);
+  const occurrenceButton = $("d-ocorrencias");
+  const canShowHistory = Boolean(inc.regra && inc.hostname);
+  occurrenceButton.disabled = !canShowHistory;
+  $("d-historico-lista").replaceChildren();
+  $("d-historico-feedback").textContent = "";
+  occurrenceButton.textContent = Number.isInteger(inc.ocorrencias_periodo) && canShowHistory
+    ? `${inc.ocorrencias_periodo} ${inc.ocorrencias_periodo === 1 ? "ocorrência" : "ocorrências"} desta regra neste host nos últimos ${inc.periodo_ocorrencias_dias} dias`
+    : "Histórico de ocorrências indisponível para este incidente";
+  $("d-inicio").textContent = formatIncidentDate(inc.ts_deteccao || inc.ts_criacao);
+  $("d-inicio").title = `Fuso horário local: ${Intl.DateTimeFormat().resolvedOptions().timeZone}`;
+  const conclusaoLabel = inc.status === "sucesso" || inc.status === "encerrado_na_origem"
+    ? "Resolvida" : "Fluxo encerrado";
+  $("d-fim").textContent = inc.ts_conclusao
+    ? `${conclusaoLabel} · ${formatIncidentDate(inc.ts_conclusao)}` : "Sem registro de fim";
+  $("d-fim").title = inc.ts_conclusao
+    ? `Fim registrado · fuso horário local: ${Intl.DateTimeFormat().resolvedOptions().timeZone}` : "";
 
   $("d-confianca").textContent = pct(inc.confianca);
   $("d-confianca").className = `confianca-valor cor-${inc.banda ?? ""}`;
@@ -610,6 +640,130 @@ async function abrir(id) {
 
 function produtoFatores(fatores) {
   return fatores.reduce((acc, f) => acc * f.valor, 1);
+}
+
+function formatIncidentDate(value) {
+  if (!value) return "—";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "—";
+  return new Intl.DateTimeFormat("pt-BR", {
+    day: "2-digit", month: "2-digit", year: "numeric",
+    hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23",
+  }).format(date);
+}
+
+function renderHostIdentity(incident) {
+  const host = incident.hostname || "—";
+  const identity = `${host}${incident.ip_address ? ` (${incident.ip_address})` : ""}`;
+  const container = $("d-host");
+  container.replaceChildren();
+  if (incident.zabbix_host_url) {
+    try {
+      const url = new URL(incident.zabbix_host_url);
+      if (["http:", "https:"].includes(url.protocol)) {
+        const link = document.createElement("a");
+        link.href = url.href;
+        link.target = "_blank";
+        link.rel = "noopener noreferrer";
+        link.textContent = identity;
+        link.title = "Abrir host no Zabbix em uma nova aba";
+        container.appendChild(link);
+      }
+    } catch { /* invalid host URLs are shown as plain text */ }
+  }
+  if (!container.childNodes.length) container.appendChild(document.createTextNode(identity));
+  const metadata = document.createElement("span");
+  metadata.textContent = ` · evento ${incident.id_evento ?? "—"} · severidade ${incident.severidade ?? "—"}`;
+  container.appendChild(metadata);
+}
+
+async function carregarHistoricoOcorrencias() {
+  const dialog = $("modal-historico-ocorrencias");
+  const incidentId = String(estado.selecionado);
+  if (!incidentId || dialog.open) return;
+  window.PolarisUI.showDialog(dialog);
+  $("d-historico-titulo").textContent = "Ocorrências recentes";
+  $("d-historico-filtro").textContent = "";
+  $("d-historico-lista").replaceChildren();
+  $("d-historico-feedback").textContent = "Carregando ocorrências…";
+  try {
+    const data = await api(`/api/v1/incidentes/${incidentId}/ocorrencias`);
+    if (!dialog.open || incidentId !== String(estado.selecionado)) return;
+    $("d-historico-titulo").textContent = `${data.total} ${data.total === 1 ? "ocorrência" : "ocorrências"}`;
+    $("d-historico-filtro").textContent = `${data.hostname} · ${data.regra} · últimos ${data.periodo_dias} dias. Selecione uma ocorrência para abrir o cartão.`;
+    $("d-historico-feedback").textContent = data.itens.length ? "" : "Nenhuma ocorrência neste período.";
+    const labels = {pendente: "Pendente", executando: "Em execução", sucesso: "Sucesso",
+      falha: "Falha", timeout: "Tempo esgotado", rejeitado: "Rejeitado",
+      encerrado_na_origem: "Encerrado no Zabbix", no_match: "Sem regra"};
+    const list = $("d-historico-lista");
+    list.replaceChildren(...data.itens.map(item => {
+      const row = document.createElement("li");
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "history-occurrence-button";
+      const summary = document.createElement("span");
+      summary.className = "history-occurrence-summary";
+      summary.textContent = `#${item.id} · ${item.regra || data.regra} · ${labels[item.status] || item.status}`;
+      button.appendChild(summary);
+      const start = document.createElement("span");
+      start.textContent = `início ${formatIncidentDate(item.ts_deteccao || item.ts_criacao)}`;
+      button.appendChild(start);
+      const end = document.createElement("span");
+      end.className = "historico-fim";
+      end.textContent = item.ts_conclusao ? `fim ${formatIncidentDate(item.ts_conclusao)}` : "sem registro de fim";
+      button.appendChild(end);
+      button.addEventListener("click", () => {
+        dialog.dataset.incidentToOpen = String(item.id);
+        window.PolarisUI.closeDialog(dialog);
+      });
+      row.appendChild(button);
+      return row;
+    }));
+  } catch (error) {
+    $("d-historico-feedback").textContent = `Não foi possível carregar o histórico: ${error.message}`;
+  }
+}
+
+function positionConfidenceTooltip(event) {
+  const tooltip = $("d-confianca-tooltip");
+  if (tooltip.hidden || !event || !Number.isFinite(event.clientX)) return;
+  const margin = 12;
+  const gap = 14;
+  const bounds = tooltip.getBoundingClientRect();
+  const width = bounds.width || 360;
+  const height = bounds.height || 140;
+  tooltip.style.left = `${Math.max(margin, Math.min(event.clientX + gap, window.innerWidth - width - margin))}px`;
+  tooltip.style.top = `${Math.max(margin, Math.min(event.clientY + gap, window.innerHeight - height - margin))}px`;
+}
+
+let confidenceTooltipTimer = null;
+
+function showConfidenceTooltip(event) {
+  const tooltip = $("d-confianca-tooltip");
+  clearTimeout(confidenceTooltipTimer);
+  tooltip.hidden = false;
+  tooltip.classList.remove("is-closing");
+  requestAnimationFrame(() => tooltip.classList.add("is-visible"));
+  if (event && Number.isFinite(event.clientX)) {
+    positionConfidenceTooltip(event);
+    return;
+  }
+  const trigger = $("d-confianca-toggle").getBoundingClientRect();
+  const bounds = tooltip.getBoundingClientRect();
+  const margin = 12;
+  tooltip.style.left = `${Math.max(margin, Math.min(trigger.left, window.innerWidth - (bounds.width || 360) - margin))}px`;
+  tooltip.style.top = `${Math.max(margin, Math.min(trigger.bottom + 8, window.innerHeight - (bounds.height || 140) - margin))}px`;
+}
+
+function hideConfidenceTooltip() {
+  const tooltip = $("d-confianca-tooltip");
+  clearTimeout(confidenceTooltipTimer);
+  tooltip.classList.remove("is-visible");
+  tooltip.classList.add("is-closing");
+  confidenceTooltipTimer = setTimeout(() => {
+    tooltip.hidden = true;
+    tooltip.classList.remove("is-closing");
+  }, matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 140);
 }
 
 function renderEvidencias(ev) {
@@ -936,14 +1090,75 @@ const ROTULO_ESTADO = {
 };
 
 function abrirDiagnostico() {
-  document.querySelector(".painel").classList.add("oculto");
-  $("tela-diagnostico").classList.remove("oculto");
+  estado.retornoDiagnostico = estado.telaAtual === "detalhe" ? "detalhe" : "inicio";
+  estado.telaAtual = "diagnostico";
+  window.PolarisUI.setVisibility(document.querySelector(".painel"), false);
+  window.PolarisUI.setVisibility($("tela-preferencias"), false);
+  window.PolarisUI.setVisibility($("tela-diagnostico"), true);
   carregarDiagnostico();
 }
 
 function fecharDiagnostico() {
-  $("tela-diagnostico").classList.add("oculto");
-  document.querySelector(".painel").classList.remove("oculto");
+  window.PolarisUI.setVisibility($("tela-diagnostico"), false);
+  estado.telaAtual = estado.retornoDiagnostico === "detalhe" ? "detalhe" : "home";
+  window.PolarisUI.setVisibility(document.querySelector(".painel"), true);
+  window.PolarisUI.setVisibility($("detalhe"), estado.retornoDiagnostico === "detalhe");
+  window.PolarisUI.setVisibility($("placeholder"), estado.retornoDiagnostico !== "detalhe");
+  if (estado.retornoDiagnostico !== "detalhe") estado.selecionado = null;
+}
+
+async function abrirPreferencias() {
+  estado.retornoPreferencias = estado.telaAtual;
+  estado.telaAtual = "preferencias";
+  closeTools();
+  window.PolarisUI.setVisibility($("tela-diagnostico"), false);
+  window.PolarisUI.setVisibility($("detalhe"), false);
+  window.PolarisUI.setVisibility($("placeholder"), false);
+  window.PolarisUI.setVisibility(document.querySelector(".painel"), false);
+  window.PolarisUI.setVisibility($("tela-preferencias"), true);
+  $("pref-feedback").textContent = "";
+  try {
+    const preferences = await api("/api/v1/preferencias");
+    $("pref-modo").value = preferences.modo_preferencia;
+    $("pref-desconto").value = Math.round(preferences.desconto_maximo * 100);
+    $("pref-minimo").value = preferences.minimo_escolhas;
+    $("pref-periodo-ocorrencias").value = preferences.periodo_ocorrencias_dias;
+    $("pref-historico").textContent = preferences.historico_habilitado
+      ? "Histórico de desempenho habilitado. Alterar as preferências exige atualizar diagnósticos pendentes."
+      : "Histórico de desempenho desativado neste servidor. As preferências são salvas, mas não afetam as recomendações.";
+  } catch (error) {
+    $("pref-historico").textContent = `Não foi possível carregar as preferências: ${error.message}`;
+  }
+}
+
+function fecharPreferencias() {
+  window.PolarisUI.setVisibility($("tela-preferencias"), false);
+  const previous = estado.retornoPreferencias;
+  estado.telaAtual = previous;
+  if (previous === "diagnostico") {
+    window.PolarisUI.setVisibility($("tela-diagnostico"), true);
+    return;
+  }
+  window.PolarisUI.setVisibility(document.querySelector(".painel"), true, 280);
+  if (previous === "detalhe" && estado.selecionado != null) {
+    window.PolarisUI.setVisibility($("placeholder"), false);
+    window.PolarisUI.setVisibility($("detalhe"), true);
+    return;
+  }
+  estado.selecionado = null;
+  window.PolarisUI.setVisibility($("detalhe"), false);
+  window.PolarisUI.setVisibility($("placeholder"), true);
+  estado.telaAtual = "home";
+  updateHomeQueue(pendingTotal, pendingCheckedAt);
+}
+
+function voltarDoDetalhe() {
+  estado.selecionado = null;
+  estado.confirmandoBandaBaixa = false;
+  estado.telaAtual = "home";
+  window.PolarisUI.setVisibility($("detalhe"), false);
+  window.PolarisUI.setVisibility($("placeholder"), true);
+  carregarLista();
 }
 
 async function carregarDiagnostico() {
@@ -1058,21 +1273,39 @@ $("estado-reconciliacao").addEventListener("click", abrirReconciliacao);
 $("btn-fechar-reconciliacao").addEventListener("click", fecharReconciliacao);
 $("btn-refresh-reconciliation").addEventListener("click", carregarReconciliacao);
 $("btn-diagnostico").addEventListener("click", abrirDiagnostico);
-$("btn-preferencias").addEventListener("click", async () => {
-  closeTools();
-  try {
-    const preferences = await api("/api/v1/preferencias");
-    $("pref-modo").value = preferences.modo_preferencia;
-    $("pref-desconto").value = Math.round(preferences.desconto_maximo * 100);
-    $("pref-minimo").value = preferences.minimo_escolhas;
-    $("pref-historico").textContent = preferences.historico_habilitado
-      ? "Histórico habilitado. Alterar preferências exige atualizar diagnósticos pendentes."
-      : "Histórico desativado neste servidor. As preferências serão salvas, mas não afetarão as recomendações.";
-    $("pref-feedback").textContent = "";
-    $("preferencias-dialog").showModal();
-  } catch (error) { alert(error.message); }
+$("btn-preferencias").addEventListener("click", abrirPreferencias);
+$("pref-voltar").addEventListener("click", fecharPreferencias);
+$("d-confianca-toggle").addEventListener("pointerenter", showConfidenceTooltip);
+$("d-confianca-toggle").addEventListener("pointermove", positionConfidenceTooltip);
+$("d-confianca-toggle").addEventListener("pointerleave", hideConfidenceTooltip);
+$("d-confianca-toggle").addEventListener("focus", () => showConfidenceTooltip(null));
+$("d-confianca-toggle").addEventListener("blur", hideConfidenceTooltip);
+$("d-confianca-toggle").addEventListener("click", () => {
+  hideConfidenceTooltip();
+  window.PolarisUI.showDialog($("modal-confianca"));
 });
-$("pref-fechar").addEventListener("click", () => $("preferencias-dialog").close());
+$("d-confianca-fechar").addEventListener("click", () => window.PolarisUI.closeDialog($("modal-confianca")));
+$("modal-confianca").addEventListener("cancel", event => {
+  event.preventDefault();
+  window.PolarisUI.closeDialog($("modal-confianca"));
+});
+$("modal-confianca").addEventListener("click", event => {
+  if (event.target === event.currentTarget) window.PolarisUI.closeDialog(event.currentTarget);
+});
+$("d-ocorrencias").addEventListener("click", carregarHistoricoOcorrencias);
+$("d-historico-fechar").addEventListener("click", () => window.PolarisUI.closeDialog($("modal-historico-ocorrencias")));
+$("modal-historico-ocorrencias").addEventListener("close", event => {
+  const incidentId = event.currentTarget.dataset.incidentToOpen;
+  delete event.currentTarget.dataset.incidentToOpen;
+  if (incidentId) abrir(Number(incidentId));
+});
+$("modal-historico-ocorrencias").addEventListener("cancel", event => {
+  event.preventDefault();
+  window.PolarisUI.closeDialog($("modal-historico-ocorrencias"));
+});
+$("modal-historico-ocorrencias").addEventListener("click", event => {
+  if (event.target === event.currentTarget) window.PolarisUI.closeDialog(event.currentTarget);
+});
 $("preferencias-form").addEventListener("submit", async event => {
   event.preventDefault();
   try {
@@ -1080,11 +1313,13 @@ $("preferencias-form").addEventListener("submit", async event => {
       modo_preferencia: $("pref-modo").value,
       desconto_maximo: Number($("pref-desconto").value) / 100,
       minimo_escolhas: Number($("pref-minimo").value),
+      periodo_ocorrencias_dias: Number($("pref-periodo-ocorrencias").value),
     })});
     $("pref-feedback").textContent = "Preferências salvas. Atualize o diagnóstico antes da próxima aprovação.";
   } catch (error) { $("pref-feedback").textContent = error.message; }
 });
-$("btn-fechar-diagnostico").addEventListener("click", fecharDiagnostico);
+$("btn-voltar-diagnostico").addEventListener("click", fecharDiagnostico);
+$("btn-voltar-detalhe").addEventListener("click", voltarDoDetalhe);
 $("btn-reverificar").addEventListener("click", carregarDiagnostico);
 $("btn-recarregar-base").addEventListener("click", recarregarBase);
 $("btn-scripts").addEventListener("click", () => carregarScripts(true));

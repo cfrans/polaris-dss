@@ -172,19 +172,53 @@ def registrar_decisao(
 
 def read_preferences(conn, lock=False):
     with conn.cursor() as cur:
-        cur.execute("SELECT modo_preferencia, desconto_maximo, minimo_escolhas, versao "
+        cur.execute("SELECT modo_preferencia, desconto_maximo, minimo_escolhas, periodo_ocorrencias_dias, versao "
                     "FROM preferencias_operacionais WHERE id = 1" + (" FOR SHARE" if lock else ""))
         row = cur.fetchone()
     return {**row, "desconto_maximo": float(row["desconto_maximo"])}
 
 
-def save_preferences(conn, mode, discount, minimum):
+def save_preferences(conn, mode, discount, minimum, occurrence_days=30):
     with conn.cursor() as cur:
-        cur.execute("UPDATE preferencias_operacionais SET modo_preferencia=%s, desconto_maximo=%s, "
-                    "minimo_escolhas=%s, versao=versao+1, atualizado_em=clock_timestamp() WHERE id=1",
-                    (mode, discount, minimum))
+        cur.execute(
+            "UPDATE preferencias_operacionais SET modo_preferencia=%s, desconto_maximo=%s, "
+            "minimo_escolhas=%s, periodo_ocorrencias_dias=%s, "
+            "versao=versao + CASE WHEN modo_preferencia IS DISTINCT FROM %s::text "
+            "OR desconto_maximo IS DISTINCT FROM %s::numeric "
+            "OR minimo_escolhas IS DISTINCT FROM %s::integer THEN 1 ELSE 0 END, "
+            "atualizado_em=clock_timestamp() WHERE id=1",
+            (mode, discount, minimum, occurrence_days, mode, discount, minimum),
+        )
     conn.commit()
     return read_preferences(conn)
+
+
+def incident_occurrences(conn, hostname, rule_id, period_days):
+    if not hostname or not rule_id:
+        return 0
+    with conn.cursor() as cur:
+        cur.execute(
+            "SELECT COUNT(*) AS n FROM audit_log WHERE hostname=%s AND regra_disparada=%s "
+            "AND ts_criacao >= clock_timestamp() - (%s * interval '1 day')",
+            (hostname, rule_id, period_days),
+        )
+        return cur.fetchone()["n"]
+
+
+def incident_history(conn, hostname, rule_id, period_days, limit=100):
+    """List matching incidents in the same host/rule window used by the detail counter."""
+    if not hostname or not rule_id:
+        return []
+    with conn.cursor() as cur:
+        cur.execute(
+            "SELECT id, id_evento, status_execucao, ts_deteccao, ts_criacao, ts_conclusao, "
+            "COUNT(*) OVER() AS total "
+            "FROM audit_log WHERE hostname=%s AND regra_disparada=%s "
+            "AND ts_criacao >= statement_timestamp() - make_interval(days => %s) "
+            "ORDER BY ts_criacao DESC, id DESC LIMIT %s",
+            (hostname, rule_id, period_days, limit),
+        )
+        return cur.fetchall()
 
 
 def action_choices(conn, hostname, rule_id):

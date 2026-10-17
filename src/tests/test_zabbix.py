@@ -150,6 +150,32 @@ def test_cliente_busca_clock_autoritativo_do_evento(monkeypatch):
     assert cliente.timestamp_evento("69") == datetime.fromtimestamp(1787443950, tz=timezone.utc)
 
 
+@pytest.mark.parametrize(("api_url", "expected"), [
+    ("https://monitor.example/zabbix/api_jsonrpc.php",
+     "https://monitor.example/zabbix/zabbix.php?action=host.edit&hostid=10432"),
+    ("http://monitor.example/api_jsonrpc.php",
+     "http://monitor.example/zabbix.php?action=host.edit&hostid=10432"),
+])
+def test_link_do_host_usa_hostid_inequivoco_retornado_pelo_zabbix(monkeypatch, api_url, expected):
+    cliente = ZabbixClient(url=api_url, token="token")
+
+    def chamar(metodo, parametros):
+        assert metodo == "event.get"
+        assert parametros == {"eventids": ["69"], "output": ["eventid"],
+                              "selectHosts": ["hostid"]}
+        return [{"eventid": "69", "hosts": [{"hostid": "10432"}]}]
+
+    monkeypatch.setattr(cliente, "_chamar", chamar)
+    assert cliente.url_host_do_evento("69") == expected
+
+
+@pytest.mark.parametrize("hosts", [[], [{"hostid": "1"}, {"hostid": "2"}], [{"hostid": "x"}]])
+def test_link_do_host_fica_indisponivel_sem_host_unico_valido(monkeypatch, hosts):
+    cliente = ZabbixClient(url="http://zabbix/api_jsonrpc.php", token="token")
+    monkeypatch.setattr(cliente, "_chamar", lambda *_: [{"hosts": hosts}])
+    assert cliente.url_host_do_evento("69") is None
+
+
 @pytest.mark.parametrize("bruto,esperado", [
     ("polaris_tipo: cpu_high, scope: performance", {"polaris_tipo": "cpu_high", "scope": "performance"}),
     ({"polaris_tipo": "disk_full"}, {"polaris_tipo": "disk_full"}),

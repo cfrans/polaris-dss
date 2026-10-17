@@ -1,6 +1,6 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const {setConnection, formatClock} = require("../../web/ui.js");
+const {setConnection, setDisclosure, showDialog, closeDialog, formatClock} = require("../../web/ui.js");
 const {recentSample, percentage} = require("../../web/server-metrics.js");
 
 test("connection state never reports green for a failed, unconfigured or unavailable probe", () => {
@@ -22,6 +22,55 @@ test("clock uses the requested local timezone and changes date at midnight", () 
   assert.equal(after.time, "00:00:00");
   assert.notEqual(before.date, after.date);
   assert.equal(after.zone, "America/Sao_Paulo");
+});
+
+test("disclosure state keeps its animated panel and keyboard access in sync", () => {
+  const panel = {classes: new Set(), attributes: {}, classList: {
+    toggle(name, active) { active ? this.owner.classes.add(name) : this.owner.classes.delete(name); },
+  }, setAttribute(name, value) { this.attributes[name] = value; }};
+  panel.classList.owner = panel;
+  panel.querySelector = () => clip;
+  const clip = {inert: true};
+  const trigger = {attributes: {}, classes: new Set(), setAttribute(name, value) { this.attributes[name] = value; },
+    classList: {toggle(name, active) { active ? trigger.classes.add(name) : trigger.classes.delete(name); }}};
+  setDisclosure(panel, trigger, true);
+  assert.equal(panel.classes.has("is-open"), true);
+  assert.equal(panel.attributes["aria-hidden"], "false");
+  assert.equal(clip.inert, false);
+  assert.equal(trigger.attributes["aria-expanded"], "true");
+  setDisclosure(panel, trigger, false);
+  assert.equal(panel.classes.has("is-open"), false);
+  assert.equal(panel.attributes["aria-hidden"], "true");
+  assert.equal(clip.inert, true);
+  assert.equal(trigger.attributes["aria-expanded"], "false");
+});
+
+test("modal helpers animate the close before dismissing the dialog", async t => {
+  const previousFrame = globalThis.requestAnimationFrame;
+  const previousMedia = globalThis.matchMedia;
+  globalThis.requestAnimationFrame = callback => { callback(); return 1; };
+  globalThis.matchMedia = () => ({matches: true});
+  t.after(() => {
+    if (previousFrame === undefined) delete globalThis.requestAnimationFrame;
+    else globalThis.requestAnimationFrame = previousFrame;
+    if (previousMedia === undefined) delete globalThis.matchMedia;
+    else globalThis.matchMedia = previousMedia;
+  });
+
+  const classes = new Set();
+  const dialog = {open: false, classList: {
+    add: name => classes.add(name),
+    remove: name => classes.delete(name),
+    contains: name => classes.has(name),
+  }, showModal() { this.open = true; }, close() { this.open = false; }};
+  showDialog(dialog);
+  assert.equal(dialog.open, true);
+  assert.equal(classes.has("is-visible"), true);
+  closeDialog(dialog);
+  assert.equal(classes.has("is-closing"), true);
+  await new Promise(resolve => setTimeout(resolve, 5));
+  assert.equal(dialog.open, false);
+  assert.equal(classes.has("is-closing"), false);
 });
 
 test("resource gauges distinguish genuine zero from missing, stale and invalid samples", () => {

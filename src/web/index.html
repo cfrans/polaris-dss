@@ -60,7 +60,7 @@
         <div class="disclosure-clip" inert>
           <nav class="tools-links" aria-label="Ferramentas do Polaris">
             <button id="btn-diagnostico" type="button"><svg class="icon" aria-hidden="true"><use href="icons.svg#diagnostic"></use></svg>Diagnóstico</button>
-            <button id="btn-preferencias" type="button">Preferências</button>
+            <button id="btn-preferencias" type="button"><svg class="icon" aria-hidden="true"><use href="icons.svg#settings"></use></svg>Preferências</button>
             <button id="btn-scripts" type="button"><svg class="icon" aria-hidden="true"><use href="icons.svg#code"></use></svg>Scripts e ciência</button>
             <a href="laboratorio.html"><svg class="icon" aria-hidden="true"><use href="icons.svg#lab"></use></svg>Laboratório de ensaios</a>
             <button id="btn-simular" class="oculto" type="button"><svg class="icon" aria-hidden="true"><use href="icons.svg#play"></use></svg>Simular incidente</button>
@@ -248,37 +248,40 @@
     <article id="detalhe" class="detalhe oculto">
 
       <div class="detalhe-topo">
+        <button id="btn-voltar-detalhe" class="btn btn-secundario voltar-pagina" type="button"><svg class="icon" aria-hidden="true"><use href="icons.svg#back"></use></svg>Voltar</button>
         <div>
           <span id="d-regra" class="tag-regra"></span>
           <h2 id="d-nome"></h2>
           <p id="d-host" class="host"></p>
+          <button id="d-ocorrencias" class="ocorrencias-link" type="button"></button>
+        </div>
+        <section class="ocorrencia-tempos" aria-label="Período da ocorrência">
+          <div><span>Início</span><strong id="d-inicio">—</strong></div>
+          <span class="ocorrencia-separador" aria-hidden="true"></span>
+          <div><span>Fim</span><strong id="d-fim">Em andamento</strong></div>
         </div>
         <div id="d-confianca-bloco" class="confianca">
           <span id="d-confianca" class="confianca-valor"></span>
           <span id="d-banda" class="confianca-banda"></span>
           <span id="d-base" class="confianca-base"></span>
+          <button id="d-confianca-toggle" class="confidence-hint-trigger" type="button" aria-haspopup="dialog" aria-controls="modal-confianca" aria-describedby="d-confianca-tooltip">
+            <span class="confidence-hint-icon" aria-hidden="true">i</span>Como foi calculada
+          </button>
         </div>
       </div>
 
       <div id="aviso-banda" class="aviso oculto"></div>
 
-      <div class="secao">
-        <h3>Diagnóstico</h3>
-        <p id="d-diagnostico" class="diagnostico"></p>
-      </div>
+      <div class="detalhe-grade">
+        <section class="secao detalhe-bloco diagnostico-bloco">
+          <h3>Diagnóstico</h3>
+          <p id="d-diagnostico" class="diagnostico"></p>
+        </section>
 
-      <div class="secao">
-        <h3>Evidências que dispararam a regra</h3>
-        <ul id="d-evidencias" class="evidencias"></ul>
-      </div>
-
-      <div class="secao">
-        <h3>Como a confiança foi calculada</h3>
-        <p class="nota">
-          A confiança-base é o teto atribuído pelo especialista à regra. O motor apenas desconta
-          quando a evidência é parcial ou o histórico é adverso. Não é uma probabilidade.
-        </p>
-        <ul id="d-fatores" class="fatores"></ul>
+        <section class="secao detalhe-bloco detalhe-evidencias">
+          <h3>Evidências que dispararam a regra</h3>
+          <ul id="d-evidencias" class="evidencias"></ul>
+        </section>
       </div>
 
       <div id="bloco-descartadas" class="secao oculto">
@@ -335,14 +338,42 @@
       </footer>
 
     </article>
+
+    <dialog id="modal-historico-ocorrencias" class="history-modal" aria-labelledby="d-historico-titulo">
+      <div class="history-modal-card">
+        <header class="history-modal-heading">
+          <div><h2 id="d-historico-titulo">Ocorrências recentes</h2>
+            <p id="d-historico-filtro" class="nota"></p></div>
+          <button id="d-historico-fechar" class="btn btn-secundario" type="button" aria-label="Fechar histórico">Fechar</button>
+        </header>
+        <p id="d-historico-feedback" class="nota" role="status"></p>
+        <ol id="d-historico-lista" class="historico-ocorrencias-lista"></ol>
+      </div>
+    </dialog>
+    <dialog id="modal-confianca" class="history-modal confidence-modal" aria-labelledby="modal-confianca-titulo">
+      <div class="history-modal-card">
+        <header class="history-modal-heading">
+          <div><h2 id="modal-confianca-titulo">Como a confiança foi calculada</h2></div>
+          <button id="d-confianca-fechar" class="btn btn-secundario" type="button" aria-label="Fechar explicação">Fechar</button>
+        </header>
+        <p class="nota">A confiança-base é o teto atribuído pelo especialista à regra. O motor apenas desconta quando a evidência é parcial ou o histórico é adverso. Não é uma probabilidade.</p>
+        <ul id="d-fatores" class="fatores"></ul>
+      </div>
+    </dialog>
   </section>
 
 </main>
 
+<div id="d-confianca-tooltip" class="confidence-tooltip" role="tooltip" hidden>
+  <p class="nota">A confiança-base é o teto atribuído pelo especialista à regra. O motor apenas desconta quando a evidência é parcial ou o histórico é adverso. Não é uma probabilidade.</p>
+  <p class="confidence-tooltip-action">Clique para ver os fatores detalhados.</p>
+</div>
+
 <section id="tela-diagnostico" class="tela-diag oculto" aria-label="Diagnóstico do sistema">
 
   <div class="diag-topo">
-    <div>
+    <div class="diag-heading">
+      <button id="btn-voltar-diagnostico" class="btn btn-secundario voltar-pagina" type="button"><svg class="icon" aria-hidden="true"><use href="icons.svg#back"></use></svg>Voltar</button>
       <h2>Diagnóstico e configuração</h2>
       <p class="diag-sub">
         Estado de cada dependência do sistema. Segredos são exibidos apenas como "definido" —
@@ -352,7 +383,6 @@
     <div class="diag-acoes">
       <button id="btn-reverificar" class="btn btn-secundario" type="button"><svg class="icon" aria-hidden="true"><use href="icons.svg#refresh"></use></svg>Verificar novamente</button>
       <button id="btn-recarregar-base" class="btn btn-secundario" type="button"><svg class="icon" aria-hidden="true"><use href="icons.svg#database"></use></svg>Recarregar base de regras</button>
-      <button id="btn-fechar-diagnostico" class="btn btn-secundario" type="button"><svg class="icon" aria-hidden="true"><use href="icons.svg#close"></use></svg>Fechar</button>
     </div>
   </div>
 
@@ -375,27 +405,46 @@
 
 
 
-<dialog id="preferencias-dialog" aria-labelledby="preferencias-titulo">
-  <form id="preferencias-form">
-    <h2 id="preferencias-titulo">Preferências</h2>
-    <p>Configuração compartilhada pelos operadores deste servidor.</p>
-    <label for="pref-modo">Como usar o histórico de escolhas</label>
-    <select id="pref-modo">
-      <option value="desempate">Desempatar ações com a mesma confiança técnica (padrão)</option>
-      <option value="desconto">Aplicar desconto de preferência na confiança</option>
-      <option value="desligado">Não usar preferências de escolha</option>
-    </select>
-    <label for="pref-desconto">Desconto máximo de preferência (%)</label>
-    <input id="pref-desconto" type="number" min="0" max="25" step="1" value="10" required>
-    <label for="pref-minimo">Mínimo de escolhas antes de aplicar preferência</label>
-    <input id="pref-minimo" type="number" min="1" max="100" step="1" value="5" required>
-    <p>Escolha frequente indica preferência, não comprova eficácia. Sucesso e falha são considerados separadamente. O índice exibido não é probabilidade.</p>
-    <p id="pref-historico" role="status"></p>
-    <p id="pref-feedback" role="status"></p>
-    <button class="btn btn-primario" type="submit">Salvar preferências</button>
-    <button id="pref-fechar" class="btn btn-secundario" type="button">Fechar</button>
+<section id="tela-preferencias" class="tela-preferencias oculto" aria-label="Preferências">
+  <form id="preferencias-form" class="preferences-form">
+    <header class="preferences-heading">
+      <button id="pref-voltar" class="btn btn-secundario voltar-pagina" type="button"><svg class="icon" aria-hidden="true"><use href="icons.svg#back"></use></svg>Voltar</button>
+      <div><h2 id="preferencias-titulo">Preferências</h2>
+        <p>Configurações compartilhadas pelos operadores deste servidor.</p></div>
+    </header>
+    <div class="preferences-grid">
+      <section class="preferences-section">
+        <h3>Recomendações</h3>
+        <p class="nota">Escolha como o histórico de decisões pode influenciar a ordem das ações sugeridas.</p>
+        <label for="pref-modo">Influência das escolhas anteriores</label>
+        <select id="pref-modo">
+          <option value="desempate">Desempatar ações com a mesma confiança técnica (padrão)</option>
+          <option value="desconto">Aplicar desconto de preferência na confiança</option>
+          <option value="desligado">Não usar preferências de escolha</option>
+        </select>
+        <div class="preferences-fields">
+          <div><label for="pref-desconto">Desconto máximo (%)</label>
+            <input id="pref-desconto" type="number" min="0" max="25" step="1" value="10" required></div>
+          <div><label for="pref-minimo">Mínimo de escolhas</label>
+            <input id="pref-minimo" type="number" min="1" max="100" step="1" value="5" required></div>
+        </div>
+        <p class="nota">Frequência indica preferência, não eficácia. Sucesso e falha são avaliados separadamente; confiança não é probabilidade.</p>
+      </section>
+      <section class="preferences-section">
+        <h3>Histórico de incidentes</h3>
+        <p class="nota">O período define a contagem exibida no cartão e a lista que abre ao selecionar essa contagem.</p>
+        <label for="pref-periodo-ocorrencias">Período de ocorrências (dias)</label>
+        <input id="pref-periodo-ocorrencias" type="number" min="1" max="365" step="1" value="30" required>
+        <p class="nota">O mesmo host e a mesma regra compõem o filtro do histórico.</p>
+      </section>
+    </div>
+    <div class="preferences-footer">
+      <p id="pref-historico" role="status"></p>
+      <p id="pref-feedback" role="status" aria-live="polite"></p>
+      <button class="btn btn-primario" type="submit">Salvar preferências</button>
+    </div>
   </form>
-</dialog>
+</section>
 
 <script src="ui.js"></script>
 <script src="server-metrics.js"></script>

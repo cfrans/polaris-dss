@@ -166,6 +166,26 @@ def test_detalhe_traz_o_trace_de_explicabilidade(cliente):
     assert d["versao_kb"] and d["versao_motor"]
 
 
+def test_historico_de_ocorrencias_filtra_host_regra_e_periodo(cliente):
+    incidente = _criar(cliente, id_evento="api-history-service")["incidente_id"]
+    _criar(cliente, ALERTA_DISCO, id_evento="api-history-disk")
+
+    response = cliente.get(f"/api/v1/incidentes/{incidente}/ocorrencias")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["hostname"] == ALERTA_SERVICO["hostname"]
+    assert data["regra"] == "R003"
+    assert data["periodo_dias"] == 30
+    assert data["total"] == 1
+    assert data["itens"][0]["id"] == incidente
+    assert data["itens"][0]["status"] == "pendente"
+
+
+def test_historico_de_ocorrencias_retoma_404_para_incidente_inexistente(cliente):
+    response = cliente.get("/api/v1/incidentes/999999/ocorrencias")
+    assert response.status_code == 404
+
+
 def test_rejeicao_nao_executa_e_guarda_o_motivo(cliente):
     incidente = _criar(cliente, id_evento="api-rejeita")["incidente_id"]
     resposta = cliente.post(f"/api/v1/incidentes/{incidente}/decisao",

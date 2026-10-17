@@ -46,6 +46,7 @@ class IncidenteDetalhe(BaseModel):
     id_evento: str | None = None
     hostname: str | None = None
     ip_address: str | None = None
+    zabbix_host_url: str | None = None
     severidade: str | None = None
     status: str
     regra: str | None = None
@@ -77,6 +78,25 @@ class IncidenteDetalhe(BaseModel):
     ts_exibicao: datetime | None = None
     ts_aprovacao: datetime | None = None
     ts_conclusao: datetime | None = None
+    ocorrencias_periodo: int | None = None
+    periodo_ocorrencias_dias: int | None = None
+
+
+class OcorrenciaHistorica(BaseModel):
+    id: int
+    id_evento: str | None = None
+    status: str
+    ts_deteccao: datetime | None = None
+    ts_criacao: datetime
+    ts_conclusao: datetime | None = None
+
+
+class HistoricoOcorrencias(BaseModel):
+    hostname: str
+    regra: str
+    periodo_dias: int
+    total: int
+    itens: list[OcorrenciaHistorica]
 
 
 class DecisaoRequest(BaseModel):
@@ -92,6 +112,7 @@ class PreferencesRequest(BaseModel):
     modo_preferencia: Literal["desempate", "desconto", "desligado"] = "desempate"
     desconto_maximo: float = Field(default=0.10, ge=0, le=0.25)
     minimo_escolhas: int = Field(default=5, ge=1, le=100)
+    periodo_ocorrencias_dias: int = Field(default=30, ge=1, le=365)
 
 
 class DecisaoResponse(BaseModel):

@@ -307,6 +307,7 @@ SELECT cenario,
 | 007 | `acerto_avaliacao_humana` | `4451a40182396bab6d136cb86b0f5c7e5a5139ba46dc254e2b5fa1f1015444c9` |
 | 008 | `alinhamento_kpis` | `1adfa9d5a3b16d33bc20c72e3a59e97592e01415db87f09020a3fea821ad2a0a` |
 | 009 | `preferencias_operacionais` | `a578c4cfc799319e90b67a1bcfa6ffc486f6d09f968025efe136881500fea3b1` |
+| 010 | `periodo_ocorrencias` | `93f21a37141dd99b3d06ae3b5cd756c15360207c25c41e66eb32ef97ac2e6f8b` |
 
 The optional `audit_log.experiment_run_id` and `evento_ingestao.incidente_id` are physical
 foreign keys. A round can have multiple incident rows at schema level; the controlled CLI
@@ -320,7 +321,8 @@ Use [migrations](../src/db/migrations/README.md) rather than manually copying th
 
 ## Operational preferences and action snapshots
 
-Migration 009 adds one singleton table, without foreign keys:
+Migration 009 adds one singleton table, without foreign keys. Migration 010 adds the configurable
+occurrence-count period:
 
 | Column | SQL type | Nullable | Constraint/default |
 |:--|:--|:--|:--|
@@ -328,7 +330,8 @@ Migration 009 adds one singleton table, without foreign keys:
 | modo_preferencia | text | No | desempate (default), desconto or desligado |
 | desconto_maximo | numeric | No | 0..0.25, default 0.10 |
 | minimo_escolhas | integer | No | 1..100, default 5 |
-| versao | integer | No | Incremented on each save, initially 1 |
+| periodo_ocorrencias_dias | integer | No | 1..365, default 30 |
+| versao | integer | No | Ranking-settings version; increments when ranking settings change, initially 1 |
 | atualizado_em | timestamptz | No | clock_timestamp() |
 
 The existing audit_log.explicabilidade JSONB stores plano (evidence, ordered options, rule and

@@ -18,6 +18,52 @@
     trigger.classList.toggle("is-active", open);
   }
 
+  const visibilityTimers = new WeakMap();
+  const visibilityFrames = new WeakMap();
+  function setVisibility(element, visible, duration = 220) {
+    clearTimeout(visibilityTimers.get(element));
+    if (typeof cancelAnimationFrame === "function") cancelAnimationFrame(visibilityFrames.get(element));
+    element.classList.add("animavel");
+    if (visible) {
+      element.classList.remove("oculto");
+      element.inert = false;
+      element.setAttribute("aria-hidden", "false");
+      element.classList.add("is-hidden");
+      const scheduleFrame = typeof requestAnimationFrame === "function"
+        ? requestAnimationFrame : callback => { callback(); return 0; };
+      visibilityFrames.set(element, scheduleFrame(() => {
+        element.classList.remove("is-hidden");
+        visibilityFrames.delete(element);
+      }));
+      return;
+    }
+    if (element.classList.contains("oculto")) return;
+    element.inert = true;
+    element.setAttribute("aria-hidden", "true");
+    element.classList.add("is-hidden");
+    const delay = typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches
+      ? 0 : duration;
+    visibilityTimers.set(element, setTimeout(() => {
+      element.classList.add("oculto");
+      visibilityTimers.delete(element);
+    }, delay));
+  }
+
+  function showDialog(dialog) {
+    if (!dialog.open) dialog.showModal();
+    dialog.classList.remove("is-closing");
+    requestAnimationFrame(() => dialog.classList.add("is-visible"));
+  }
+
+  function closeDialog(dialog) {
+    if (!dialog.open || dialog.classList.contains("is-closing")) return;
+    dialog.classList.add("is-closing");
+    dialog.classList.remove("is-visible");
+    const delay = typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches
+      ? 0 : 200;
+    setTimeout(() => { if (dialog.open) dialog.close(); dialog.classList.remove("is-closing"); }, delay);
+  }
+
   function setConnection(element, state, checkedAt, latency) {
     const labels = {ok: "conectado", falha: "falha na conexão", aviso: "sem credenciais",
       nao_configurado: "não configurado", unknown: "não foi possível verificar"};
@@ -40,7 +86,7 @@
     };
   }
 
-  const api = {icon, setDisclosure, setConnection, formatClock};
+  const api = {icon, setDisclosure, setVisibility, showDialog, closeDialog, setConnection, formatClock};
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   root.PolarisUI = api;
   if (!root.document) return;

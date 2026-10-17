@@ -19,6 +19,7 @@ class Element {
       add: name => this.classes.add(name),
       remove: name => this.classes.delete(name),
       toggle: (name, enabled) => enabled ? this.classes.add(name) : this.classes.delete(name),
+      contains: name => this.classes.has(name),
     };
   }
   set textContent(value) { this.text = String(value); this.children = []; }
@@ -46,6 +47,9 @@ function home(api, storage = new Map()) {
     querySelectorAll: selector => { assert.equal(selector, ".item.ativo"); return [get("selected-row")]; }};
   const context = vm.createContext({$: get, document,
     window: {PolarisUI: {...ui, icon: () => new Element("svg")}},
+    requestAnimationFrame: callback => { callback(); return 1; },
+    cancelAnimationFrame: () => {},
+    matchMedia: () => ({matches: false}),
     localStorage: storage.getItem ? storage : {getItem: key => storage.get(key), setItem: (key, value) => storage.set(key, value)},
     estado: {selecionado: null, confirmandoBandaBaixa: false},
     formatarData: value => value,
@@ -122,7 +126,8 @@ test("home navigation clears selection without viewing or approving an incident"
   assert.equal(prevented, true);
   assert.equal(context.estado.selecionado, null);
   assert.equal(context.estado.confirmandoBandaBaixa, false);
-  assert.equal(get("detalhe").classes.has("oculto"), true);
+  assert.equal(get("detalhe").attributes.get("aria-hidden"), "true");
+  assert.equal(get("detalhe").classes.has("is-hidden"), true);
   assert.equal(get("panel").classes.has("oculto"), false);
   assert.equal(get("panel").classes.has("queue-empty"), true);
   assert.equal(get("tools-toggle").getAttribute("aria-expanded"), "false");
@@ -181,7 +186,7 @@ test("returning home prevents a delayed result from being rendered into another 
   release({status: "sucesso", output: "old output"});
   await pendingResult;
   assert.equal(body.innerHTML, initialMarkup);
-  assert.equal(get("detalhe").classes.has("oculto"), true);
+  assert.equal(get("detalhe").attributes.get("aria-hidden"), "true");
 });
 
 test("an unavailable queue is never shown as empty; capped results are not an exact total", () => {

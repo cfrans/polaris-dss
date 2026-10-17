@@ -37,7 +37,7 @@ Evidence refresh keeps previous snapshots and cannot overwrite a newer concurren
 ## Preferences
 
 Open **Ferramentas → Preferências**. Settings are shared by operators on that server and stored
-in the singleton `preferencias_operacionais` table (migration 009). The application retains its
+in the singleton `preferencias_operacionais` table (migrations 009 and 010). The application retains its
 existing trusted-network deployment boundary; these controls do not introduce operator authentication.
 
 The default uses frequent choices only to break equal technical confidence. Another mode applies
@@ -49,7 +49,10 @@ one candidate's history to all others. Preference mode uses
 `C_display = C_technical * (1 - max_discount * (1 - choices / most_chosen_count))`
 after the configured minimum. Counts cover approved choices for the same host and rule over
 90 days; preference is not evidence of success or probability. All inputs and factors are stored
-with the plan. Saving preferences increments their version and invalidates pending snapshots.
+with the plan. Changing ranking settings increments their version and invalidates pending snapshots.
+The separately configured occurrence period (default 30 days, 1–365) changes only the count shown
+in incident detail and does not invalidate an action plan. The count is scoped to the same host and
+matched rule, and includes the incident being viewed.
 
 When `POLARIS_CONFIDENCE_HISTORY=false`, operation history and preference effects are disabled;
 saved settings remain available but do not change recommendations. Keep that setting during
@@ -57,8 +60,9 @@ controlled measurements and rehearse the updated workflow before collecting offi
 
 ## HTTP additions
 
-`GET/PUT /api/v1/preferencias` reads/saves the validated settings. Incident detail includes
-`plano` and `acao_escolhida`. Decision additionally requires `opcao_id` and `versao_plano` for
+`GET/PUT /api/v1/preferencias` reads/saves the validated settings, including the occurrence period.
+Incident detail includes `plano`, `acao_escolhida`, and `ocorrencias_periodo` with
+`periodo_ocorrencias_dias`. Decision additionally requires `opcao_id` and `versao_plano` for
 planned actions. `POST /api/v1/incidentes/{id}/diagnostico` refreshes a still-pending incident;
 it performs inspection only and never executes remediation.
 

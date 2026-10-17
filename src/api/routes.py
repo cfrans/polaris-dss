@@ -49,6 +49,8 @@ from .schemas import (
     IncidenteDetalhe,
     IncidenteResumo,
     IngestaoResponse,
+    HistoricoOcorrencias,
+    OcorrenciaHistorica,
     ListaIncidentes,
     ResultadoResponse,
     Saude,
@@ -188,6 +190,28 @@ def decision_history(
     return queries.read_decision_history(conn, period)
 
 
+@router.get("/api/v1/incidentes/{incidente_id}/ocorrencias",
+            response_model=HistoricoOcorrencias, tags=["incidentes"])
+def occurrence_history(incidente_id: int, conn=Depends(get_conn)) -> HistoricoOcorrencias:
+    incident = queries.obter_incidente(conn, incidente_id)
+    if incident is None:
+        raise _erro(404, "incidente_inexistente", f"Incidente {incidente_id} não encontrado.")
+    preferences = queries.read_preferences(conn)
+    days = preferences["periodo_ocorrencias_dias"]
+    rule_id = incident["regra_disparada"]
+    rows = queries.incident_history(conn, incident["hostname"], rule_id, days)
+    items = [OcorrenciaHistorica(
+        id=row["id"], id_evento=row["id_evento"], status=row["status_execucao"],
+        ts_deteccao=row["ts_deteccao"], ts_criacao=row["ts_criacao"],
+        ts_conclusao=row["ts_conclusao"],
+    ) for row in rows]
+    return HistoricoOcorrencias(
+        hostname=incident["hostname"] or "", regra=rule_id or "", periodo_dias=days,
+        total=rows[0]["total"] if rows else 0,
+        itens=items,
+    )
+
+
 @router.get("/api/v1/incidentes/{incidente_id}", response_model=IncidenteDetalhe,
             tags=["incidentes"])
 def detalhar(request: Request, incidente_id: int, conn=Depends(get_conn)) -> IncidenteDetalhe:
@@ -196,14 +220,26 @@ def detalhar(request: Request, incidente_id: int, conn=Depends(get_conn)) -> Inc
         raise _erro(404, "incidente_inexistente", f"Incidente {incidente_id} não encontrado.")
 
     kb = request.app.state.kb
+    period_days = queries.read_preferences(conn)["periodo_ocorrencias_dias"]
     regra = kb.por_id(registro["regra_disparada"] or "")
     trace = registro["explicabilidade"] or {}
+    zabbix_host_url = None
+    settings = request.app.state.settings
+    if settings.zabbix_url and registro["id_evento"]:
+        client = ZabbixClient(url=settings.zabbix_url, usuario=settings.zabbix_user,
+                              senha=settings.zabbix_password, token=settings.zabbix_token)
+        try:
+            zabbix_host_url = client.url_host_do_evento(registro["id_evento"])
+        except ZabbixError as exc:
+            LOGGER.info("link do host no Zabbix indisponível para incidente %s: %s",
+                        incidente_id, exc)
 
     return IncidenteDetalhe(
         id=registro["id"],
         id_evento=registro["id_evento"],
         hostname=registro["hostname"],
         ip_address=str(registro["ip_address"]) if registro["ip_address"] is not None else None,
+        zabbix_host_url=zabbix_host_url,
         severidade=registro["severidade"],
         status=registro["status_execucao"],
         regra=registro["regra_disparada"],
@@ -235,6 +271,9 @@ def detalhar(request: Request, incidente_id: int, conn=Depends(get_conn)) -> Inc
         ts_exibicao=registro["ts_exibicao"],
         ts_aprovacao=registro["ts_aprovacao"],
         ts_conclusao=registro["ts_conclusao"],
+        ocorrencias_periodo=queries.incident_occurrences(
+            conn, registro["hostname"], registro["regra_disparada"], period_days),
+        periodo_ocorrencias_dias=period_days,
     )
 
 
@@ -531,7 +570,8 @@ def preferences(request: Request, conn=Depends(get_conn)):
 
 @router.put("/api/v1/preferencias", tags=["preferências"])
 def update_preferences(request: Request, body: PreferencesRequest, conn=Depends(get_conn)):
-    saved = queries.save_preferences(conn, body.modo_preferencia, body.desconto_maximo, body.minimo_escolhas)
+    saved = queries.save_preferences(conn, body.modo_preferencia, body.desconto_maximo,
+                                    body.minimo_escolhas, body.periodo_ocorrencias_dias)
     return {**saved, "historico_habilitado": request.app.state.settings.polaris_confidence_history}
 
 
