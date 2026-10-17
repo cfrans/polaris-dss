@@ -293,18 +293,21 @@
           <h3>Ação sugerida</h3>
           <div id="plano-acao" class="oculto">
             <p id="plano-aviso" role="status"></p>
-            <p id="plano-fonte"></p>
-            <div id="plano-evidencias"></div>
-            <label for="plano-opcao">Ação a aprovar</label>
+            <section class="inspecao-leitura" aria-labelledby="inspecao-titulo">
+              <h4 id="inspecao-titulo">Inspeção de leitura</h4>
+              <p id="plano-fonte"></p>
+              <div id="plano-evidencias"></div>
+            </section>
+            <label id="plano-opcoes-label" for="plano-opcao">Ação a aprovar</label>
             <select id="plano-opcao"></select>
             <p id="plano-motivo"></p>
             <p id="plano-alvo"></p>
-            <button id="btn-atualizar-plano" type="button">Atualizar diagnóstico</button>
+            <button id="btn-atualizar-plano" class="btn btn-secundario" type="button">Atualizar diagnóstico</button>
           </div>
         <div class="acao">
           <div class="acao-linha">
               <span class="acao-rotulo">comando</span>
-              <details><summary>Ver comando técnico</summary><code id="d-comando"></code></details>
+              <details><summary>Ver execução detalhada</summary><pre id="d-comando"></pre></details>
           </div>
           <div class="acao-linha">
             <span class="acao-rotulo">reversão</span>

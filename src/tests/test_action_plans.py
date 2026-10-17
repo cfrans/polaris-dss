@@ -1,9 +1,30 @@
 import base64
 import json
+import sys
 from dataclasses import replace
 from datetime import datetime, timezone
 
 import pytest
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="coletor Linux usa pwd")
+def test_service_exit_evidence_is_literal_and_not_a_root_cause(monkeypatch):
+    from src.scripts import collect_evidence
+    commands = []
+    def read(args):
+        commands.append(args)
+        if "--property=ActiveState" in args:
+            return "inactive\n"
+        if any(a.startswith("--property=Result,") for a in args):
+            return "Result=success\nExecMainCode=1\nExecMainStatus=0\nInactiveEnterTimestamp=Fri 2026-10-16 23:49:12 UTC\n"
+        return "Stopped nginx.\n"
+    monkeypatch.setattr(collect_evidence, "command", read)
+    monkeypatch.setattr(collect_evidence.os, "open", lambda *a, **k: (_ for _ in ()).throw(FileNotFoundError()))
+    result = collect_evidence.service()
+    assert result["estado_servico"] == "inactive"
+    assert result["saida_servico"]["codigo"] == "0"
+    assert result["indicios"] == []
+    assert all("start" not in c and "restart" not in c for c in commands)
 
 from src.engine.action_plans import build_plan, choose_action, verify_plan
 

@@ -90,6 +90,15 @@ body::before {
 #plano-evidencias { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 240px; overflow: auto;
   font-size: .85rem; color: var(--texto-suave); }
 #plano-alvo, #d-comando { overflow-wrap: anywhere; word-break: break-word; }
+.inspecao-leitura { padding: 1rem; border: 1px solid #4c8dff70; border-left: 4px solid var(--acento); border-radius: 7px; background: rgb(76 141 255 / 6%); }
+.inspecao-leitura h4 { margin-bottom: .4rem; font-size: 1rem; }
+#plano-fonte { color: var(--texto-suave); font-size: .82rem; margin-bottom: .65rem; }
+#plano-evidencias { color: var(--texto); font-size: .9rem; }
+#plano-evidencias p + p { margin-top: .4rem; }
+#plano-opcoes-label { font-weight: 650; }
+#plano-opcao { min-height: 5.5rem; padding: .3rem; }
+#plano-opcao option { padding: .55rem .65rem; white-space: normal; }
+#btn-atualizar-plano { justify-self: start; }
 
 a[href], button, summary, [role="button"], [role="link"],
 input[type="button"], input[type="submit"], input[type="reset"],
@@ -532,9 +541,9 @@ button:disabled, input:disabled, [aria-disabled="true"] { cursor: not-allowed; }
 .diagnostico { font-size: 1.02rem; }
 .detalhe-grade { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 0 .9rem; align-items: stretch; }
 .detalhe-bloco { min-width: 0; }
-.ocorrencia-tempos { grid-column: 3; grid-row: 1; align-self: start; display: grid; grid-template-columns: minmax(0, 1fr); gap: .42rem; width: 100%; min-width: 0; max-width: 390px; padding: .55rem .7rem; background: rgb(151 173 207 / 4%); border: 1px solid var(--borda); border-radius: 7px; }
+.ocorrencia-tempos { grid-column: 3; grid-row: 1; align-self: start; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .8rem; width: 100%; min-width: 0; max-width: 390px; padding: .2rem 0; }
 .ocorrencia-tempos > div { display: grid; gap: .08rem; align-content: center; min-width: 0; }
-.ocorrencia-separador { display: block; height: 1px; background: var(--borda); }
+.ocorrencia-separador { display: none; }
 .ocorrencia-tempos span { color: var(--texto-suave); font-size: .72rem; }
 .ocorrencia-tempos strong { font-size: .82rem; font-weight: 500; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 .confidence-tooltip { position: fixed; z-index: 40; width: min(390px, calc(100vw - 24px)); max-height: min(70vh, 460px); overflow: auto; padding: .8rem .9rem; border: 1px solid #465875; border-radius: 8px; background: #202d41; color: var(--texto); box-shadow: 0 14px 36px #0009; pointer-events: none; opacity: 0; transform: translateY(3px); transition: opacity 130ms ease, transform 130ms ease; }
@@ -558,7 +567,8 @@ button:disabled, input:disabled, [aria-disabled="true"] { cursor: not-allowed; }
   background: #202c40; border: 1px solid #35435a;
   border-radius: 6px; padding: 0.55rem 0.65rem; font-size: 0.86rem;
 }
-.evidencias li { align-items: center; padding-block: .75rem; background: rgb(151 173 207 / 4%); border-color: var(--borda); }
+.evidencias li { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; padding-block: .75rem; background: rgb(151 173 207 / 4%); border-color: var(--borda); }
+.evidencias li > span:last-child { min-width: 0; }
 .historico-ocorrencias-lista { display: grid; gap: .45rem; list-style: none; max-height: min(62vh, 34rem); overflow: auto; margin-top: .75rem; }
 .historico-ocorrencias-lista li { padding: 0; border: 1px solid var(--borda); border-radius: 6px; background: var(--fundo-cartao); }
 .history-occurrence-button { display: grid; grid-template-columns: minmax(0, 1fr) auto; width: 100%; gap: .15rem 1rem; padding: .65rem .75rem; border: 0; border-radius: inherit; color: var(--texto); background: transparent; text-align: left; font-size: .82rem; }
@@ -605,6 +615,8 @@ button:disabled, input:disabled, [aria-disabled="true"] { cursor: not-allowed; }
   background: #0b111c; border: 1px solid var(--borda); border-radius: 5px;
   padding: 0.3rem 0.6rem; word-break: break-all; color: #9fe0b8;
 }
+.acao details { flex: 1; min-width: 0; }
+.acao pre { margin-top: .65rem; padding: .75rem; border: 1px solid var(--borda); border-radius: 5px; background: #0b111c; color: #9fe0b8; white-space: pre-wrap; overflow-wrap: anywhere; font: .85rem/1.6 "Cascadia Code", Consolas, monospace; }
 .acao-texto { font-size: 0.92rem; flex: 1; }
 
 /* ---------- decisão ---------- */

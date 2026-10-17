@@ -85,6 +85,13 @@ def disk():
 
 def service():
     state = command(["/usr/bin/systemctl", "show", "nginx", "--property=ActiveState", "--value"]).strip()
+    # Somente propriedades fixas; não exportar journal bruto ou atribuir causa ao estado.
+    properties = command(["/usr/bin/systemctl", "show", "nginx",
+                          "--property=Result,ExecMainCode,ExecMainStatus,InactiveEnterTimestamp"])
+    fields = dict(line.split("=", 1) for line in properties.splitlines() if "=" in line)
+    exit_info = {"resultado": fields.get("Result"), "tipo": fields.get("ExecMainCode"),
+                 "codigo": fields.get("ExecMainStatus"),
+                 "inativo_em": fields.get("InactiveEnterTimestamp")}
     sources = [("journal:nginx", command(["/usr/bin/journalctl", "-u", "nginx", "-n", "40",
                                          "--since", "-15min", "--no-pager", "-o", "cat"]))]
     try:
@@ -105,7 +112,7 @@ def service():
             if match:
                 # Exporta somente o padrão reconhecido, nunca linhas com URLs, tokens ou credenciais.
                 findings.append({"codigo": code, "fonte": source, "trecho": match.group(0)})
-    return {"estado_servico": state, "indicios": findings,
+    return {"estado_servico": state, "saida_servico": exit_info, "indicios": findings,
             "limite": "40 mensagens do journal em 15 min e últimos 16 KiB do error.log; indícios não comprovam causa-raiz."}
 
 

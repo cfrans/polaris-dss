@@ -8,6 +8,11 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 ## [Não lançado]        <!-- alvo: v0.5.0 telemetria · v0.6.0 remediação · preparação v0.7.0 -->
 
 ### Adicionado
+- Inspeção de leitura destacada, alternativas visíveis com contagem e explicação da execução
+  com operação systemctl ou procedimentos Python e suas guardas, em lugar do payload Base64.
+  Coletor inclui resultado/código de saída e horário de inatividade do nginx registrados pelo
+  systemd, sem atribuir causa-raiz. Corrigida sobreposição do selo de evidência; início/fim em
+  duas colunas sem caixa. Testes web e Linux isolados aprovados; revisão visual humana pendente.
 - Caixa de evidências acompanha a altura do diagnóstico; cards de confirmação ocupam o espaço
   disponível com conteúdo centralizado verticalmente. Conferido em prévia ilustrativa e implantado
   no laboratório com CSS confirmado por hash HTTP; revisão visual humana permanece pendente.

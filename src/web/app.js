@@ -604,9 +604,9 @@ async function abrir(id) {
   const conclusaoLabel = inc.status === "sucesso" || inc.status === "encerrado_na_origem"
     ? "Resolvida" : "Fluxo encerrado";
   $("d-fim").textContent = inc.ts_conclusao
-    ? `${conclusaoLabel} · ${formatIncidentDate(inc.ts_conclusao)}` : "Sem registro de fim";
+    ? formatIncidentDate(inc.ts_conclusao) : "Sem registro de fim";
   $("d-fim").title = inc.ts_conclusao
-    ? `Fim registrado · fuso horário local: ${Intl.DateTimeFormat().resolvedOptions().timeZone}` : "";
+    ? `${conclusaoLabel} · fuso horário local: ${Intl.DateTimeFormat().resolvedOptions().timeZone}` : "";
 
   $("d-confianca").textContent = pct(inc.confianca);
   $("d-confianca").className = `confianca-valor cor-${inc.banda ?? ""}`;
@@ -835,7 +835,7 @@ function renderActionPlan(inc) {
   $("plano-acao").classList.toggle("oculto", !plan);
   if (!plan) return;
   $("plano-aviso").textContent = plan.aviso;
-  $("plano-fonte").textContent = `Inspeção de leitura em ${new Date(plan.coletado_em).toLocaleString("pt-BR")}. O alvo será conferido novamente antes da ação.`;
+  $("plano-fonte").textContent = `Consultado em ${new Date(plan.coletado_em).toLocaleString("pt-BR")}. O alvo será conferido novamente antes da ação.`;
   renderPlanEvidence($("plano-evidencias"), plan.evidencias);
   const select = $("plano-opcao");
   select.replaceChildren();
@@ -845,7 +845,9 @@ function renderActionPlan(inc) {
     option.textContent = `${action.titulo} — ${pct(action.confianca)}${action.alvo.caminho ? ` — ${action.alvo.caminho}` : ""}`;
     select.appendChild(option);
   }
-  if (inc.acao_escolhida) select.value = inc.acao_escolhida.id;
+  select.size = Math.min(4, Math.max(2, plan.opcoes.length));
+  select.value = inc.acao_escolhida?.id ?? plan.opcoes[0]?.id ?? "";
+  $("plano-opcoes-label").textContent = `${inc.status === "pendente" ? "Ação a aprovar" : "Ações oferecidas — escolha registrada"} · ${plan.opcoes.length} opção(ões)`;
   select.disabled = inc.status !== "pendente" || !plan.opcoes.length;
   const update = () => {
     const action = plan.opcoes.find(a => a.id === select.value);
@@ -856,7 +858,7 @@ function renderActionPlan(inc) {
     $("plano-alvo").textContent = target.caminho
       ? `${target.caminho} · ${target.bytes.toLocaleString("pt-BR")} bytes · proprietário ${target.proprietario} · modificado em ${new Date(target.mtime_ns / 1000000).toLocaleString("pt-BR")}`
       : target.pid ? `PID ${target.pid} · ${target.nome}` : `Serviço ${target.servico} · estado ${target.estado}`;
-    $("d-comando").textContent = action.comando;
+    $("d-comando").textContent = describePlannedAction(action);
     $("d-rollback").textContent = action.rollback;
     $("d-confianca").textContent = pct(action.confianca);
     $("d-confianca").className = `confianca-valor cor-${action.banda}`;
@@ -892,6 +894,24 @@ function renderActionPlan(inc) {
   };
 }
 
+function describePlannedAction(action) {
+  const target = action.alvo;
+  const guard = "Antes: validar aprovação persistida, versão do plano, validade de cinco minutos e identidade do alvo. Se algo mudou, recusar e solicitar novo diagnóstico.";
+  let steps;
+  if (["start", "restart"].includes(action.operacao) && target.servico === "nginx") {
+    steps = `Conferir estado: /usr/bin/systemctl show nginx --property=ActiveState --value\nEstado esperado: ${target.estado}\nExecutar: /usr/bin/systemctl ${action.operacao} nginx`;
+  } else if (action.operacao === "remove") {
+    steps = `Arquivo aprovado: ${target.caminho}\nConferir arquivo regular de root, fechado, sem links e com retenção mínima de sete dias.\nExcluir somente esse arquivo via os.unlink em Python. Exclusão irreversível; não escolher outro arquivo.`;
+  } else if (action.operacao === "compress") {
+    steps = `Origem aprovada: ${target.caminho}\nDestino: ${target.caminho}.gz\nConferir identidade, arquivo fechado e espaço temporário. Comprimir via gzip.GzipFile em Python; recusar destino existente. Sincronizar a gravação e excluir a origem somente após concluir e revalidar sua identidade.`;
+  } else if (action.operacao === "terminate") {
+    steps = `Processo aprovado: PID ${target.pid} (${target.nome}), início ${target.inicio}\nAbrir pidfd e conferir nome/início. Enviar SIGTERM; aguardar até dez segundos. Usar SIGKILL somente se a mesma identidade persistir. Não selecionar outro processo.`;
+  } else {
+    return action.comando;
+  }
+  return `${guard}\n\n${steps}\n\nDepois: executar o verificador de saúde da regra e registrar saída e resultado na auditoria.`;
+}
+
 function renderPlanEvidence(container, evidence) {
   container.replaceChildren();
   const line = text => {
@@ -908,6 +928,11 @@ function renderPlanEvidence(container, evidence) {
     if (!evidence.completo) line("Inspeção limitada ou incompleta; ausência na lista não comprova ausência no volume.");
   }
   if (evidence.estado_servico) line(`nginx: ${evidence.estado_servico}.`);
+  if (evidence.saida_servico) {
+    const exit = evidence.saida_servico;
+    const kind = {"0": "sem saída registrada", "1": "término com código de saída", "2": "encerramento por sinal", "3": "encerramento por sinal com core dump"}[exit.tipo] ?? exit.tipo ?? "indisponível";
+    line(`Última saída registrada pelo systemd: resultado ${exit.resultado ?? "indisponível"}, ${kind}, código ${exit.codigo ?? "indisponível"}. Registro de inatividade: ${exit.inativo_em || "indisponível"}. Esses dados não determinam quem parou o serviço nem a causa.`);
+  }
   for (const finding of evidence.indicios ?? []) {
     line(`Indício de ${finding.codigo}: “${finding.trecho}” · fonte ${finding.fonte}.`);
   }

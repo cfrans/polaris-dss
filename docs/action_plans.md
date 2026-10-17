@@ -34,6 +34,18 @@ operation together with human approval before reaching the executor. The executo
 snapshot and target identity. A changed file, process or service state refuses the action.
 Evidence refresh keeps previous snapshots and cannot overwrite a newer concurrent refresh.
 
+## Understanding the suggested action
+
+The incident shows all offered choices in a visible list with their count. Read-only inspection
+has its own highlighted section. Service evidence includes the systemd result, process exit type
+and status, and last inactive timestamp when available. These observations do not identify who
+stopped the service or establish a root cause; historical snapshots are not retroactively enriched.
+
+Expand **Ver execução detalhada** to see the actual systemctl operation for nginx, or the Python
+file/process operations and safety checks for the other scenarios. The encoded transport payload
+remains in the audit record; it is not presented as the explanation of what the action does.
+This view does not accept commands and does not change the approved executor.
+
 ## Preferences
 
 Open **Ferramentas → Preferências**. Settings are shared by operators on that server and stored

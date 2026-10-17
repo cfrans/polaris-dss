@@ -4,7 +4,7 @@
   const descriptions = {
     "collect_evidence.py": {
       title: "Inspecionar o alvo antes da decisão",
-      purpose: "Consulta metadados de logs do volume autorizado, identidade de processo ou estado e padrões conhecidos do nginx, com limites de leitura e tempo.",
+      purpose: "Consulta metadados de logs do volume autorizado, identidade de processo ou estado, resultado/código de saída e horário de inatividade registrados pelo systemd para nginx, além de padrões conhecidos, com limites de leitura e tempo.",
       effect: "Somente leitura. Não comprime, remove, encerra ou reinicia. Exporta padrões reconhecidos, sem copiar logs integrais.",
     },
     "apply_action.py": {

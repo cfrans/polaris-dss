@@ -69,3 +69,28 @@ test("historical chosen action remains selected and cannot be changed", () => {
   assert.equal($("plano-opcao").disabled, true);
   assert.equal($("d-comando").textContent, "fixed-script restart");
 });
+
+test("service execution is readable and both offered alternatives are visible", () => {
+  const {$, context} = setup();
+  const start = {...action("start"), operacao: "start", comando: "apply_action.py opaque-base64"};
+  const restart = {...action("restart"), operacao: "restart", comando: "apply_action.py another-payload"};
+  context.renderActionPlan({id: 9, status: "pendente", plano: {
+    versao: "plan", coletado_em: new Date().toISOString(), aviso: "test",
+    evidencias: {}, opcoes: [start, restart],
+  }});
+  assert.equal($("plano-opcao").size, 2);
+  assert.match($("plano-opcoes-label").textContent, /2 opção/);
+  assert.match($("d-comando").textContent, /\/usr\/bin\/systemctl start nginx/);
+  assert.doesNotMatch($("d-comando").textContent, /opaque-base64/);
+  $("plano-opcao").value = "restart"; $("plano-opcao").onchange();
+  assert.match($("d-comando").textContent, /\/usr\/bin\/systemctl restart nginx/);
+});
+
+test("missing service exit data never invents a cause or a sudden stop", () => {
+  const {$, context} = setup();
+  context.renderPlanEvidence($("plano-evidencias"), {estado_servico: "inactive", indicios: []});
+  assert.doesNotMatch($("plano-evidencias").children.map(p => p.textContent).join(" "), /Última saída|repentina/);
+  context.renderPlanEvidence($("plano-evidencias"), {estado_servico: "inactive", indicios: [],
+    saida_servico: {resultado: "success", tipo: "1", codigo: "0"}});
+  assert.match($("plano-evidencias").children.map(p => p.textContent).join(" "), /término com código de saída.*não determinam quem/);
+});
