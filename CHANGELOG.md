@@ -245,6 +245,10 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
   permanecem preservadas na auditoria e a primeira ingestão vira a referência canônica.
 
 ### Alterado
+- Laboratório: R002 passa a ser alimentada por gatilho de host `Polaris: High CPU utilization`
+  (mesma métrica `system.cpu.util`, janela de 2 min, tag `polaris=enabled`), com o gatilho oficial
+  de 5 min desativado só no host alvo. Configuração aplicada no Zabbix e documentada em
+  `docs/operations.md`; **[NÃO VERIFICADO]** primeiro evento real com o gatilho novo.
 - t5 do cenário de CPU passa a ser a primeira amostra saudável da janela de 30 s, gravada só
   depois de a janela e os três checks a confirmarem; antes era a primeira amostra após a janela,
   o que somava cerca de 30 s ao MTTR. Serviço e disco, sem janela, não mudam. Testes do

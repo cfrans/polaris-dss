@@ -73,7 +73,12 @@ The reconciler has no HTTP healthcheck: inspect its process and last cycle, not 
 ## Zabbix and host identity
 
 Use the [template and Media Type instructions](../README.md#scalable-zabbix-onboarding).
-Retain one canonical CPU trigger instead of creating a duplicate official CPU problem. The
+Retain one canonical CPU trigger instead of creating a duplicate official CPU problem. In the
+laboratory, the target host uses a host-level trigger `Polaris: High CPU utilization` with
+expression `min(/<host>/system.cpu.util,2m)>90` and tag `polaris=enabled`, and the official
+5-minute `Linux: High CPU utilization` trigger is disabled on that host only. Both use the same
+metric; the shorter window reduces detection time equally in both experiment arms. The
+`Linux: Load average is too high` event is not a CPU-utilization metric and stays without rule. The
 companion template discovers filesystem alerts, while bundled R001 execution remains limited to
 the controlled mount. Trigger discovery does not authorize arbitrary cleanup destinations.
 Before every rehearsal confirm alert closure/rearming, no duplicates and synchronized clocks.
