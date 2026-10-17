@@ -11,7 +11,7 @@ estado recuperável e auditável.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Protocol
 
 from ..db import queries
@@ -102,8 +102,14 @@ def ingerir(
     usar_historico: bool | None = None,
     experiment_run_id: int | None = None,
 ) -> Ingestao:
-    """Analisa o alerta e persiste o incidente como pendente. Nada é executado aqui."""
+    """Persiste o incidente pendente e coleta evidências de leitura; não executa remediação."""
     cfg = config or load_config()
+
+    if alert.id_evento:
+        existing = queries.incidente_por_evento(conn, alert.id_evento)
+        if existing is not None:
+            conn.commit()
+            return Ingestao(existing, None, duplicado=True)
 
     if usar_historico is None:
         usar_historico = get_settings().polaris_confidence_history
@@ -112,11 +118,30 @@ def ingerir(
     # histórico define a regra candidata; a segunda recalcula a confiança já com os fatores F3 e F4.
     sugestao = analisar(alert, kb, cfg)
     if sugestao is not None and usar_historico:
-        historico = queries.carregar_historico(conn, alert.hostname, sugestao.rule.id, cfg)
+        from .inference import match_rules
+        historico = {m.rule.id: queries.carregar_historico(conn, alert.hostname, m.rule.id, cfg)
+                     for m in match_rules(alert, kb.regras)}
         sugestao = analisar(alert, kb, cfg, historico)
+
+    from .action_plans import PLAN_RULES, build_plan, collect_evidence
+    if sugestao is not None and sugestao.rule.id in PLAN_RULES and get_settings().target_ssh_host:
+        # Persistir t2 antes da leitura remota: o diagnóstico é processamento, não ingestão.
+        pending = build_plan(sugestao, {"erro": "Inspeção de leitura em andamento.", "estado": "coletando"},
+                             queries.read_preferences(conn), history_enabled=usar_historico, config=cfg)
+        sugestao = replace(sugestao, plan=pending)
 
     persistido = queries.criar_incidente(conn, alert, sugestao, experiment_run_id)
     conn.commit()
+    if not persistido.duplicado and sugestao is not None and sugestao.rule.id in PLAN_RULES:
+        previous_version = sugestao.plan["versao"] if sugestao.plan else None
+        evidence = collect_evidence(alert)
+        if evidence is not None:
+            preferences = queries.read_preferences(conn)
+            choices = queries.action_choices(conn, alert.hostname, sugestao.rule.id) if usar_historico else {}
+            outcomes = queries.action_outcomes(conn, alert.hostname, sugestao.rule.id) if usar_historico else {}
+            plan = build_plan(sugestao, evidence, preferences, choices, usar_historico, cfg, outcomes)
+            queries.update_plan(conn, persistido.incidente_id, plan, previous_version)
+            sugestao = replace(sugestao, plan=plan)
     return Ingestao(
         incidente_id=persistido.incidente_id,
         sugestao=sugestao,
@@ -137,11 +162,14 @@ def exibir(conn, incidente_id: int) -> bool:
 
 def decidir(
     conn, incidente_id: int, aprovado: bool, operador: str, motivo: str | None = None,
-    versao_scripts: str | None = None,
+    versao_scripts: str | None = None, action: dict | None = None,
+    plan_version: str | None = None,
 ) -> bool:
     """Grava a decisão humana e **conclui a transação** antes de qualquer execução."""
-    registrado = queries.registrar_decisao(conn, incidente_id, aprovado, operador, motivo,
-                                           versao_scripts=versao_scripts)
+    kwargs = {"versao_scripts": versao_scripts}
+    if action is not None:
+        kwargs.update(action=action, plan_version=plan_version)
+    registrado = queries.registrar_decisao(conn, incidente_id, aprovado, operador, motivo, **kwargs)
     conn.commit()
     return registrado
 
@@ -173,6 +201,18 @@ def executar(conn, incidente_id: int, executor: Executor,
         raise ExecucaoNaoAutorizadaError(
             f"incidente {incidente_id} não aprovou a versão dos scripts do executor remoto"
         )
+
+    explanation = incidente.get("explicabilidade") or {}
+    if explanation.get("plano"):
+        from .action_plans import choose_action
+        plan = explanation["plano"]
+        selected = explanation.get("acao_escolhida") or {}
+        try:
+            expected = choose_action(plan, plan["versao"], selected.get("id"))
+        except ValueError as exc:
+            raise ExecucaoNaoAutorizadaError(str(exc)) from exc
+        if expected != selected or incidente["comando_executado"] != expected["comando"]:
+            raise ExecucaoNaoAutorizadaError("A execução não corresponde ao plano aprovado.")
 
     resultado = executor(
         incidente["comando_executado"],

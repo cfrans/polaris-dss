@@ -46,7 +46,7 @@ def test_health_reporta_banco_e_base(cliente):
     assert dados["status"] == "ok"
     assert dados["db"] == "ok"
     assert dados["kb"] == "ok"
-    assert dados["versao_kb"] == "1.0.1"
+    assert dados["versao_kb"] == "1.0.2"
 
 
 def test_interface_e_documentacao_sao_servidas():
@@ -157,7 +157,7 @@ def test_detalhe_traz_o_trace_de_explicabilidade(cliente):
 
     assert d["regra"] == "R001"
     assert d["diagnostico"]
-    assert d["comando"] == "disk_cleanup.sh /mnt/polaris_test"
+    assert d["comando"] == "apply_action.py"
     assert d["rollback"]
     assert len(d["fatores"]) == 5
     assert all({"id", "nome", "valor", "motivo"} <= set(f) for f in d["fatores"])
@@ -247,7 +247,7 @@ def test_aviso_de_recorrencia_chega_na_interface(cliente):
 
 def test_regras_sao_expostas_para_leitura(cliente):
     dados = cliente.get("/api/v1/regras").json()
-    assert dados["versao_kb"] == "1.0.1"
+    assert dados["versao_kb"] == "1.0.2"
     assert len(dados["regras"]) == 3
     assert all("{" not in r["comando"] for r in dados["regras"])
 

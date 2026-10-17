@@ -1,6 +1,6 @@
 # Physical PostgreSQL catalog
 
-Reviewed on 2026-10-14 against all eight migrations in disposable PostgreSQL 16.15.
+Reviewed on 2026-10-16 against all nine migrations in disposable PostgreSQL 16.15.
 This catalog contains schema metadata only, not laboratory records. Diagram types group SQL
 families for readability; the exact SQL types and constraints are listed below.
 
@@ -306,6 +306,7 @@ SELECT cenario,
 | 006 | `versao_scripts_aprovados` | `52ca53d137b997b8141f45724f327e28641d2196d6d1bf813a90238883a71dc5` |
 | 007 | `acerto_avaliacao_humana` | `4451a40182396bab6d136cb86b0f5c7e5a5139ba46dc254e2b5fa1f1015444c9` |
 | 008 | `alinhamento_kpis` | `1adfa9d5a3b16d33bc20c72e3a59e97592e01415db87f09020a3fea821ad2a0a` |
+| 009 | `preferencias_operacionais` | `a578c4cfc799319e90b67a1bcfa6ffc486f6d09f968025efe136881500fea3b1` |
 
 The optional `audit_log.experiment_run_id` and `evento_ingestao.incidente_id` are physical
 foreign keys. A round can have multiple incident rows at schema level; the controlled CLI
@@ -315,3 +316,24 @@ have no physical foreign keys to audit rows. Global event ingestion identity is 
 
 The human-approval execution guard is application logic, not a database privilege boundary.
 Use [migrations](../src/db/migrations/README.md) rather than manually copying this catalog as DDL.
+
+
+## Operational preferences and action snapshots
+
+Migration 009 adds one singleton table, without foreign keys:
+
+| Column | SQL type | Nullable | Constraint/default |
+|:--|:--|:--|:--|
+| id | smallint | No | Primary key, exactly 1 |
+| modo_preferencia | text | No | desempate (default), desconto or desligado |
+| desconto_maximo | numeric | No | 0..0.25, default 0.10 |
+| minimo_escolhas | integer | No | 1..100, default 5 |
+| versao | integer | No | Incremented on each save, initially 1 |
+| atualizado_em | timestamptz | No | clock_timestamp() |
+
+The existing audit_log.explicabilidade JSONB stores plano (evidence, ordered options, rule and
+script fingerprints, preferences/version and snapshot hash), historico_planos (earlier snapshots)
+and acao_escolhida. Choosing an option updates comando_executado and confidence together with
+the human decision in one transaction; no new approval flag is introduced.
+
+See [diagnostics and action plans](action_plans.md) for freshness and target checks.

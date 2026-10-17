@@ -85,6 +85,9 @@ def criar_incidente(
             return Ingestao(incidente_id=incidente_id, sem_regra=True)
 
     trace = sugestao.trace
+    explanation = trace.to_dict()
+    if sugestao.plan is not None:
+        explanation["plano"] = sugestao.plan
     with conn.cursor() as cur:
         cur.execute(
             """
@@ -99,7 +102,7 @@ def criar_incidente(
             """,
             (alert.id_evento, alert.hostname, alert.ip_address, alert.severidade,
              sugestao.rule.id, trace.confianca_final, trace.banda.value,
-             Jsonb(trace.to_dict()), trace.versao_kb, trace.versao_motor,
+             Jsonb(explanation), trace.versao_kb, trace.versao_motor,
              sugestao.comando, sugestao.verificador, alert.ts_deteccao, experiment_run_id),
         )
         incidente_id = cur.fetchone()["id"]
@@ -117,7 +120,8 @@ def marcar_exibicao(conn, incidente_id: int) -> bool:
     with conn.cursor() as cur:
         cur.execute(
             "UPDATE audit_log SET ts_exibicao = clock_timestamp() "
-            "WHERE id = %s AND ts_exibicao IS NULL RETURNING id",
+            "WHERE id = %s AND ts_exibicao IS NULL "
+            "AND COALESCE(explicabilidade->'plano'->>'estado', 'concluido') <> 'coletando' RETURNING id",
             (incidente_id,),
         )
         return cur.fetchone() is not None
@@ -125,7 +129,8 @@ def marcar_exibicao(conn, incidente_id: int) -> bool:
 
 def registrar_decisao(
     conn, incidente_id: int, aprovado: bool, operador: str, motivo: str | None = None,
-    versao_scripts: str | None = None,
+    versao_scripts: str | None = None, action: dict | None = None,
+    plan_version: str | None = None,
 ) -> bool:
     """Registra t4. Retorna False se o incidente não estava pendente.
 
@@ -133,6 +138,20 @@ def registrar_decisao(
     de disparar qualquer comando — ver `engine/service.py`.
     """
     with conn.cursor() as cur:
+        if aprovado and action is not None:
+            # A escolha e a aprovação pertencem à mesma transação. O WHERE protege contra
+            # outro operador ou atualização de diagnóstico entre leitura e aprovação.
+            cur.execute(
+                "UPDATE audit_log SET comando_executado = %s, "
+                "confianca_calculada = %s, banda_confianca = %s, "
+                "explicabilidade = jsonb_set(explicabilidade, '{acao_escolhida}', %s::jsonb) "
+                "WHERE id = %s AND status_execucao = 'pendente' "
+                "AND explicabilidade->'plano'->>'versao' = %s RETURNING id",
+                (action["comando"], action["confianca"], action["banda"], Jsonb(action),
+                 incidente_id, plan_version),
+            )
+            if cur.fetchone() is None:
+                return False
         cur.execute(
             """
             UPDATE audit_log
@@ -149,6 +168,56 @@ def registrar_decisao(
              aprovado, incidente_id),
         )
         return cur.fetchone() is not None
+
+
+def read_preferences(conn, lock=False):
+    with conn.cursor() as cur:
+        cur.execute("SELECT modo_preferencia, desconto_maximo, minimo_escolhas, versao "
+                    "FROM preferencias_operacionais WHERE id = 1" + (" FOR SHARE" if lock else ""))
+        row = cur.fetchone()
+    return {**row, "desconto_maximo": float(row["desconto_maximo"])}
+
+
+def save_preferences(conn, mode, discount, minimum):
+    with conn.cursor() as cur:
+        cur.execute("UPDATE preferencias_operacionais SET modo_preferencia=%s, desconto_maximo=%s, "
+                    "minimo_escolhas=%s, versao=versao+1, atualizado_em=clock_timestamp() WHERE id=1",
+                    (mode, discount, minimum))
+    conn.commit()
+    return read_preferences(conn)
+
+
+def action_choices(conn, hostname, rule_id):
+    with conn.cursor() as cur:
+        cur.execute("SELECT explicabilidade->'acao_escolhida'->>'operacao' AS operacao, "
+                    "COUNT(*) AS n FROM audit_log WHERE hostname=%s AND regra_disparada=%s "
+                    "AND decisao_humana=TRUE AND ts_aprovacao >= statement_timestamp() - interval '90 days' "
+                    "AND explicabilidade ? 'acao_escolhida' GROUP BY 1", (hostname, rule_id))
+        return {row["operacao"]: row["n"] for row in cur.fetchall()}
+
+
+def action_outcomes(conn, hostname, rule_id):
+    with conn.cursor() as cur:
+        cur.execute("SELECT explicabilidade->'acao_escolhida'->>'operacao' AS operacao, "
+                    "COUNT(*) AS n, COUNT(*) FILTER (WHERE status_execucao='sucesso') AS sucessos "
+                    "FROM audit_log WHERE hostname=%s AND regra_disparada=%s "
+                    "AND decisao_humana=TRUE AND status_execucao IN ('sucesso','falha','timeout') "
+                    "AND ts_aprovacao >= statement_timestamp() - interval '90 days' "
+                    "AND explicabilidade ? 'acao_escolhida' GROUP BY 1", (hostname, rule_id))
+        return {row["operacao"]: {"n": row["n"], "sucessos": row["sucessos"]} for row in cur.fetchall()}
+
+
+def update_plan(conn, incident_id, plan, previous_version=None):
+    with conn.cursor() as cur:
+        cur.execute("UPDATE audit_log SET explicabilidade=jsonb_set(jsonb_set(explicabilidade, "
+                    "'{historico_planos}', COALESCE(explicabilidade->'historico_planos', '[]'::jsonb) "
+                    "|| jsonb_build_array(explicabilidade->'plano')), '{plano}', %s::jsonb) "
+                    "WHERE id=%s AND status_execucao='pendente' "
+                    "AND explicabilidade->'plano'->>'versao' IS NOT DISTINCT FROM %s RETURNING id",
+                    (Jsonb(plan), incident_id, previous_version))
+        changed = cur.fetchone() is not None
+    conn.commit()
+    return changed
 
 
 def registrar_execucao(

@@ -19,7 +19,7 @@ def analisar(
     alert: Alert,
     kb: KnowledgeBase,
     config: dict[str, Any] | None = None,
-    historico: Historico | None = None,
+    historico: Historico | dict[str, Historico] | None = None,
 ) -> Suggestion | None:
     """Retorna a sugestão de maior confiança, ou None quando nenhuma regra é compatível.
 
@@ -33,12 +33,15 @@ def analisar(
         return None
 
     avaliadas = [
-        (m, calcular(m, kb.versao_kb, cfg, historico).confianca_final) for m in candidatas
+        (m, calcular(m, kb.versao_kb, cfg,
+                    historico.get(m.rule.id) if isinstance(historico, dict) else historico).confianca_final)
+        for m in candidatas
     ]
     ordenadas = rank_matches(avaliadas)
 
     vencedora = ordenadas[0][0]
-    trace = calcular(vencedora, kb.versao_kb, cfg, historico)
+    trace = calcular(vencedora, kb.versao_kb, cfg,
+                     historico.get(vencedora.rule.id) if isinstance(historico, dict) else historico)
 
     descartadas = tuple(
         {"regra": m.rule.id, "nome_regra": m.rule.nome, "confianca": conf}

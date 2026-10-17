@@ -14,15 +14,17 @@ sequenceDiagram
   Z-->>P: Event carrying detection time t1
   Note over Z,P: Webhook or reconciler recovery, global idempotency
   P->>D: Persist incident and explanation (t2)
+  P->>T: Bounded read-only evidence collection
+  P->>D: Persist plan, alternatives and version
   H->>W: Select incident and inspect suggestion
   W->>P: Read detail and record display
   P->>D: Persist first display (t3)
   alt Operator approves
-    H->>W: Approve action and script version
+    H->>W: Choose action and approve target, plan and script version
     W->>P: Submit explicit decision
     P->>D: Persist approval, hash and t4, COMMIT
     P->>D: Reread approval before executor
-    P->>T: Send allowed action or central script over privileged SSH
+    P->>T: Revalidate target identity and apply only the approved action
     P->>T: Verify health without sudo
     P->>D: Record operational outcome
     W->>P: Read result

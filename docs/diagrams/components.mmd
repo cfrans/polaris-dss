@@ -19,3 +19,7 @@ flowchart TB
   ROUND --> DB
   OBS --> DB
   REPORT["experiment/analysis<br/>separate descriptive reporting"] --> DB
+
+  SERVICE --> PLAN["engine/action_plans.py<br/>read-only evidence and approved alternatives"]
+  PLAN --> CAT
+  API --> PREF["preferencias_operacionais<br/>versioned preferences"]

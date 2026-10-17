@@ -23,6 +23,13 @@ single host with exactly one primary, IP-based agent interface. Missing or ambig
 stays absent and can prevent an experimental link. This metadata does not select an SSH destination:
 execution uses `TARGET_SSH_HOST`, and the current deployment is not a multi-target dispatcher.
 
+## Read-only diagnosis and action plans
+
+After committing the incident, a bounded fixed collector gathers target evidence before presentation.
+This read-only path is separate from the remediation executor. The card offers only applicable
+operations with specific targets; approval binds the chosen option and snapshot. See
+[action plans and preferences](action_plans.md) for retention, identity checks and history modes.
+
 ## Human decision before execution
 
 The browser renders the incident and marks its first display. The operator examines evidence,

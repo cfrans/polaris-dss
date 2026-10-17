@@ -60,6 +60,9 @@ class IncidenteDetalhe(BaseModel):
     evidencias: Evidencias | None = None
     fatores: list[dict[str, Any]] = Field(default_factory=list)
     candidatas_descartadas: list[dict[str, Any]] = Field(default_factory=list)
+    plano: dict[str, Any] | None = None
+    acao_escolhida: dict[str, Any] | None = None
+    confianca_base: float | None = None
     versao_kb: str | None = None
     versao_motor: str | None = None
     versao_scripts: str | None = None
@@ -81,6 +84,14 @@ class DecisaoRequest(BaseModel):
     operador: str = Field(min_length=1, max_length=64)
     motivo: str | None = Field(default=None, max_length=1000)
     versao_scripts: str | None = None
+    opcao_id: str | None = Field(default=None, max_length=64)
+    versao_plano: str | None = Field(default=None, max_length=64)
+
+
+class PreferencesRequest(BaseModel):
+    modo_preferencia: Literal["desempate", "desconto", "desligado"] = "desempate"
+    desconto_maximo: float = Field(default=0.10, ge=0, le=0.25)
+    minimo_escolhas: int = Field(default=5, ge=1, le=100)
 
 
 class DecisaoResponse(BaseModel):

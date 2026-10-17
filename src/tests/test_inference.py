@@ -125,14 +125,14 @@ def test_ordenacao_e_deterministica_em_empate_total():
 
 def test_sugestao_traz_comando_e_rollback_renderizados(kb, alerta, config):
     sug = analisar(alerta("service_down"), kb, config)
-    assert sug.comando == "systemctl restart nginx"
-    assert sug.rollback == "systemctl stop nginx"
+    assert sug.comando == "apply_action.py"
+    assert "administrador" in sug.rollback
     assert "{" not in sug.comando
 
 
 def test_sugestao_de_disco_renderiza_ponto_de_montagem(kb, alerta, config):
     sug = analisar(alerta("disk_full"), kb, config)
-    assert sug.comando == "disk_cleanup.sh /mnt/polaris_test"
+    assert sug.comando == "apply_action.py"
 
 
 def test_banda_alta_para_evidencia_completa(kb, alerta, config):

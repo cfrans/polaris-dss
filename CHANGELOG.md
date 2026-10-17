@@ -8,6 +8,19 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 ## [Não lançado]        <!-- alvo: v0.5.0 telemetria · v0.6.0 remediação · preparação v0.7.0 -->
 
 ### Adicionado
+- [NÃO VERIFICADO NO LABORATÓRIO] novo fluxo completo de remediação com planos, escolhas e
+  preferências; coletor de leitura exercitado no alvo, aplicação/ensaios gerais ainda pendentes.
+- Diagnóstico SSH limitado e somente de leitura antes da apresentação de R001/R002/R003,
+  com metadados de arquivos, identidade de processo e padrões conhecidos de erros do nginx.
+  Incidente persistido antes da coleta; tempo diagnóstico incluído no processamento/MTTR.
+- Planos específicos com opções aplicáveis, alvo visível, hash e escolha persistidos antes da
+  execução; recusa de plano expirado/alterado e de troca de arquivo/processo/estado do serviço.
+  R001 usa compressão individual ou exclusão de log gzip com retenção mínima, sem logrotate global.
+- Menu Preferências persistido pela migração 009: desempate por escolha como padrão, desconto
+  opcional limitado e modo desligado. Histórico de sucesso por operação e preferência explicados
+  separadamente; ambos desativados com POLARIS_CONFIDENCE_HISTORY=false. Base JSON 1.0.2.
+- Catálogo inclui coletor e executor Python fixos; seleção de parâmetros por snapshot validado,
+  sem comandos livres recebidos do cliente. Scripts históricos permanecem para reprodução.
 - Documentação pública de operação, arquitetura/limites de segurança e catálogo físico
   PostgreSQL, com índice e seis diagramas editáveis em Mermaid e exportados em SVG/PNG.
   Catálogo conferido contra oito migrações em banco descartável: seis tabelas, quatro views,

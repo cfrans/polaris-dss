@@ -83,3 +83,11 @@ erDiagram
     timestamptz ts_inicio
     timestamptz ts_conclusao
   }
+  preferencias_operacionais {
+    smallint id PK
+    text modo_preferencia
+    numeric desconto_maximo
+    integer minimo_escolhas
+    integer versao
+    timestamptz atualizado_em
+  }

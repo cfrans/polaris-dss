@@ -1,5 +1,5 @@
 {
-  "versao_kb": "1.0.1",
+  "versao_kb": "1.0.2",
   "regras": [
     {
       "id": "R001",
@@ -16,15 +16,15 @@
           "ponto_montagem": "/mnt/polaris_test"
         }
       },
-      "diagnostico": "A partição atingiu o limite crítico de uso, o que compromete a gravação de logs e pode interromper serviços que dependem de escrita em disco. A limpeza remove primeiro o arquivo .gz mais antigo no ponto de montagem autorizado, independentemente da idade, para liberar espaço. Em seguida, tenta forçar a rotação dos logs e remove os demais arquivos .gz com mais de sete dias. Confira os arquivos desse volume antes de aprovar: a seleção considera o nome e a data de modificação, sem verificar o conteúdo dos arquivos. Se o espaço liberado não for suficiente, será necessária investigação manual.",
+      "diagnostico": "A partição atingiu uso crítico. Antes da aprovação, o Polaris inspeciona o volume autorizado e apresenta o arquivo específico, tamanho, proprietário e data. Ações possíveis são comprimir um log fechado com espaço temporário suficiente ou remover um log .gz com retenção mínima de sete dias. Somente a opção aprovada será aplicada; mudança do arquivo ou ausência de candidato seguro exige investigação manual. Não executa rotação global de logs.",
       "remediacao": {
-        "comando": "disk_cleanup.sh {ponto_montagem}",
-        "rollback": "A remoção dos arquivos .gz não pode ser revertida pelo sistema. O arquivo .gz mais antigo é removido independentemente da idade; depois são removidos os demais arquivos .gz com mais de sete dias. Não há restauração automática. A recuperação dos arquivos apagados depende de uma cópia de segurança.",
-        "script": "disk_cleanup.sh",
+        "comando": "apply_action.py",
+        "rollback": "A exclusão é irreversível e depende de backup para recuperação. Compressão pode ser revertida manualmente se houver espaço e o destino estiver livre.",
+        "script": "apply_action.py",
         "verificador": "verify_disk.sh {ponto_montagem}",
         "timeout_segundos": 60,
         "requer_sudo": true,
-        "destrutiva": false
+        "destrutiva": true
       },
       "confianca_base": 0.95,
       "referencia": "Cenário (a) do experimento — seção 3.3 da monografia"
@@ -40,13 +40,17 @@
         "operador": ">=",
         "limiar_uso_pct": 90,
         "regex_log": ".*(High CPU utilization|load average is too high).*",
-        "processos_alvo_permitidos": ["stress-ng", "stress", "stress-ng-cpu"]
+        "processos_alvo_permitidos": [
+          "stress-ng",
+          "stress",
+          "stress-ng-cpu"
+        ]
       },
-      "diagnostico": "O uso de CPU encontra-se sustentadamente acima do limiar, indicando saturação de processamento. A causa mais comum é um processo em laço ou uma carga anômala isolada, mas picos de CPU também têm causas legítimas, como rotinas de backup e compilação. Por isso a confiança-base desta regra é menor que a das demais. A ação sugerida encerra o processo de maior consumo, e somente se ele constar da lista de processos autorizados na regra. O processo identificado é apresentado antes da aprovação.",
+      "diagnostico": "O uso de CPU excedeu o limiar. Uma inspeção de leitura identifica o PID e nome do processo de maior consumo antes da aprovação. Encerramento só é oferecido para processos autorizados. A identidade é conferida novamente e os sinais atingem o processo identificado, sem selecionar outro candidato após a aprovação.",
       "remediacao": {
-        "comando": "kill_target_process.sh stress-ng,stress,stress-ng-cpu",
-        "rollback": "O processo encerrado não é reiniciado automaticamente. Caso fosse legítimo, o administrador precisa reiniciá-lo manualmente.",
-        "script": "kill_target_process.sh",
+        "comando": "apply_action.py",
+        "rollback": "O processo encerrado não é reiniciado automaticamente; trabalho não salvo pode ser perdido.",
+        "script": "apply_action.py",
         "verificador": "verify_cpu.sh",
         "timeout_segundos": 45,
         "requer_sudo": true,
@@ -69,14 +73,15 @@
           "nome_servico": "nginx"
         }
       },
-      "diagnostico": "O serviço nginx encontra-se inativo ou em estado de falha neste host, o que interrompe o atendimento de requisições HTTP e torna a aplicação indisponível aos usuários finais. A ação sugerida reinicia o serviço para restabelecer o atendimento. Caso o serviço volte a cair logo em seguida, a causa-raiz é anterior ao serviço — configuração inválida, porta ocupada ou dependência indisponível — e exige investigação manual.",
+      "diagnostico": "O serviço nginx está indisponível. O diagnóstico consulta seu estado e padrões conhecidos em fontes de log fixas antes da aprovação. Indícios de configuração, porta ou permissão exigem investigação manual. Quando aplicável, o card oferece iniciar ou reiniciar o serviço explicitamente. Ausência de padrão conhecido não comprova ausência de outras causas.",
       "remediacao": {
-        "comando": "systemctl restart {nome_servico}",
-        "rollback": "systemctl stop {nome_servico}",
+        "comando": "apply_action.py",
+        "rollback": "O início ou reinício não restaura configuração anterior nem requisições interrompidas. Se necessário, o administrador pode parar nginx manualmente.",
         "verificador": "verify_service.sh {nome_servico}",
         "timeout_segundos": 120,
         "requer_sudo": true,
-        "destrutiva": false
+        "destrutiva": false,
+        "script": "apply_action.py"
       },
       "confianca_base": 0.92,
       "referencia": "Cenário (c) do experimento — seção 3.3 da monografia"

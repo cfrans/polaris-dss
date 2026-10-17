@@ -7,12 +7,14 @@ are separate from automated tests; no measured performance improvement is claime
   backup, diagnostics and failure handling.
 - [Architecture and security boundaries](architecture.md): ingestion, human decisions,
   execution, reconciliation and the independent experiment observer.
+- [Read-only diagnostics, action plans and preferences](action_plans.md).
 - [Physical data model](data_model.md): actual PostgreSQL columns, constraints and derived views.
 - [Diagram sources and images](diagrams/README.md): editable Mermaid, SVG and PNG exports.
 - [Laboratory workflow](../experiment/laboratorio.md): check, inject, observe, link, assess,
   preserve evidence and explicitly reset.
 - [Manual nginx baseline](../experiment/runbook_baseline.md) and
   [manual CPU/disk baseline](../experiment/runbook_resources.md).
+- [Specific-action manual baseline](../experiment/runbook_action_plans.md) for KB 1.0.2.
 - [Round registration and assessment](../experiment/rounds.md).
 - [Descriptive analysis and reports](../experiment/analysis/report.md).
 - [SSH key and host trust](../secrets/README.md) and [schema migrations](../src/db/migrations/README.md).

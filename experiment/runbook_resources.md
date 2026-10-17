@@ -1,5 +1,9 @@
 # R001/R002 manual baseline
 
+**KB 1.0.2:** use [the specific-action baseline procedure](runbook_action_plans.md). It supersedes
+the blanket disk cleanup, late CPU selection and generic restart instructions below.
+These earlier instructions remain as historical context for pre-1.0.2 rehearsals.
+
 Prepared on 2026-10-06; the real two-arm laboratory rehearsal remains unvalidated. Follow the
 shared alert-driven start, actual-action counting and evidence rules in
 [the R003 baseline runbook](runbook_baseline.md). Use the same independent resource observer in

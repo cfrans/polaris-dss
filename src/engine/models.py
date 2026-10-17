@@ -247,6 +247,7 @@ class Suggestion:
     rollback: str
     trace: ConfidenceTrace
     verificador: str | None = None
+    plan: dict[str, Any] | None = None
 
     @property
     def confianca(self) -> float:

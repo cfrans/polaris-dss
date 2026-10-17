@@ -52,6 +52,7 @@ from .schemas import (
     ListaIncidentes,
     ResultadoResponse,
     Saude,
+    PreferencesRequest,
 )
 
 router = APIRouter()
@@ -100,7 +101,7 @@ def webhook_zabbix(
 ) -> IngestaoResponse:
     """Recebe o evento empurrado pela Action do Zabbix.
 
-    Analisa, calcula a confiança e persiste como pendente. Não executa nada: a remediação depende
+    Analisa, persiste como pendente e coleta evidências de leitura. A remediação depende
     da decisão humana registrada em seguida.
     """
     esperado = request.app.state.settings.polaris_webhook_token
@@ -217,6 +218,9 @@ def detalhar(request: Request, incidente_id: int, conn=Depends(get_conn)) -> Inc
         evidencias=trace.get("evidencias"),
         fatores=trace.get("fatores", []),
         candidatas_descartadas=trace.get("regras_candidatas_descartadas", []),
+        plano=trace.get("plano"),
+        acao_escolhida=trace.get("acao_escolhida"),
+        confianca_base=trace.get("confianca_base"),
         versao_kb=registro["versao_kb"],
         versao_motor=registro["versao_motor"],
         versao_scripts=registro["versao_scripts"],
@@ -241,8 +245,11 @@ def marcar_exibicao(incidente_id: int, conn=Depends(get_conn)) -> dict[str, Any]
     Sem este marco não existe tempo de decisão humana, e sem ele o MTTR não pode ser decomposto —
     que é a análise mais informativa do experimento. A interface é obrigada a chamar este endpoint.
     """
-    if queries.obter_incidente(conn, incidente_id) is None:
+    incident = queries.obter_incidente(conn, incidente_id)
+    if incident is None:
         raise _erro(404, "incidente_inexistente", f"Incidente {incidente_id} não encontrado.")
+    if ((incident["explicabilidade"] or {}).get("plano") or {}).get("estado") == "coletando":
+        raise _erro(409, "diagnostico_em_andamento", "Aguarde o diagnóstico antes de registrar a apresentação.")
     primeira_vez = exibir(conn, incidente_id)
     return {"status": "registrado" if primeira_vez else "ja_registrado"}
 
@@ -270,6 +277,7 @@ def registrar_decisao(
         )
 
     catalog = None
+    action = None
     if corpo.aprovado:
         catalog = load_catalog()
         if corpo.versao_scripts != catalog.sha256:
@@ -282,8 +290,27 @@ def registrar_decisao(
             raise _erro(409, "regra_alterada",
                         "A regra ou o comando mudou. Gere um novo incidente antes de aprovar.")
 
-    if not decidir(conn, incidente_id, corpo.aprovado, corpo.operador, corpo.motivo,
-                   versao_scripts=catalog.sha256 if catalog else None):
+        from dataclasses import asdict
+        from ..engine.action_plans import PLAN_RULES, choose_action, digest
+        plan = (registro["explicabilidade"] or {}).get("plano")
+        if plan:
+            preferences = queries.read_preferences(conn, lock=True)
+            if (plan.get("regra_sha256") != digest(asdict(regra_atual))
+                    or (plan.get("versao_scripts") and plan["versao_scripts"] != catalog.sha256)
+                    or plan.get("preferencias", {}).get("versao") != preferences["versao"]
+                    or plan.get("historico_habilitado") != request.app.state.settings.polaris_confidence_history):
+                raise _erro(409, "plano_alterado", "Regra ou preferências mudaram. Atualize o diagnóstico.")
+            try:
+                action = choose_action(plan, corpo.versao_plano, corpo.opcao_id)
+            except ValueError as exc:
+                raise _erro(409, "plano_invalido", str(exc)) from exc
+        elif (request.app.state.settings.target_ssh_host and registro["regra_disparada"] in PLAN_RULES):
+            raise _erro(409, "diagnostico_necessario", "Atualize o diagnóstico antes da remediação real.")
+
+    decision_args = {"versao_scripts": catalog.sha256 if catalog else None}
+    if action is not None:
+        decision_args.update(action=action, plan_version=corpo.versao_plano)
+    if not decidir(conn, incidente_id, corpo.aprovado, corpo.operador, corpo.motivo, **decision_args):
         raise _erro(409, "conflito_de_estado",
                     f"A decisão sobre o incidente {incidente_id} já havia sido registrada.")
 
@@ -495,3 +522,53 @@ def simular_alerta(
         confianca=s.confianca,
         banda=s.banda.value,
     )
+
+@router.get("/api/v1/preferencias", tags=["preferências"])
+def preferences(request: Request, conn=Depends(get_conn)):
+    return {**queries.read_preferences(conn),
+            "historico_habilitado": request.app.state.settings.polaris_confidence_history}
+
+
+@router.put("/api/v1/preferencias", tags=["preferências"])
+def update_preferences(request: Request, body: PreferencesRequest, conn=Depends(get_conn)):
+    saved = queries.save_preferences(conn, body.modo_preferencia, body.desconto_maximo, body.minimo_escolhas)
+    return {**saved, "historico_habilitado": request.app.state.settings.polaris_confidence_history}
+
+
+@router.post("/api/v1/incidentes/{incidente_id}/diagnostico", tags=["diagnóstico"])
+def refresh_diagnostic(request: Request, incidente_id: int, conn=Depends(get_conn)):
+    from dataclasses import replace
+    from ..engine.action_plans import build_plan, collect_evidence
+    from ..engine.engine import analisar
+    from ..engine.models import Banda, Fator
+    row = queries.obter_incidente(conn, incidente_id)
+    if row is None or row["status_execucao"] != "pendente":
+        raise _erro(409, "conflito_de_estado", "Somente um incidente pendente pode ter diagnóstico atualizado.")
+    rule = request.app.state.kb.por_id(row["regra_disparada"] or "")
+    if rule is None:
+        raise _erro(409, "regra_inexistente", "Não há regra carregada para este incidente.")
+    trace = row["explicabilidade"] or {}
+    evidence = trace.get("evidencias", {})
+    metric = evidence.get("metrica", {})
+    alert = Alert(tipo_alerta=rule.condicao.tipo_alerta, hostname=row["hostname"],
+                  ip_address=str(row["ip_address"]) if row["ip_address"] else None,
+                  texto=evidence.get("texto", {}).get("trecho") or "",
+                  valor=metric.get("valor"), metrica=metric.get("chave"), severidade=row["severidade"])
+    suggestion = analisar(alert, request.app.state.kb, request.app.state.config)
+    if suggestion is None or suggestion.rule.id != rule.id:
+        raise _erro(409, "regra_alterada", "O evento não corresponde mais à regra vigente.")
+    # Atualizar metadados remotos não reescreve a confiança técnica histórica do evento.
+    suggestion = replace(suggestion, trace=replace(suggestion.trace,
+                          confianca_final=trace["confianca_final"], banda=Banda(trace["banda"]),
+                          fatores=tuple(Fator(**factor) for factor in trace["fatores"])))
+    remote = collect_evidence(alert)
+    if remote is None:
+        raise _erro(409, "alvo_indisponivel", "Alvo de diagnóstico não configurado.")
+    history = request.app.state.settings.polaris_confidence_history
+    pref = queries.read_preferences(conn)
+    choices = queries.action_choices(conn, alert.hostname, rule.id) if history else {}
+    outcomes = queries.action_outcomes(conn, alert.hostname, rule.id) if history else {}
+    plan = build_plan(suggestion, remote, pref, choices, history, request.app.state.config, outcomes)
+    if not queries.update_plan(conn, incidente_id, plan, trace.get("plano", {}).get("versao")):
+        raise _erro(409, "conflito_de_estado", "O incidente recebeu uma decisão durante a inspeção.")
+    return plan

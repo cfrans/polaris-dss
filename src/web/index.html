@@ -60,6 +60,7 @@
         <div class="disclosure-clip" inert>
           <nav class="tools-links" aria-label="Ferramentas do Polaris">
             <button id="btn-diagnostico" type="button"><svg class="icon" aria-hidden="true"><use href="icons.svg#diagnostic"></use></svg>Diagnóstico</button>
+            <button id="btn-preferencias" type="button">Preferências</button>
             <button id="btn-scripts" type="button"><svg class="icon" aria-hidden="true"><use href="icons.svg#code"></use></svg>Scripts e ciência</button>
             <a href="laboratorio.html"><svg class="icon" aria-hidden="true"><use href="icons.svg#lab"></use></svg>Laboratório de ensaios</a>
             <button id="btn-simular" class="oculto" type="button"><svg class="icon" aria-hidden="true"><use href="icons.svg#play"></use></svg>Simular incidente</button>
@@ -286,11 +287,21 @@
       </div>
 
       <div class="secao">
-        <h3>Ação sugerida</h3>
+          <h3>Ação sugerida</h3>
+          <div id="plano-acao" class="oculto">
+            <p id="plano-aviso" role="status"></p>
+            <p id="plano-fonte"></p>
+            <div id="plano-evidencias"></div>
+            <label for="plano-opcao">Ação a aprovar</label>
+            <select id="plano-opcao"></select>
+            <p id="plano-motivo"></p>
+            <p id="plano-alvo"></p>
+            <button id="btn-atualizar-plano" type="button">Atualizar diagnóstico</button>
+          </div>
         <div class="acao">
           <div class="acao-linha">
-            <span class="acao-rotulo">comando</span>
-            <code id="d-comando"></code>
+              <span class="acao-rotulo">comando</span>
+              <details><summary>Ver comando técnico</summary><code id="d-comando"></code></details>
           </div>
           <div class="acao-linha">
             <span class="acao-rotulo">reversão</span>
@@ -305,7 +316,7 @@
 
       <div id="decisao" class="decisao">
         <p class="lembrete">
-          Nada foi executado. A remediação depende da sua aprovação, que fica registrada em auditoria.
+          Nenhuma remediação foi executada. A ação depende da sua aprovação, que fica registrada em auditoria.
         </p>
         <div class="botoes">
           <button id="btn-aprovar" class="btn btn-aprovar" type="button">Aprovar e executar</button>
@@ -363,6 +374,28 @@
 </section>
 
 
+
+<dialog id="preferencias-dialog" aria-labelledby="preferencias-titulo">
+  <form id="preferencias-form">
+    <h2 id="preferencias-titulo">Preferências</h2>
+    <p>Configuração compartilhada pelos operadores deste servidor.</p>
+    <label for="pref-modo">Como usar o histórico de escolhas</label>
+    <select id="pref-modo">
+      <option value="desempate">Desempatar ações com a mesma confiança técnica (padrão)</option>
+      <option value="desconto">Aplicar desconto de preferência na confiança</option>
+      <option value="desligado">Não usar preferências de escolha</option>
+    </select>
+    <label for="pref-desconto">Desconto máximo de preferência (%)</label>
+    <input id="pref-desconto" type="number" min="0" max="25" step="1" value="10" required>
+    <label for="pref-minimo">Mínimo de escolhas antes de aplicar preferência</label>
+    <input id="pref-minimo" type="number" min="1" max="100" step="1" value="5" required>
+    <p>Escolha frequente indica preferência, não comprova eficácia. Sucesso e falha são considerados separadamente. O índice exibido não é probabilidade.</p>
+    <p id="pref-historico" role="status"></p>
+    <p id="pref-feedback" role="status"></p>
+    <button class="btn btn-primario" type="submit">Salvar preferências</button>
+    <button id="pref-fechar" class="btn btn-secundario" type="button">Fechar</button>
+  </form>
+</dialog>
 
 <script src="ui.js"></script>
 <script src="server-metrics.js"></script>

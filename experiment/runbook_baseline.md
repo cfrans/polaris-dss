@@ -1,5 +1,9 @@
 # R003 manual baseline and recovery measurement
 
+**KB 1.0.2:** use [the specific-action baseline procedure](runbook_action_plans.md). It supersedes
+the blanket disk cleanup, late CPU selection and generic restart instructions below.
+These earlier instructions remain as historical context for pre-1.0.2 rehearsals.
+
 Status: prepared and tested offline on 2026-10-05; reviewed on 2026-10-14. Shared persistence/locks and incident identity were validated locally in disposable PostgreSQL.
 Laboratory execution and SSH measurement have **not been validated**. No experimental results
 have been collected by these tools. This procedure covers `service_down` only.

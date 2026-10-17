@@ -35,6 +35,23 @@ body::before {
 
 .oculto { display: none !important; }
 
+#preferencias-dialog {
+  margin: auto; width: min(640px, 94vw); max-height: 90vh; overflow: auto;
+  background: var(--fundo-painel); color: var(--texto); border: 1px solid var(--borda);
+  border-radius: var(--raio); padding: 28px;
+}
+#preferencias-dialog::backdrop { background: rgb(0 0 0 / .65); }
+#preferencias-form { display: grid; gap: 14px; }
+#preferencias-form input, #preferencias-form select, #plano-opcao {
+  width: 100%; min-height: 44px; padding: 9px; color: var(--texto);
+  background: var(--fundo-cartao); border: 1px solid var(--borda); border-radius: 5px;
+}
+#plano-acao { display: grid; gap: 12px; margin-bottom: 20px; }
+#plano-acao.oculto { display: none; }
+#plano-evidencias { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 240px; overflow: auto;
+  font-size: .85rem; color: var(--texto-suave); }
+#plano-alvo, #d-comando { overflow-wrap: anywhere; word-break: break-word; }
+
 a[href], button, summary, [role="button"], [role="link"],
 input[type="button"], input[type="submit"], input[type="reset"],
 input[type="checkbox"], input[type="radio"] { cursor: pointer; }

@@ -40,11 +40,15 @@ def prepare_command(command: str, catalog: ScriptCatalog, timeout: int,
         raise ValueError("timeout inválido")
     prefix = "sudo -n " if with_sudo else ""
     base = f"{prefix}/usr/bin/timeout -k 5s {timeout}s"
-    if parts[0].endswith(".sh"):
+    if parts[0].endswith((".sh", ".py")):
         if "/" in parts[0]:
             raise ValueError("caminho de script não autorizado")
         script = catalog.get(parts[0])
         args = " ".join(shlex.quote(part) for part in parts[1:])
+        if parts[0].endswith(".py"):
+            if parts[0] != "apply_action.py" or not with_sudo or len(parts) != 2:
+                raise ValueError("script Python/opção não autorizado para remediação")
+            return f"{base} /usr/bin/python3 - {args}", script.content
         return f"{base} /usr/bin/bash -s --" + (f" {args}" if args else ""), script.content
     if not with_sudo or tuple(parts) not in NATIVE_ACTIONS:
         raise ValueError(f"comando nativo não autorizado: {command}")

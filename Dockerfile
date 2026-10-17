@@ -20,7 +20,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY --chown=polaris:polaris . .
 
 # O processo da API lê os scripts padrão, mas não pode alterar os bytes enviados ao alvo.
-RUN chown root:root /app/src/scripts/*.sh && chmod 0444 /app/src/scripts/*.sh
+RUN chown root:root /app /app/src /app/src/scripts /app/src/scripts/*.sh /app/src/scripts/*.py \
+    && chmod 0755 /app /app/src /app/src/scripts \
+    && chmod 0444 /app/src/scripts/*.sh /app/src/scripts/*.py
 
 USER polaris
 

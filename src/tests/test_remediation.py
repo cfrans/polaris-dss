@@ -207,23 +207,32 @@ def test_saida_do_comando_e_preservada_na_auditoria():
 # ---------------------------------------------------------------------------
 
 
-def test_ciclo_completo_usa_o_verificador_gravado(conn, kb, config, alerta):
+def test_ciclo_completo_usa_o_verificador_gravado(conn, kb, config, alerta, monkeypatch):
     """O verificador aplicado vem da trilha de auditoria, não da base de conhecimento atual."""
     from src.db import queries
     from src.engine.service import decidir, ingerir
+    from src.engine import action_plans
+    from datetime import datetime, timezone
+    monkeypatch.setattr(action_plans, "collect_evidence", lambda alert: {
+        "tipo": "service_down", "coletado_em": datetime.now(timezone.utc).isoformat(),
+        "estado_servico": "inactive", "indicios": []})
 
     ing = ingerir(conn, alerta("service_down", id_evento="rem-1"), kb, config,
                   usar_historico=False)
     registro = queries.obter_incidente(conn, ing.incidente_id)
     assert registro["comando_verificacao"] == "verify_service.sh nginx"
 
-    decidir(conn, ing.incidente_id, True, "tester", versao_scripts=load_catalog().sha256)
+    plan = ing.sugestao.plan
+    action = plan["opcoes"][0]
+    decidir(conn, ing.incidente_id, True, "tester", versao_scripts=load_catalog().sha256,
+            action=action, plan_version=plan["versao"])
     exe, runner = executor([0, 0, 0])
 
     from src.engine.service import executar
     executar(conn, ing.incidente_id, exe, timeout_segundos=120)
 
-    assert runner.chamadas[0].endswith("/usr/bin/systemctl restart nginx")
+    assert "/usr/bin/python3 - " in runner.chamadas[0]
+    assert runner.entradas[0] == load_catalog().get("apply_action.py").content
     assert runner.chamadas[1:] == ["/usr/bin/timeout -k 5s 30s /usr/bin/bash -s -- nginx"] * 2
     assert runner.entradas[1:] == [load_catalog().get("verify_service.sh").content] * 2
     final = queries.obter_incidente(conn, ing.incidente_id)

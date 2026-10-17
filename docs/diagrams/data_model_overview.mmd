@@ -29,3 +29,11 @@ erDiagram
     bigint incidente_id FK
     timestamptz registrado_em
   }
+  preferencias_operacionais {
+    smallint id PK
+    text modo_preferencia
+    numeric desconto_maximo
+    integer minimo_escolhas
+    integer versao
+    timestamptz atualizado_em
+  }

@@ -7,7 +7,7 @@ from src.engine.models import ParametroInvalidoError
 
 
 def test_base_real_carrega_e_valida(kb):
-    assert kb.versao_kb == "1.0.1"
+    assert kb.versao_kb == "1.0.2"
     assert [r.id for r in kb.regras] == ["R001", "R002", "R003"]
     assert all(r.habilitada for r in kb.regras)
 
@@ -137,11 +137,11 @@ def test_parametro_perigoso_e_rejeitado(kb, valor, erro):
     regra.condicao.parametros["nome_servico"] = valor
     try:
         with pytest.raises(ParametroInvalidoError, match=erro):
-            regra.render(regra.remediacao.comando)
+            regra.render(regra.remediacao.verificador)
     finally:
         regra.condicao.parametros["nome_servico"] = original
 
 
 def test_caminho_absoluto_e_parametro_valido(kb):
     regra = kb.por_id("R001")
-    assert regra.render(regra.remediacao.comando) == "disk_cleanup.sh /mnt/polaris_test"
+    assert regra.render(regra.remediacao.verificador) == "verify_disk.sh /mnt/polaris_test"

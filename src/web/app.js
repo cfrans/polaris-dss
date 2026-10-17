@@ -24,7 +24,7 @@ async function api(caminho, opcoes = {}) {
   });
   const corpo = resposta.status === 204 ? null : await resposta.json();
   if (!resposta.ok) {
-    throw new Error(corpo?.mensagem || `Falha na requisição (${resposta.status})`);
+    throw new Error(corpo?.mensagem || corpo?.detail?.mensagem || `Falha na requisição (${resposta.status})`);
   }
   return corpo;
 }
@@ -582,9 +582,9 @@ async function abrir(id) {
   $("d-confianca").className = `confianca-valor cor-${inc.banda ?? ""}`;
   $("d-banda").textContent = inc.banda ?? "—";
   $("d-banda").className = `confianca-banda banda-${inc.banda ?? ""}`;
-  $("d-base").textContent = `teto da regra: ${pct(
+  $("d-base").textContent = `teto da regra: ${pct(inc.confianca_base ?? (
     inc.fatores.length ? inc.confianca / produtoFatores(inc.fatores) : null
-  )}`;
+  ))}`;
 
   $("d-diagnostico").textContent = inc.diagnostico ?? "—";
   renderEvidencias(inc.evidencias);
@@ -600,6 +600,10 @@ async function abrir(id) {
 
   configurarAviso(inc);
   configurarDecisao(inc);
+  renderActionPlan(inc);
+  if (inc.plano?.estado === "coletando") {
+    setTimeout(() => { if (estado.selecionado === inc.id) abrir(inc.id); }, 1000);
+  }
   await registrarExibicao(inc);
   carregarLista();
 }
@@ -671,6 +675,94 @@ function renderDescartadas(lista) {
   }
 }
 
+function renderActionPlan(inc) {
+  const plan = inc.plano;
+  estado.planoAtual = plan ?? null;
+  $("plano-acao").classList.toggle("oculto", !plan);
+  if (!plan) return;
+  $("plano-aviso").textContent = plan.aviso;
+  $("plano-fonte").textContent = `Inspeção de leitura em ${new Date(plan.coletado_em).toLocaleString("pt-BR")}. O alvo será conferido novamente antes da ação.`;
+  renderPlanEvidence($("plano-evidencias"), plan.evidencias);
+  const select = $("plano-opcao");
+  select.replaceChildren();
+  for (const action of plan.opcoes) {
+    const option = document.createElement("option");
+    option.value = action.id;
+    option.textContent = `${action.titulo} — ${pct(action.confianca)}${action.alvo.caminho ? ` — ${action.alvo.caminho}` : ""}`;
+    select.appendChild(option);
+  }
+  if (inc.acao_escolhida) select.value = inc.acao_escolhida.id;
+  select.disabled = inc.status !== "pendente" || !plan.opcoes.length;
+  const update = () => {
+    const action = plan.opcoes.find(a => a.id === select.value);
+    if (!action) { $("btn-aprovar").disabled = true; return; }
+    estado.confirmandoBandaBaixa = false;
+    $("plano-motivo").textContent = `${action.motivo} Confiança técnica: ${pct(action.confianca_tecnica)}; preferência: ×${action.preferencia.fator.toFixed(2)} (${action.preferencia.escolhas} escolha(s)).`;
+    const target = action.alvo;
+    $("plano-alvo").textContent = target.caminho
+      ? `${target.caminho} · ${target.bytes.toLocaleString("pt-BR")} bytes · proprietário ${target.proprietario} · modificado em ${new Date(target.mtime_ns / 1000000).toLocaleString("pt-BR")}`
+      : target.pid ? `PID ${target.pid} · ${target.nome}` : `Serviço ${target.servico} · estado ${target.estado}`;
+    $("d-comando").textContent = action.comando;
+    $("d-rollback").textContent = action.rollback;
+    $("d-confianca").textContent = pct(action.confianca);
+    $("d-confianca").className = `confianca-valor cor-${action.banda}`;
+    $("d-banda").textContent = action.banda;
+    $("d-banda").className = `confianca-banda banda-${action.banda}`;
+    $("d-timeout").textContent = `${action.timeout_segundos}s${action.destrutiva ? " · exige confirmação adicional" : ""}`;
+    if (inc.fatores && action.historico_acao) {
+      const history = action.historico_acao;
+      const factors = inc.fatores.filter(f => f.id !== "F3");
+      factors.push({id: "F3_acao", valor: history.fator,
+        motivo: history.habilitado
+          ? `Histórico desta operação: ${history.sucessos}/${history.n} sucesso(s); desconto conforme os limiares de F3.`
+          : "Histórico desta operação desativado; fator neutro."});
+      factors.push({id: "P", valor: action.preferencia.fator,
+        motivo: `Preferência: ${action.preferencia.modo}; ${action.preferencia.escolhas} escolha(s). ${action.preferencia.aplicada ? "Aplicada após amostra mínima." : "Sem desconto de preferência."}`});
+      renderFatores(factors);
+    }
+    configurarDecisao({...inc, banda: action.banda, destrutiva: action.destrutiva});
+  };
+  select.onchange = update;
+  update();
+  $("btn-atualizar-plano").disabled = inc.status !== "pendente";
+  if (plan.estado === "coletando") $("btn-atualizar-plano").disabled = true;
+  $("btn-atualizar-plano").onclick = async () => {
+    $("btn-atualizar-plano").disabled = true;
+    try {
+      await api(`/api/v1/incidentes/${inc.id}/diagnostico`, {method: "POST"});
+      await abrir(inc.id);
+    } catch (error) {
+      alert(error.message);
+      $("btn-atualizar-plano").disabled = false;
+    }
+  };
+}
+
+function renderPlanEvidence(container, evidence) {
+  container.replaceChildren();
+  const line = text => {
+    const p = document.createElement("p");
+    p.textContent = text;
+    container.appendChild(p);
+  };
+  if (evidence.erro) line(evidence.erro);
+  if (evidence.arquivos) {
+    line(`Volume /mnt/polaris_test · espaço livre: ${(evidence.espaco_livre ?? 0).toLocaleString("pt-BR")} bytes.`);
+    for (const file of evidence.arquivos) {
+      line(`${file.caminho} · ${file.bytes.toLocaleString("pt-BR")} bytes · ${file.proprietario} · ${new Date(file.mtime_ns / 1000000).toLocaleString("pt-BR")} · ${file.aberto === false ? "sem descritor aberto observado" : file.aberto ? "em uso" : "uso não confirmado"}`);
+    }
+    if (!evidence.completo) line("Inspeção limitada ou incompleta; ausência na lista não comprova ausência no volume.");
+  }
+  if (evidence.estado_servico) line(`nginx: ${evidence.estado_servico}.`);
+  for (const finding of evidence.indicios ?? []) {
+    line(`Indício de ${finding.codigo}: “${finding.trecho}” · fonte ${finding.fonte}.`);
+  }
+  if (evidence.estado_servico && !evidence.indicios?.length) line("Nenhum dos padrões conhecidos foi encontrado; isso não descarta outras causas.");
+  if (evidence.processo) line(`Maior consumo na amostra: PID ${evidence.processo.pid} · ${evidence.processo.nome}.`);
+  if (evidence.limite) line(evidence.limite);
+  if (evidence.fonte) line(evidence.fonte);
+}
+
 function configurarAviso(inc) {
   const aviso = $("aviso-banda");
   const recorrencia = inc.fatores.find((f) => f.id === "F4" && f.valor < 1);
@@ -701,7 +793,7 @@ function configurarDecisao(inc) {
 
   // Banda baixa não oferece aprovação em um clique: exige confirmação adicional. É a única
   // diferença de comportamento entre as bandas — nenhuma delas executa sozinha.
-  const exigeConfirmacao = inc.banda === "baixa";
+  const exigeConfirmacao = inc.banda === "baixa" || inc.destrutiva;
   aprovar.classList.toggle("atencao", exigeConfirmacao);
   aprovar.textContent = exigeConfirmacao ? "Aprovar mesmo assim" : "Aprovar e executar";
 
@@ -709,7 +801,7 @@ function configurarDecisao(inc) {
     if (exigeConfirmacao && !estado.confirmandoBandaBaixa) {
       estado.confirmandoBandaBaixa = true;
       $("confirmacao").textContent =
-        "Confiança baixa. Clique novamente para confirmar a execução sob sua responsabilidade.";
+        "Ação destrutiva ou confiança baixa. Confira o alvo e clique novamente para confirmar.";
       $("confirmacao").classList.remove("oculto");
       return;
     }
@@ -724,7 +816,7 @@ function configurarDecisao(inc) {
 async function registrarExibicao(inc) {
   // Marca t3, o instante em que o operador efetivamente viu o incidente. Sem ele não existe tempo
   // de decisão humana, e o MTTR não pode ser decomposto.
-  if (inc.status !== "pendente" || estado.exibicaoRegistrada.has(inc.id)) return;
+  if (inc.status !== "pendente" || inc.plano?.estado === "coletando" || estado.exibicaoRegistrada.has(inc.id)) return;
   estado.exibicaoRegistrada.add(inc.id);
   try {
     await api(`/api/v1/incidentes/${inc.id}/exibicao`, { method: "PATCH" });
@@ -749,6 +841,8 @@ async function decidir(id, aprovado) {
     await api(`/api/v1/incidentes/${id}/decisao`, {
       method: "POST",
       body: JSON.stringify({ aprovado, operador: OPERADOR, motivo,
+        opcao_id: aprovado && estado.planoAtual ? $("plano-opcao").value : null,
+        versao_plano: aprovado ? estado.planoAtual?.versao ?? null : null,
         versao_scripts: aprovado ? estado.catalogo?.versao : null }),
     });
   } catch (erro) {
@@ -964,6 +1058,32 @@ $("estado-reconciliacao").addEventListener("click", abrirReconciliacao);
 $("btn-fechar-reconciliacao").addEventListener("click", fecharReconciliacao);
 $("btn-refresh-reconciliation").addEventListener("click", carregarReconciliacao);
 $("btn-diagnostico").addEventListener("click", abrirDiagnostico);
+$("btn-preferencias").addEventListener("click", async () => {
+  closeTools();
+  try {
+    const preferences = await api("/api/v1/preferencias");
+    $("pref-modo").value = preferences.modo_preferencia;
+    $("pref-desconto").value = Math.round(preferences.desconto_maximo * 100);
+    $("pref-minimo").value = preferences.minimo_escolhas;
+    $("pref-historico").textContent = preferences.historico_habilitado
+      ? "Histórico habilitado. Alterar preferências exige atualizar diagnósticos pendentes."
+      : "Histórico desativado neste servidor. As preferências serão salvas, mas não afetarão as recomendações.";
+    $("pref-feedback").textContent = "";
+    $("preferencias-dialog").showModal();
+  } catch (error) { alert(error.message); }
+});
+$("pref-fechar").addEventListener("click", () => $("preferencias-dialog").close());
+$("preferencias-form").addEventListener("submit", async event => {
+  event.preventDefault();
+  try {
+    await api("/api/v1/preferencias", {method: "PUT", body: JSON.stringify({
+      modo_preferencia: $("pref-modo").value,
+      desconto_maximo: Number($("pref-desconto").value) / 100,
+      minimo_escolhas: Number($("pref-minimo").value),
+    })});
+    $("pref-feedback").textContent = "Preferências salvas. Atualize o diagnóstico antes da próxima aprovação.";
+  } catch (error) { $("pref-feedback").textContent = error.message; }
+});
 $("btn-fechar-diagnostico").addEventListener("click", fecharDiagnostico);
 $("btn-reverificar").addEventListener("click", carregarDiagnostico);
 $("btn-recarregar-base").addEventListener("click", recarregarBase);

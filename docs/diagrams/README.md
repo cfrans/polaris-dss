@@ -1,7 +1,7 @@
 # Editable diagrams
 
 Every image has a same-named Mermaid `.mmd` source, `.svg` and high-resolution `.png` export.
-Sources describe the implementation reviewed on 2026-10-14, not a planned future architecture.
+Sources describe the implementation reviewed on 2026-10-16, not a planned future architecture.
 
 | Diagram | Purpose |
 |:--|:--|
@@ -9,7 +9,7 @@ Sources describe the implementation reviewed on 2026-10-14, not a planned future
 | [Components](components.png) / [source](components.mmd) | Application modules and dependencies |
 | [Instrumented HITL sequence](hitl_sequence.png) / [source](hitl_sequence.mmd) | Committed approval before execution; parallel independent observer |
 | [Data model overview](data_model_overview.png) / [source](data_model_overview.mmd) | Core physical entities and foreign keys |
-| [Full data model](data_model.png) / [source](data_model.mmd) | All six tables/columns; large reference image |
+| [Full data model](data_model.png) / [source](data_model.mmd) | All seven tables/columns; large reference image |
 | [Derived views](derived_views.png) / [source](derived_views.mmd) | Four KPI views, with logical rather than foreign-key dependencies |
 
 The overview intentionally selects fields. Use [the physical schema catalog](../data_model.md)
