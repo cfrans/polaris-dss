@@ -25,7 +25,9 @@ an additional confirmation. Use **Atualizar diagnóstico** if the five-minute sn
   that choice. There is no global log rotation or recursive deletion.
 - Nginx: start or restart when the observed inactive/failed state permits it. Known configuration,
   permission or port errors require investigation instead of blindly retrying a restart.
-- CPU: terminate only the identified allowed process while its sampled usage meets the threshold.
+- CPU: terminate only the highest consumer of a three-second `/proc` sample when it is on the
+  allowlist and uses at least 50% of one CPU. The alert already proved the host threshold; the
+  sample identifies the cause instead of re-measuring host usage per process.
   A pidfd binds signals to that process; another process never replaces it after approval.
 
 The browser submits only an option ID, plan hash and reviewed script-catalog hash. The server

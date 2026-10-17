@@ -98,6 +98,23 @@ def test_unavailable_diagnostics_never_fall_back_to_destructive_action(kb, alert
     assert not p["opcoes"]
 
 
+@pytest.mark.parametrize("name,cpu_pct,offered", [
+    ("stress-ng-cpu", 89.99, True),    # incident 305: below the host threshold, still the clear cause
+    ("stress-ng-cpu", 92.99, True),    # incident 303
+    ("stress-ng-cpu", 50.0, True),
+    ("stress-ng-cpu", 49.99, False),   # not the dominant consumer of one CPU
+    ("python3", 99.0, False),          # outside the frozen allowlist
+])
+def test_cpu_termination_requires_allowed_dominant_process_not_the_host_threshold(
+        kb, alerta, config, name, cpu_pct, offered):
+    from src.engine.engine import analisar
+    p = build_plan(analisar(alerta("cpu_high"), kb, config), evidence(
+        tipo="cpu_high", processo={"pid": 216618, "nome": name, "inicio": "237274638", "cpu_pct": cpu_pct}))
+    assert [a["operacao"] for a in p["opcoes"]] == (["terminate"] if offered else [])
+    if offered:
+        assert p["opcoes"][0]["alvo"]["pid"] == 216618 and p["opcoes"][0]["destrutiva"] is True
+
+
 def test_preference_tiebreak_and_optional_discount_are_distinct(kb, alerta, config):
     from src.engine.engine import analisar
     s = analisar(alerta("service_down"), kb, config)

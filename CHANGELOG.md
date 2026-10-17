@@ -169,6 +169,11 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
   sem migração 007 ainda usa desfechos aprovados e não equivale ao acerto do protocolo.
 
 ### Corrigido
+- R002 deixava de oferecer o encerramento quando o processo identificado media 89,99% numa
+  amostra de 1 s (incidente 305), porque comparava um processo com o limiar de 90% do host. A
+  inspeção passa a usar amostra de três segundos e a oferecer encerrar o maior consumidor
+  permitido com pelo menos 50% de uma CPU. Testes com os valores reais dos incidentes 303 e 305;
+  altera o hash do catálogo. **[NÃO VERIFICADO]** no laboratório.
 - Marcos operacionais de `audit_log` (`ts_criacao`, `ts_exibicao`, `ts_aprovacao`,
   `ts_conclusao`) e `evento_ingestao.registrado_em` passam a usar
   `clock_timestamp()` em `src/db/queries.py` em vez de `NOW()` congelado no início da transação.

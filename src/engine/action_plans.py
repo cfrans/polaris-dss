@@ -14,6 +14,10 @@ from .models import Alert, Suggestion
 
 PLAN_RULES = {"R001", "R002", "R003"}
 MAX_PLAN_AGE = 300
+# The alert already proved host CPU above the rule threshold; the inspection only has to show which
+# allowed process causes it. Comparing one process with the host threshold made the option vanish at
+# random (89.99% vs 90% in incident 305). ADR 0011, S74 decision.
+PROCESS_MIN_CPU_PCT = 50
 SAFE_LOG = re.compile(r"^/mnt/polaris_test/[A-Za-z0-9_-][A-Za-z0-9_.-]{0,100}\.log(?:\.gz)?$")
 
 
@@ -110,9 +114,11 @@ def build_plan(suggestion: Suggestion, evidence: dict, preferences=None, choices
             add("restart", target, "Reiniciar nginx", "Reinício explícito do serviço nginx e verificação posterior de saúde.")
     elif suggestion.rule.id == "R002":
         process = evidence.get("processo")
+        # `processo` is already the highest consumer of the sample (collect_evidence.cpu).
         if (process and process.get("nome") in suggestion.rule.condicao.processos_alvo_permitidos
-                and process.get("cpu_pct", 0) >= (suggestion.rule.condicao.limiar_uso_pct or 90)):
+                and process.get("cpu_pct", 0) >= PROCESS_MIN_CPU_PCT):
             add("terminate", process, "Encerrar o processo identificado",
+                "Processo permitido e maior consumidor da amostra, com pelo menos 50% de uma CPU. "
                 "SIGTERM para o PID mostrado; SIGKILL após dez segundos somente se a identidade persistir.", True)
     if not options:
         plan["aviso"] += " Nenhuma ação automática segura oferecida; investigação manual necessária."

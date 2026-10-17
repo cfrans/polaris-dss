@@ -37,7 +37,7 @@ symlink/hard-link ambiguity or group/world write permissions, no open descriptor
 at least seven days of retention and human confirmation that the file is disposable. Compression
 requires a closed `.log`, enough free temporary space, and a new gzip destination. No global rotation.
 
-CPU policy: the highest sampled consumer must be on the frozen allowlist and exceed the threshold.
+CPU policy: the highest sampled consumer must be on the frozen allowlist and use at least 50% of one CPU.
 Confirm the displayed PID/name. Nginx policy: inspect the fixed log clues; known configuration,
 permission or port errors require investigation. Only start/restart in the displayed applicable state.
 Record a valid failure honestly; do not use instrumentation reset as manual remediation.

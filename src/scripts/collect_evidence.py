@@ -130,8 +130,9 @@ def cpu():
             initial[pid] = sample(pid)
         except (FileNotFoundError, ProcessLookupError):
             pass
+    # Three seconds keep the 100 Hz tick quantization near 0.3 point instead of 1 point.
     start = time.monotonic()
-    time.sleep(1)
+    time.sleep(3)
     elapsed = time.monotonic() - start
     candidates = []
     for pid, (ticks, identity) in initial.items():
@@ -145,7 +146,7 @@ def cpu():
         except (FileNotFoundError, ProcessLookupError):
             pass
     return {"processo": max(candidates, key=lambda p: (p["cpu_pct"], -p["pid"])) if candidates else None,
-            "fonte": "Diferença de tempo de CPU de /proc em amostra de um segundo; até 512 processos."}
+            "fonte": "Diferença de tempo de CPU de /proc em amostra de três segundos; até 512 processos."}
 
 
 if __name__ == "__main__":
