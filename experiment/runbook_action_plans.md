@@ -1,5 +1,12 @@
 # Manual baseline with specific targets
 
+> **Decision of 2026-10-17 (rehearsal 15):** the baseline arm is the operator's usual manual
+> procedure: read the alert in Zabbix, connect through the bastion to the target and use ordinary
+> administration commands (for nginx, `systemctl status` and `systemctl start`/`restart`). The
+> operator does not run the Polaris collector or executor below; those bytes stay a reference for
+> the policy limits only. The policy below still bounds what a correct manual remedy may change
+> (which file, which process), and every command and navigation still counts as a step.
+
 Use this procedure with KB 1.0.2. It supersedes blanket disk cleanup and late CPU candidate
 selection in the earlier runbooks. Rehearse it before official collection. It changes neither
 the independent observer nor the alert-driven operator start and actual-action counting.

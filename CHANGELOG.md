@@ -255,6 +255,10 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
   permanecem preservadas na auditoria e a primeira ingestão vira a referência canônica.
 
 ### Alterado
+- Baseline manual definido como o procedimento habitual do operador (Zabbix, bastion, alvo e
+  comandos administrativos comuns), sem o coletor nem o executor do Polaris; a política de
+  alvos continua limitando o que a remediação manual pode alterar. Registrado no runbook após o
+  ensaio do baseline de R003.
 - Segundo clique de ação destrutiva ou de confiança baixa vira etapa explícita: caixa
   "Confirmação necessária" acima dos botões com o motivo, botão "Confirmar e executar" e
   "Cancelar", que volta sem registrar decisão; Rejeitar fica oculto durante a etapa. Teste web e
