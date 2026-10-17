@@ -259,6 +259,9 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
   permanecem preservadas na auditoria e a primeira ingestão vira a referência canônica.
 
 ### Removido
+- `kill_target_process.sh` saiu do catálogo e do repositório pelo mesmo motivo: a R002 já executa
+  `apply_action.py` com o PID aprovado, e o script escolhia o candidato só na execução. Testes do
+  executor passaram a usar `apply_action.py`; os testes exclusivos do script foram removidos.
 - `disk_cleanup.sh` saiu do catálogo de scripts e do repositório. Ele removia o `.gz` mais antigo
   do volume de qualquer idade e podia rodar `logrotate` global; a R001 já usava `apply_action.py`
   com alvo aprovado desde a base 1.0.2. Política nova adotada para a coleta por decisão do autor

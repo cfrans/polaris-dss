@@ -20,7 +20,7 @@ const context = {window: {}, document};
 vm.runInNewContext(fs.readFileSync(path.join(__dirname, "../../web/script-viewer.js"), "utf8"), context);
 const viewer = context.window.PolarisScriptViewer;
 const scripts = path.join(__dirname, "../../scripts");
-const names = ["collect_evidence.py", "apply_action.py", "kill_target_process.sh", "verify_disk.sh", "verify_cpu.sh", "verify_service.sh"];
+const names = ["collect_evidence.py", "apply_action.py", "verify_disk.sh", "verify_cpu.sh", "verify_service.sh"];
 
 test("all standard scripts preserve every character with and without colors", () => {
   for (const name of names) {

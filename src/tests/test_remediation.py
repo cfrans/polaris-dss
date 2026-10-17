@@ -56,7 +56,8 @@ def test_script_e_enviado_pela_entrada_padrao():
 
 def test_limpeza_generica_antiga_nao_esta_no_catalogo():
     """R001 usa apply_action.py com alvo aprovado; o script que escolhia o gz mais antigo saiu."""
-    assert "disk_cleanup.sh" not in {script.name for script in load_catalog().scripts}
+    names = {script.name for script in load_catalog().scripts}
+    assert "disk_cleanup.sh" not in names and "kill_target_process.sh" not in names
     with pytest.raises(ValueError, match="script não autorizado: disk_cleanup.sh"):
         prepare_command("disk_cleanup.sh /mnt/polaris_test", load_catalog(), 60)
 
@@ -164,18 +165,18 @@ def test_ausencia_de_verificador_impede_conclusao():
 
 
 def test_recusa_do_script_nao_dispara_verificacao():
-    """Código 2 é o script se recusando a agir: alvo fora da lista autorizada."""
-    exe, runner = executor([(2, "", "candidato 'postgres' fora da lista autorizada")])
-    resultado = exe("kill_target_process.sh stress-ng", verificador="verify_cpu.sh")
+    """Código 2 é o executor se recusando a agir: alvo fora da lista autorizada."""
+    exe, runner = executor([(2, "", "processo não autorizado")])
+    resultado = exe("apply_action.py e30=", verificador="verify_cpu.sh")
 
     assert resultado.status == "falha"
-    assert "fora da lista autorizada" in resultado.erro
+    assert "processo não autorizado" in resultado.erro
     assert len(runner.chamadas) == 1
 
 
 def test_timeout_e_registrado_com_estado_proprio():
     exe, _ = executor([TimeoutError()])
-    resultado = exe("kill_target_process.sh stress-ng", verificador="verify_cpu.sh",
+    resultado = exe("apply_action.py e30=", verificador="verify_cpu.sh",
                     timeout_segundos=60)
 
     assert resultado.status == "timeout"
@@ -202,7 +203,7 @@ def test_verificador_inacessivel_nao_fecha_o_incidente():
 
 def test_saida_do_comando_e_preservada_na_auditoria():
     exe, _ = executor([(0, "uso depois: 62%", ""), 0, 0])
-    resultado = exe("kill_target_process.sh stress-ng", verificador="verify_cpu.sh")
+    resultado = exe("apply_action.py e30=", verificador="verify_cpu.sh")
 
     assert resultado.status == "sucesso"
     assert resultado.saida == "uso depois: 62%"

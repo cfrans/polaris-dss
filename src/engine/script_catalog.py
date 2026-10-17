@@ -14,7 +14,6 @@ SCRIPTS_DIR = Path(__file__).resolve().parents[1] / "scripts"
 SCRIPT_NAMES = (
     "collect_evidence.py",
     "apply_action.py",
-    "kill_target_process.sh",
     "verify_disk.sh",
     "verify_cpu.sh",
     "verify_service.sh",

@@ -12,11 +12,6 @@
       purpose: "Recebe a operação e o alvo do plano aprovado, confere identidade e validade e executa somente aquela ação.",
       effect: "Pode comprimir um log fechado, excluir um gzip antigo, encerrar o processo identificado ou iniciar/reiniciar nginx. Mudança do alvo recusa a ação; não escolhe outro silenciosamente.",
     },
-    "kill_target_process.sh": {
-      title: "Encerrar um processo com alto consumo de CPU",
-      purpose: "Seleciona um candidato pelo consumo de CPU e só prossegue se o nome do processo estiver na lista autorizada.",
-      effect: "Envia SIGTERM e pode usar SIGKILL se o processo não encerrar. Trabalho não salvo pode ser perdido; o processo não é reiniciado automaticamente.",
-    },
     "verify_disk.sh": {
       title: "Conferir o uso do disco",
       purpose: "Consulta o uso do ponto de montagem e compara com o limite de saúde informado no script.",
