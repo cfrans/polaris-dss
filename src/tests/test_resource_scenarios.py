@@ -71,7 +71,7 @@ def test_cpu_requires_thirty_seconds_below_limit_then_three_qualifying_checks():
         return clock.elapsed>0
     timestamp=observe_recovery(probe,clock.utc_now,recorded.append,40,healthy_duration=30,
                                monotonic=clock.monotonic,sleep=clock.sleep)
-    assert timestamp==START+timedelta(seconds=31)
+    assert timestamp==START+timedelta(seconds=1)
     assert clock.elapsed==33
     assert recorded==[timestamp]
 
@@ -82,7 +82,7 @@ def test_cpu_oscillation_restarts_entire_thirty_second_window():
         return clock.elapsed not in (0,20)
     timestamp=observe_recovery(probe,clock.utc_now,recorded.append,60,healthy_duration=30,
                                monotonic=clock.monotonic,sleep=clock.sleep)
-    assert timestamp==START+timedelta(seconds=51)
+    assert timestamp==START+timedelta(seconds=21)
     assert clock.elapsed==53
 
 

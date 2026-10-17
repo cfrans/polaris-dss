@@ -33,8 +33,11 @@ def observe_recovery(
     should_stop: Callable[[], bool] = lambda: False,
     healthy_duration: float = 0,
 ) -> datetime:
-    """Record the first healthy sample confirmed by three consecutive successes.
+    """Record the first healthy sample of a window that stays healthy, confirmed afterwards.
 
+    The window must remain healthy for `healthy_duration` seconds and then for three more
+    consecutive samples; any failure restarts it. The recorded t5 is the window's first sample,
+    the instant recovery began, not the moment the confirmation finished.
     Initial healthy samples are ignored until an unhealthy sample was observed.
     Transport errors must raise instead of being converted to unhealthy samples.
     """
@@ -65,11 +68,10 @@ def observe_recovery(
         elif failure_seen:
             if window_started is None:
                 window_started = monotonic()
+                first_healthy = sampled_at
             if monotonic() - window_started < healthy_duration:
                 sleep(min(max(0.0, sample_started + 1.0 - monotonic()), max(0.0, deadline - monotonic())))
                 continue
-            if consecutive == 0:
-                first_healthy = sampled_at
             consecutive += 1
             if consecutive == 3:
                 record(first_healthy)

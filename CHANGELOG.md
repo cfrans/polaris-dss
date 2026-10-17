@@ -245,6 +245,10 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
   permanecem preservadas na auditoria e a primeira ingestão vira a referência canônica.
 
 ### Alterado
+- t5 do cenário de CPU passa a ser a primeira amostra saudável da janela de 30 s, gravada só
+  depois de a janela e os três checks a confirmarem; antes era a primeira amostra após a janela,
+  o que somava cerca de 30 s ao MTTR. Serviço e disco, sem janela, não mudam. Testes do
+  observador atualizados; **[NÃO VERIFICADO]** no laboratório.
 - Intervalo entre as duas amostras de saúde antes da injeção e nas verificações globais reduzido
   de 60 s para 30 s, em constante única (`STABILITY_WAIT_S`). Os itens do Zabbix são coletados a
   cada 10 s; a espera é instrumentação, fora de t0..t5. Manual do laboratório e contratos dos

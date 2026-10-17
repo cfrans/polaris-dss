@@ -65,8 +65,9 @@ unit, rather than running a process-name-wide kill. A collected, already absent 
 
 The observer sends `verify_cpu.sh`, validates its percentage and exit status, and requires CPU
 below 70% for a **30-second sequence of healthy samples**, followed by three qualifying checks.
-Any unhealthy sample restarts that window. `t5` is the database time of the first qualifying sample
-at/after the 30-second window, confirmed by the next two. An observed unhealthy sample is mandatory.
+Any unhealthy sample restarts that window. `t5` is the time of the window's first healthy sample,
+recorded only after the 30 seconds and the three qualifying checks confirm it; the confirmation
+period is not added to MTTR. An observed unhealthy sample is mandatory.
 Samples remain sequential; `top` and SSH can make intervals longer than one second. The sampled
 window does not prove continuous CPU behavior between probes. Use identical criteria in both arms.
 
