@@ -8,6 +8,10 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 ## [Não lançado]        <!-- alvo: v0.5.0 telemetria · v0.6.0 remediação · preparação v0.7.0 -->
 
 ### Adicionado
+- Ao aprovar ou rejeitar, o botão mostra um indicador giratório e "Executando…" enquanto a
+  requisição de decisão, que inclui a execução aprovada, não retorna; o estado "executando" do
+  resultado também exibe o indicador. Em erro, o botão volta ao rótulo original. Teste web
+  aprovado; **[NÃO VERIFICADO]** no laboratório.
 - Comando do plano mostra por padrão um resumo de uma linha (o comando systemctl, ou o que será
   excluído, comprimido ou encerrado, com o tamanho); o procedimento completo com guardas fica em
   "Ver execução detalhada". Tamanhos na inspeção de leitura em unidades binárias legíveis (KiB,

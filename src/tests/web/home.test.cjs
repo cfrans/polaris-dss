@@ -25,10 +25,11 @@ class Element {
   set textContent(value) { this.text = String(value); this.children = []; }
   get textContent() { return this.text + this.children.map(child => child.textContent).join(""); }
   set innerHTML(_) { assert.fail("incident fields must be rendered as literal text"); }
-  replaceChildren() { this.text = ""; this.children = []; }
+  replaceChildren(...children) { this.text = ""; this.children = children; }
   appendChild(child) { this.children.push(child); }
   addEventListener(name, callback) { this.listeners[name] = callback; }
   setAttribute(name, value) { this.attributes.set(name, value); }
+  removeAttribute(name) { this.attributes.delete(name); }
   getAttribute(name) { return this.attributes.get(name) ?? null; }
   querySelector() { return this.child ??= new Element(); }
   focus() { this.focused = true; }
@@ -43,6 +44,7 @@ function home(api, storage = new Map()) {
   const requests = [];
   const opened = [];
   const document = {title: "", createElement: tag => new Element(tag),
+    createTextNode: text => Object.assign(new Element("#text"), {text}),
     querySelector: selector => { assert.equal(selector, ".painel"); return get("panel"); },
     querySelectorAll: selector => { assert.equal(selector, ".item.ativo"); return [get("selected-row")]; }};
   const context = vm.createContext({$: get, document,
@@ -227,3 +229,28 @@ test("unmatched alerts are hidden by default and the explicit preference survive
   assert.equal(get("recent-filter").value, "");
   assert.ok(requests.every(args => args.length === 1), "preference never writes to the server");
 });
+
+test("approving shows a spinner while the action runs and restores the button on failure", async () => {
+  let fail;
+  const {get, context} = home(() => new Promise((_, reject) => { fail = reject; }));
+  const source = fs.readFileSync(path.join(__dirname, "../../web/app.js"), "utf8");
+  context.alert = () => {};
+  context.OPERADOR = "operador";
+  vm.runInContext(source.split("/* ---------- decisão ---------- */")[1]
+    .split("/* ---------- simulação ---------- */")[0], context);
+  get("btn-aprovar").textContent = "Aprovar e executar";
+  const pending = context.decidir(7, true);
+  const button = get("btn-aprovar");
+  assert.equal(button.classes.has("carregando"), true);
+  assert.equal(button.attributes.get("aria-busy"), "true");
+  assert.equal(button.children[0].className, "indicador-giro");
+  assert.match(button.textContent, /Executando/);
+  assert.equal(button.disabled, true);
+  fail(new Error("recusado"));
+  await pending;
+  assert.equal(button.classes.has("carregando"), false);
+  assert.equal(button.attributes.has("aria-busy"), false);
+  assert.equal(button.textContent, "Aprovar e executar");
+  assert.equal(button.disabled, false);
+});
+

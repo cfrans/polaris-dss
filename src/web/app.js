@@ -1144,6 +1144,10 @@ async function decidir(id, aprovado) {
     motivo = prompt("Motivo da rejeição (opcional):") || null;
   }
 
+  // The decision request also runs the approved action, so it can take seconds; show progress.
+  const botao = aprovado ? $("btn-aprovar") : $("btn-rejeitar");
+  const rotuloOriginal = botao.textContent;
+  mostrarProgresso(botao, aprovado ? "Executando…" : "Registrando…");
   try {
     await api(`/api/v1/incidentes/${id}/decisao`, {
       method: "POST",
@@ -1153,6 +1157,9 @@ async function decidir(id, aprovado) {
         versao_scripts: aprovado ? estado.catalogo?.versao : null }),
     });
   } catch (erro) {
+    botao.classList.remove("carregando");
+    botao.removeAttribute("aria-busy");
+    botao.textContent = rotuloOriginal;
     alert(erro.message);
     if (aprovado && erro.message.includes("scripts padrão mudaram")) {
       await carregarScripts(true);
@@ -1162,16 +1169,28 @@ async function decidir(id, aprovado) {
     return;
   }
 
+  botao.classList.remove("carregando");
+  botao.removeAttribute("aria-busy");
+  botao.textContent = rotuloOriginal;
   $("decisao").classList.add("oculto");
   await mostrarResultado(id);
   await carregarLista();
+}
+
+function mostrarProgresso(botao, rotulo) {
+  const indicador = document.createElement("span");
+  indicador.className = "indicador-giro";
+  indicador.setAttribute("aria-hidden", "true");
+  botao.replaceChildren(indicador, document.createTextNode(rotulo));
+  botao.classList.add("carregando");
+  botao.setAttribute("aria-busy", "true");
 }
 
 async function mostrarResultado(id) {
   const bloco = $("resultado");
   const corpo = $("resultado-corpo");
   bloco.classList.remove("oculto");
-  corpo.innerHTML = `<p class="resultado-status">executando…</p>`;
+  corpo.innerHTML = `<p class="resultado-status" role="status"><span class="indicador-giro" aria-hidden="true"></span>executando…</p>`;
 
   for (let tentativa = 0; tentativa < 30; tentativa += 1) {
     const r = await api(`/api/v1/incidentes/${id}/resultado`);
@@ -1190,7 +1209,7 @@ async function mostrarResultado(id) {
     }
     await new Promise((r) => setTimeout(r, INTERVALO_RESULTADO_MS));
   }
-  if (estado.selecionado === id) corpo.innerHTML = `<p class="resultado-status cor-media">ainda em execução</p>`;
+  if (estado.selecionado === id) corpo.innerHTML = `<p class="resultado-status cor-media" role="status"><span class="indicador-giro" aria-hidden="true"></span>ainda em execução</p>`;
 }
 
 /* ---------- simulação ---------- */

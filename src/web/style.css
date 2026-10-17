@@ -833,3 +833,11 @@ button:disabled, input:disabled, [aria-disabled="true"] { cursor: not-allowed; }
   .detalhe-topo .ocorrencia-tempos { grid-column: 2; grid-row: 2; justify-self: start; }
   .detalhe-topo .confianca { grid-column: 3; grid-row: 1; }
 }
+
+/* Progress while the approved action runs: the decision request waits for the executor. */
+.indicador-giro { display: inline-block; width: 1em; height: 1em; margin-right: .5em; vertical-align: -.15em;
+  border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%;
+  animation: giro .8s linear infinite; }
+.btn.carregando { cursor: progress; opacity: 1; }
+@keyframes giro { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .indicador-giro { animation-duration: 2.4s; } }
