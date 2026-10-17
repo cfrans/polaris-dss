@@ -72,8 +72,10 @@ def reset_global(connection, run_id, target, probes, admins, *, sleep=time.sleep
         try:
             result = check_under_lock(connection, target, probes, admins, None, sleep)
         except Exception as exc:
+            # Own scenario messages name the unhealthy check and carry no secrets; others stay typed.
+            detail = str(exc) if isinstance(exc, ScenarioError) else type(exc).__name__
             raise ScenarioError(f'Round {run_id}: reset sent; global confirmation failed '
-                                f'({type(exc).__name__}); inspect other scenarios, no further reset performed') from exc
+                                f'({detail}); inspect other scenarios, no further reset performed') from exc
     result['reset_run_id'] = run_id
     return result
 

@@ -93,7 +93,7 @@ def test_dirty_other_scenario_after_explicit_reset_is_reported_without_repair():
     connection, events = Connection(), []
     connection.row['resolvido'] = False
     probes, admins = checks(events, unhealthy='cpu_high')
-    with pytest.raises(ScenarioError, match='reset sent'):
+    with pytest.raises(ScenarioError, match=r'reset sent; global confirmation failed \(cpu_high is not healthy'):
         reset.reset_global(connection, 1, 'target', probes, admins, sleep=lambda _: None)
     assert events[0] == ('service_down', 'reset')
     assert ('cpu_high', 'reset') not in events

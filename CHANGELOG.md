@@ -255,6 +255,9 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
   permanecem preservadas na auditoria e a primeira ingestão vira a referência canônica.
 
 ### Alterado
+- Falha da confirmação global após um reset passa a nomear a verificação que falhou (por exemplo,
+  `cpu_high is not healthy`), em vez de apenas `ScenarioError`; exceções externas continuam só com
+  o tipo. Motivado por falha passageira, não diagnosticada, após o reset da rodada 16.
 - Baseline manual definido como o procedimento habitual do operador (Zabbix, bastion, alvo e
   comandos administrativos comuns), sem o coletor nem o executor do Polaris; a política de
   alvos continua limitando o que a remediação manual pode alterar. Registrado no runbook após o
