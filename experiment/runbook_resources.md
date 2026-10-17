@@ -16,7 +16,10 @@ instrumentation; do not include them as operator remediation steps or run reset 
 2. Establish the administrative SSH session. Run `df -h /mnt/polaris_test` and inspect usage.
 3. Inspect the compressed files and timestamps on the isolated volume; confirm the scenario's
    disposable gzip and absence of needed data. Record every inspection command.
-4. Apply the same frozen `src/scripts/disk_cleanup.sh` used by HITL, explicitly as the administrator,
+4. **Superseded on 2026-10-17:** `disk_cleanup.sh` was removed from the catalog. Follow
+   [the operator KB for R001](kb_operador/r001_disco.md): remove only the listed `.log.gz` retained
+   for at least seven days. The historical instruction below is kept for earlier rehearsals only.
+   Earlier text: apply the same frozen `src/scripts/disk_cleanup.sh` used by HITL, explicitly as the administrator,
    with only `/mnt/polaris_test`. Since scripts are central, do not assume a copy exists on the target.
    From the source checkout, one way to send the frozen bytes manually is:
 

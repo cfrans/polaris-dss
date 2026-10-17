@@ -20,7 +20,7 @@ const context = {window: {}, document};
 vm.runInNewContext(fs.readFileSync(path.join(__dirname, "../../web/script-viewer.js"), "utf8"), context);
 const viewer = context.window.PolarisScriptViewer;
 const scripts = path.join(__dirname, "../../scripts");
-const names = ["collect_evidence.py", "apply_action.py", "disk_cleanup.sh", "kill_target_process.sh", "verify_disk.sh", "verify_cpu.sh", "verify_service.sh"];
+const names = ["collect_evidence.py", "apply_action.py", "kill_target_process.sh", "verify_disk.sh", "verify_cpu.sh", "verify_service.sh"];
 
 test("all standard scripts preserve every character with and without colors", () => {
   for (const name of names) {
@@ -49,8 +49,7 @@ test("unknown and prototype names never receive a standard script description", 
     assert.equal(viewer.describeScript(name).title, "Script do catálogo");
     assert.match(viewer.describeScript(name).effect, /não presuma/);
   }
-  assert.match(viewer.describeScript("disk_cleanup.sh").purpose, /independentemente da idade/);
-  assert.match(viewer.describeScript("disk_cleanup.sh").effect, /Não há restauração/);
+  assert.equal(viewer.describeScript("disk_cleanup.sh").title, "Script do catálogo");
 });
 
 test("empty and unusual source is not truncated by the lexer", () => {

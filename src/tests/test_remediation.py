@@ -49,9 +49,16 @@ def executor(respostas, **kwargs):
 
 
 def test_script_e_enviado_pela_entrada_padrao():
-    command, content = prepare_command("disk_cleanup.sh /mnt/polaris_test", load_catalog(), 60)
+    command, content = prepare_command("verify_disk.sh /mnt/polaris_test", load_catalog(), 60)
     assert command == "sudo -n /usr/bin/timeout -k 5s 60s /usr/bin/bash -s -- /mnt/polaris_test"
-    assert content == load_catalog().get("disk_cleanup.sh").content
+    assert content == load_catalog().get("verify_disk.sh").content
+
+
+def test_limpeza_generica_antiga_nao_esta_no_catalogo():
+    """R001 usa apply_action.py com alvo aprovado; o script que escolhia o gz mais antigo saiu."""
+    assert "disk_cleanup.sh" not in {script.name for script in load_catalog().scripts}
+    with pytest.raises(ValueError, match="script não autorizado: disk_cleanup.sh"):
+        prepare_command("disk_cleanup.sh /mnt/polaris_test", load_catalog(), 60)
 
 
 def test_comando_nativo_fica_limitado_ao_nginx():
@@ -68,15 +75,15 @@ def test_verificador_roda_sem_privilegio_elevado():
 
 
 def test_bytes_transmitidos_executam_sem_arquivo_no_alvo():
-    command, content = prepare_command("disk_cleanup.sh /", load_catalog(), 30,
+    command, content = prepare_command("verify_disk.sh", load_catalog(), 30,
                                        with_sudo=False)
     # O macOS não fornece /usr/bin/timeout; este teste exercita a passagem por stdin ao bash.
     shell_command = command.removeprefix("/usr/bin/timeout -k 5s 30s ")
     shell_command = shell_command.replace("/usr/bin/bash", shutil.which("bash") or "bash", 1)
     result = subprocess.run(shell_command, shell=True, input=content, capture_output=True,
                             timeout=35)
-    assert result.returncode == 2
-    assert "ponto de montagem não permitido: /" in result.stderr.decode()
+    assert result.returncode == 3
+    assert "uso: " in result.stderr.decode()
 
 
 def test_ssh_carrega_host_validado_sem_aceitar_desconhecidos(monkeypatch, tmp_path):
@@ -168,7 +175,7 @@ def test_recusa_do_script_nao_dispara_verificacao():
 
 def test_timeout_e_registrado_com_estado_proprio():
     exe, _ = executor([TimeoutError()])
-    resultado = exe("disk_cleanup.sh /mnt/polaris_test", verificador="verify_disk.sh /mnt/polaris_test",
+    resultado = exe("kill_target_process.sh stress-ng", verificador="verify_cpu.sh",
                     timeout_segundos=60)
 
     assert resultado.status == "timeout"
@@ -195,8 +202,7 @@ def test_verificador_inacessivel_nao_fecha_o_incidente():
 
 def test_saida_do_comando_e_preservada_na_auditoria():
     exe, _ = executor([(0, "uso depois: 62%", ""), 0, 0])
-    resultado = exe("disk_cleanup.sh /mnt/polaris_test",
-                    verificador="verify_disk.sh /mnt/polaris_test")
+    resultado = exe("kill_target_process.sh stress-ng", verificador="verify_cpu.sh")
 
     assert resultado.status == "sucesso"
     assert resultado.saida == "uso depois: 62%"

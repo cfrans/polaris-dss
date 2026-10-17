@@ -258,6 +258,13 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
   reconciliador deixa de gravar o mesmo `no_match` a cada ciclo; duplicatas históricas
   permanecem preservadas na auditoria e a primeira ingestão vira a referência canônica.
 
+### Removido
+- `disk_cleanup.sh` saiu do catálogo de scripts e do repositório. Ele removia o `.gz` mais antigo
+  do volume de qualquer idade e podia rodar `logrotate` global; a R001 já usava `apply_action.py`
+  com alvo aprovado desde a base 1.0.2. Política nova adotada para a coleta por decisão do autor
+  (P-55). Visualizador de scripts, página do laboratório e runbook apontam para o KB do operador;
+  o hash do catálogo muda.
+
 ### Alterado
 - Falha da confirmação global após um reset passa a nomear a verificação que falhou (por exemplo,
   `cpu_high is not healthy`), em vez de apenas `ScenarioError`; exceções externas continuam só com

@@ -118,9 +118,9 @@
       "Envie TERM somente ao PID confirmado. Se necessário, após dez segundos, envie KILL ao mesmo candidato e registre a ação adicional.",
       "Confira CPU, medição independente e efeitos colaterais. A expiração da carga não prova remediação pelo operador."],
     disk_full: ["No Zabbix, abra o alerta real e identifique o host e o volume.",
-      "Abra SSH administrativo. Confira df -h /mnt/polaris_test, arquivos gzip e datas; confirme que os dados são descartáveis.",
-      "Envie manualmente os bytes congelados de src/scripts/disk_cleanup.sh por SSH stdin com o único argumento /mnt/polaris_test, conforme o roteiro.",
-      "Confira df -h /mnt/polaris_test e aguarde o observador. Inspecione os efeitos do logrotate global antes de avaliar."],
+      "Pelo bastion, abra SSH no alvo e siga experiment/kb_operador/r001_disco.md: df -h, ls -lh e find dos .log.gz com mais de sete dias.",
+      "Remova somente o .log.gz antigo listado, pelo nome exato; não remova enchimento.bin, que é o defeito injetado.",
+      "Confira df -h /mnt/polaris_test abaixo de 85% e o problema no Zabbix; aguarde o observador."],
   };
 
   function render() {

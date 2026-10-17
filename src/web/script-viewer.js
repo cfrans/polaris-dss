@@ -12,11 +12,6 @@
       purpose: "Recebe a operação e o alvo do plano aprovado, confere identidade e validade e executa somente aquela ação.",
       effect: "Pode comprimir um log fechado, excluir um gzip antigo, encerrar o processo identificado ou iniciar/reiniciar nginx. Mudança do alvo recusa a ação; não escolhe outro silenciosamente.",
     },
-    "disk_cleanup.sh": {
-      title: "Liberar espaço em disco",
-      purpose: "Remove o arquivo .gz mais antigo no ponto autorizado, independentemente da idade; tenta rotacionar logs e remove os demais .gz com mais de sete dias.",
-      effect: "Altera arquivos e pode removê-los permanentemente. A seleção não verifica o conteúdo. Não há restauração automática; confira o volume antes de aprovar.",
-    },
     "kill_target_process.sh": {
       title: "Encerrar um processo com alto consumo de CPU",
       purpose: "Seleciona um candidato pelo consumo de CPU e só prossegue se o nome do processo estiver na lista autorizada.",
