@@ -621,7 +621,9 @@ async function abrir(id) {
   renderFatores(inc.fatores);
   renderDescartadas(inc.candidatas_descartadas);
 
-  renderExecution($("d-comando"), [{tipo: "codigo", conteudo: inc.comando ?? "—"}]);
+  renderExecution($("d-comando-resumo"), [{tipo: "codigo", conteudo: inc.comando ?? "—"}]);
+  $("d-comando").replaceChildren();
+  $("d-comando-detalhes").hidden = true;
   $("d-rollback").textContent = inc.rollback ?? "—";
   $("d-timeout").textContent = inc.timeout_segundos
     ? `${inc.timeout_segundos}s${inc.destrutiva ? " · ação destrutiva" : ""}`
@@ -892,9 +894,11 @@ function renderActionPlan(inc) {
     $("plano-motivo").textContent = `${action.motivo} Confiança técnica: ${pct(action.confianca_tecnica)}; preferência: ×${action.preferencia.fator.toFixed(2)} (${action.preferencia.escolhas} escolha(s)).`;
     const target = action.alvo;
     $("plano-alvo").textContent = target.caminho
-      ? `${target.caminho} · ${target.bytes.toLocaleString("pt-BR")} bytes · proprietário ${target.proprietario} · modificado em ${new Date(target.mtime_ns / 1000000).toLocaleString("pt-BR")}`
+      ? `${target.caminho} · ${formatBytes(target.bytes)} (${target.bytes.toLocaleString("pt-BR")} bytes) · proprietário ${target.proprietario} · modificado em ${new Date(target.mtime_ns / 1000000).toLocaleString("pt-BR")}`
       : target.pid ? `PID ${target.pid} · ${target.nome}` : `Serviço ${target.servico} · estado ${target.estado}`;
+    renderExecution($("d-comando-resumo"), summarizePlannedAction(action));
     renderExecution($("d-comando"), describePlannedAction(action));
+    $("d-comando-detalhes").hidden = false;
     $("d-rollback").textContent = action.rollback;
     $("d-confianca").textContent = pct(action.confianca);
     $("d-confianca").className = `confianca-valor cor-${action.banda}`;
@@ -927,6 +931,34 @@ function renderActionPlan(inc) {
       $("btn-atualizar-plano").disabled = false;
     }
   };
+}
+
+function formatBytes(bytes) {
+  // Binary units, like `df -h`; the exact count stays where precision matters (approved target).
+  if (!Number.isFinite(bytes)) return "tamanho indisponível";
+  const units = ["B", "KiB", "MiB", "GiB", "TiB"];
+  let value = bytes, unit = 0;
+  while (value >= 1024 && unit < units.length - 1) { value /= 1024; unit += 1; }
+  return `${unit ? value.toLocaleString("pt-BR", {maximumFractionDigits: 1}) : value} ${units[unit]}`;
+}
+
+function summarizePlannedAction(action) {
+  // Default view: what will be done, in one line. The full procedure stays behind "detalhada".
+  const target = action.alvo;
+  const text = conteudo => ({tipo: "texto", conteudo});
+  if (["start", "restart"].includes(action.operacao) && target.servico === "nginx") {
+    return [{tipo: "codigo", conteudo: `/usr/bin/systemctl ${action.operacao} nginx`}];
+  }
+  if (action.operacao === "remove") {
+    return [text(`Excluir \`${target.caminho}\` (${formatBytes(target.bytes)}). Irreversível.`)];
+  }
+  if (action.operacao === "compress") {
+    return [text(`Comprimir \`${target.caminho}\` (${formatBytes(target.bytes)}) em \`${target.caminho}.gz\`.`)];
+  }
+  if (action.operacao === "terminate") {
+    return [text(`Encerrar o PID \`${target.pid}\` (\`${target.nome}\`) com \`SIGTERM\`.`)];
+  }
+  return [{tipo: "codigo", conteudo: action.comando}];
 }
 
 function describePlannedAction(action) {
@@ -1017,9 +1049,9 @@ function renderPlanEvidence(container, evidence) {
   };
   if (evidence.erro) line(evidence.erro);
   if (evidence.arquivos) {
-    line(`Volume /mnt/polaris_test · espaço livre: ${(evidence.espaco_livre ?? 0).toLocaleString("pt-BR")} bytes.`);
+    line(`Volume /mnt/polaris_test · espaço livre: ${formatBytes(evidence.espaco_livre)}.`);
     for (const file of evidence.arquivos) {
-      line(`${file.caminho} · ${file.bytes.toLocaleString("pt-BR")} bytes · ${file.proprietario} · ${new Date(file.mtime_ns / 1000000).toLocaleString("pt-BR")} · ${file.aberto === false ? "sem descritor aberto observado" : file.aberto ? "em uso" : "uso não confirmado"}`);
+      line(`${file.caminho} · ${formatBytes(file.bytes)} · ${file.proprietario} · ${new Date(file.mtime_ns / 1000000).toLocaleString("pt-BR")} · ${file.aberto === false ? "sem descritor aberto observado" : file.aberto ? "em uso" : "uso não confirmado"}`);
     }
     if (!evidence.completo) line("Inspeção limitada ou incompleta; ausência na lista não comprova ausência no volume.");
   }

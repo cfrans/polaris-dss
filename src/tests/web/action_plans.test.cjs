@@ -130,3 +130,32 @@ test("missing service exit data never invents a cause or a sudden stop", () => {
     saida_servico: {resultado: "success", tipo: "1", codigo: "0"}});
   assert.match($("plano-evidencias").children.map(p => p.textContent).join(" "), /término com código de saída.*não determinam quem/);
 });
+
+test("command shows a one-line summary by default and keeps the full procedure as detail", () => {
+  const {$, context} = setup();
+  const start = {...action("start"), operacao: "start", comando: "apply_action.py payload"};
+  const remove = {...action("remove", true), operacao: "remove", comando: "apply_action.py other",
+    alvo: {caminho: "/mnt/polaris_test/logs/app-old.log.gz", bytes: 52428800, proprietario: "root", mtime_ns: 0}};
+  context.renderActionPlan({id: 11, status: "pendente", plano: {
+    versao: "plan", coletado_em: new Date().toISOString(), aviso: "test", evidencias: {}, opcoes: [start, remove],
+  }});
+  assert.equal(textOf($("d-comando-resumo")), "/usr/bin/systemctl start nginx");
+  assert.match(textOf($("d-comando")), /Antes: validar aprovação/);
+  assert.equal($("d-comando-detalhes").hidden, false);
+  option($, "remove").onclick();
+  assert.equal(textOf($("d-comando-resumo")), "Excluir /mnt/polaris_test/logs/app-old.log.gz (50 MiB). Irreversível.");
+  assert.match($("plano-alvo").textContent, /50 MiB \(52\.428\.800 bytes\)/);
+});
+
+test("sizes are human readable in binary units", () => {
+  const {context} = setup();
+  assert.equal(context.formatBytes(512), "512 B");
+  assert.equal(context.formatBytes(1536), "1,5 KiB");
+  assert.equal(context.formatBytes(1419513364), "1,3 GiB");
+  assert.equal(context.formatBytes(undefined), "tamanho indisponível");
+  context.renderPlanEvidence(context.$("plano-evidencias"), {espaco_livre: 497025024, completo: true,
+    arquivos: [{caminho: "/mnt/polaris_test/enchimento.bin", bytes: 1419513364, proprietario: "root", mtime_ns: 0, aberto: false}]});
+  const lines = context.$("plano-evidencias").children.map(p => p.textContent);
+  assert.match(lines[0], /espaço livre: 474 MiB/);
+  assert.match(lines[1], /enchimento\.bin · 1,3 GiB · root/);
+});
