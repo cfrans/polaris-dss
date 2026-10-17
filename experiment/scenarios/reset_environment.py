@@ -10,7 +10,7 @@ import time
 from experiment.rounds import locked_round
 from experiment.scenarios.resource_controller import ResourceTransport
 from experiment.scenarios.service_controller import (
-    AdminTransport, ROOT, SCENARIOS, ScenarioError, check_environment, reset_round,
+    AdminTransport, ROOT, SCENARIOS, ScenarioError, check_environment, countdown, reset_round,
     target_lock, validate_admin,
 )
 from experiment.verify.resource_watcher import resource_probe
@@ -108,9 +108,11 @@ def main(argv=None):
                        for name in ('cpu_high', 'disk_full')})
         with conectar() as connection:
             if args.check:
-                result = check_global(connection, settings.target_ssh_host, probes, admins, scenario=args.scenario)
+                result = check_global(connection, settings.target_ssh_host, probes, admins, scenario=args.scenario,
+                                      sleep=countdown('Intervalo entre as verificações'))
             else:
-                result = reset_global(connection, args.reset_run_id, settings.target_ssh_host, probes, admins)
+                result = reset_global(connection, args.reset_run_id, settings.target_ssh_host, probes, admins,
+                                      sleep=countdown('Intervalo entre as verificações'))
         print(json.dumps(result))
     except (Exception, KeyboardInterrupt) as exc:
         detail = str(exc) if isinstance(exc, (ScenarioError, ValueError)) else type(exc).__name__

@@ -8,6 +8,9 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 ## [Não lançado]        <!-- alvo: v0.5.0 telemetria · v0.6.0 remediação · preparação v0.7.0 -->
 
 ### Adicionado
+- Verificação global, reset e `run` exibem no terminal a espera de 60 s entre as duas
+  inspeções como contagem `decorrido/total s` reescrita na mesma linha, em stderr; eventos JSON
+  continuam em stdout. **[NÃO VERIFICADO]** no laboratório.
 - Inspeção de leitura destacada, alternativas visíveis com contagem e explicação da execução
   com operação systemctl ou procedimentos Python e suas guardas, em lugar do payload Base64.
   Coletor inclui resultado/código de saída e horário de inatividade do nginx registrados pelo

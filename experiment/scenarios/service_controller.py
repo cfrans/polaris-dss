@@ -30,6 +30,24 @@ class ScenarioError(RuntimeError):
     pass
 
 
+def countdown(label: str, stream=None, tick=None):
+    """Return a sleep replacement that rewrites one stderr line as `elapsed/total s`.
+
+    Progress goes to stderr so the JSON events on stdout stay machine-readable.
+    """
+    def wait(seconds: float) -> None:
+        output = stream if stream is not None else sys.stderr
+        pause = tick if tick is not None else time.sleep
+        total = int(math.ceil(seconds))
+        for elapsed in range(total):
+            output.write(f'\r{label}: {elapsed}/{total} s ')
+            output.flush()
+            pause(min(1, seconds - elapsed))
+        output.write(f'\r{label}: {total}/{total} s \n')
+        output.flush()
+    return wait
+
+
 @dataclass
 class AdminTransport:
     runner: object
@@ -275,7 +293,8 @@ def main(argv: list[str] | None = None, *, scenario="service_down") -> int:
                 print(json.dumps({'event': 'reset_confirmed', 'run_id': args.run_id}))
             else:
                 emit = lambda message: print(json.dumps(message), flush=True)
-                run_id, timestamp = run_round(connection, metadata, admin, probe, observer, emit=emit, scenario=scenario)
+                run_id, timestamp = run_round(connection, metadata, admin, probe, observer, emit=emit, scenario=scenario,
+                                              sleep=countdown('Intervalo antes da injeção'))
                 emit({'event': 'recovery_measured', 'run_id': run_id, 'ts_verificado_ok': timestamp.isoformat()})
     except (Exception, KeyboardInterrupt) as exc:
         detail = str(exc) if isinstance(exc, (ScenarioError, ValueError)) or hasattr(exc, 'run_id') else type(exc).__name__

@@ -1,5 +1,7 @@
 """Controller and shell regression checks without SSH, Docker or real services."""
 from contextlib import contextmanager
+import io
+import json
 from dataclasses import replace
 from datetime import timedelta
 import os
@@ -371,6 +373,46 @@ def test_cli_run_emits_measurement_without_assessment_or_approval(monkeypatch, t
                             '--system-version', '0.4.0', '--timeout', '30', '--admin-user', 'administrator',
                             '--admin-key-file', str(tmp_path / 'admin_key')]) == 0
     assert 'recovery_measured' in capsys.readouterr().out
+
+
+def test_countdown_rewrites_one_line_with_elapsed_and_total_seconds():
+    stream, ticks = io.StringIO(), []
+    controller.countdown('Intervalo', stream=stream, tick=ticks.append)(3)
+    text = stream.getvalue()
+    assert ticks == [1, 1, 1]
+    assert text.split('\r')[1:] == ['Intervalo: 0/3 s ', 'Intervalo: 1/3 s ', 'Intervalo: 2/3 s ',
+                                     'Intervalo: 3/3 s \n']
+    assert text.count('\n') == 1
+
+
+def test_cli_run_shows_countdown_on_stderr_and_keeps_json_on_stdout(monkeypatch, tmp_path, capsys):
+    settings = type('Settings', (), dict(target_ssh_host=METADATA.target,
+        target_ssh_user='polaris', target_ssh_key_path=str(tmp_path / 'service_key'),
+        scripts_path=tmp_path, rules_path=tmp_path, schema_path=tmp_path))()
+    monkeypatch.setattr(controller, 'get_settings', lambda: settings)
+    monkeypatch.setattr(controller, 'load_catalog', lambda _: object())
+    monkeypatch.setattr(controller, 'load', lambda *args: type('KB', (), {'versao_kb': '1.0.1'})())
+    monkeypatch.setattr(controller, 'repository_revision', lambda: METADATA.commit_sha)
+    monkeypatch.setattr(controller, 'runner_ssh', lambda *args: lambda *args, **kwargs: None)
+    monkeypatch.setattr(controller.time, 'sleep', lambda _: None)
+
+    @contextmanager
+    def connect():
+        yield object()
+
+    def run(connection, metadata, *args, sleep, **kwargs):
+        sleep(2)
+        return 1, START
+
+    monkeypatch.setattr(controller, 'conectar', connect)
+    monkeypatch.setattr(controller, 'run_round', run)
+    assert controller.main(['run', '--arm', 'hitl', '--repetition', '1', '--operator', 'operator',
+                            '--system-version', '0.4.0', '--timeout', '30', '--admin-user', 'administrator',
+                            '--admin-key-file', str(tmp_path / 'admin_key')]) == 0
+    captured = capsys.readouterr()
+    assert 'Intervalo antes da injeção: 2/2 s' in captured.err
+    assert '/2 s' not in captured.out
+    assert json.loads(captured.out.strip().splitlines()[-1])['event'] == 'recovery_measured'
 
 
 def test_explicit_source_sha_mismatch_aborts_before_database(monkeypatch, tmp_path):
