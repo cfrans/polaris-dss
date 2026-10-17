@@ -1110,11 +1110,30 @@ function configurarDecisao(inc) {
     inc.banda === "baixa" && "Confiança baixa: a evidência não sustenta bem o diagnóstico.",
   ].filter(Boolean).join(" ");
 
+  const rotuloInicial = aprovar.textContent;
+  const cancelar = $("btn-cancelar-confirmacao");
+  // The second click is a distinct confirmation step: its own label, an explanation above the
+  // buttons and a cancel that records nothing. Reject stays hidden to avoid a mixed choice.
+  const sairDaConfirmacao = () => {
+    estado.confirmandoBandaBaixa = false;
+    aprovar.textContent = rotuloInicial;
+    aprovar.classList.remove("confirmando");
+    $("confirmacao").classList.add("oculto");
+    cancelar.classList.add("oculto");
+    rejeitar.classList.remove("oculto");
+  };
+  sairDaConfirmacao();
+  cancelar.onclick = sairDaConfirmacao;
+
   aprovar.onclick = () => {
     if (exigeConfirmacao && !estado.confirmandoBandaBaixa) {
       estado.confirmandoBandaBaixa = true;
-      $("confirmacao").textContent = `${motivos} Confira o alvo e clique novamente para confirmar.`;
+      $("confirmacao-texto").textContent = `${motivos} Confira o alvo acima e clique em "Confirmar e executar" para prosseguir, ou em "Cancelar" para voltar.`;
       $("confirmacao").classList.remove("oculto");
+      aprovar.textContent = "Confirmar e executar";
+      aprovar.classList.add("confirmando");
+      cancelar.classList.remove("oculto");
+      rejeitar.classList.add("oculto");
       return;
     }
     decidir(inc.id, true);

@@ -174,8 +174,14 @@ test("extra confirmation names its reason instead of a generic approve anyway", 
   assert.equal(label({banda: "baixa", destrutiva: false}), "Aprovar com confiança baixa");
   assert.equal(label({banda: "media", destrutiva: true}), "Aprovar ação destrutiva");
   $("btn-aprovar").onclick();
-  assert.match($("confirmacao").textContent, /^Ação destrutiva: .*clique novamente/);
+  assert.match($("confirmacao-texto").textContent, /^Ação destrutiva: .*"Confirmar e executar".*"Cancelar"/);
+  assert.equal($("btn-aprovar").textContent, "Confirmar e executar");
   assert.equal(decided.length, 0);
+  $("btn-cancelar-confirmacao").onclick();
+  assert.equal($("btn-aprovar").textContent, "Aprovar ação destrutiva");
+  assert.equal(context.estado.confirmandoBandaBaixa, false);
+  assert.equal(decided.length, 0);
+  $("btn-aprovar").onclick();
   $("btn-aprovar").onclick();
   assert.deepEqual(decided, [[1, true]]);
 });

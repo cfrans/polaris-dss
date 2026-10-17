@@ -665,7 +665,11 @@ button:disabled, input:disabled, [aria-disabled="true"] { cursor: not-allowed; }
 .btn-secundario { background: var(--fundo-cartao); color: var(--texto); border-color: var(--borda);
                   font-size: 0.85rem; padding: 0.4rem 0.9rem; }
 
-.confirmacao { margin-top: 0.75rem; color: var(--baixa); font-size: 0.92rem; font-weight: 600; }
+.confirmacao { margin-bottom: 0.85rem; padding: .8rem 1rem; border: 1px solid var(--baixa); border-left-width: 4px;
+  border-radius: 7px; background: rgb(242 100 90 / 9%); color: var(--texto); font-size: 0.92rem; }
+.confirmacao strong { display: block; color: var(--baixa); margin-bottom: .25rem; }
+.confirmacao.oculto { display: none; }
+.btn-aprovar.confirmando { background: var(--baixa); color: #2a0806; border-color: var(--baixa); }
 
 .resultado { border-top: 1px solid var(--borda); padding-top: 1.15rem; margin-top: 1.25rem; }
 .resultado h3 {

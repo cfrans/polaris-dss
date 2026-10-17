@@ -324,11 +324,15 @@
         <p class="lembrete">
           Nenhuma remediação foi executada. A ação depende da sua aprovação, que fica registrada em auditoria.
         </p>
+        <div id="confirmacao" class="confirmacao oculto" role="alert">
+          <strong>Confirmação necessária</strong>
+          <p id="confirmacao-texto"></p>
+        </div>
         <div class="botoes">
           <button id="btn-aprovar" class="btn btn-aprovar" type="button">Aprovar e executar</button>
+          <button id="btn-cancelar-confirmacao" class="btn btn-rejeitar oculto" type="button">Cancelar</button>
           <button id="btn-rejeitar" class="btn btn-rejeitar" type="button">Rejeitar</button>
         </div>
-        <p id="confirmacao" class="confirmacao oculto"></p>
       </div>
 
       <div id="resultado" class="resultado oculto">

@@ -255,6 +255,10 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
   permanecem preservadas na auditoria e a primeira ingestão vira a referência canônica.
 
 ### Alterado
+- Segundo clique de ação destrutiva ou de confiança baixa vira etapa explícita: caixa
+  "Confirmação necessária" acima dos botões com o motivo, botão "Confirmar e executar" e
+  "Cancelar", que volta sem registrar decisão; Rejeitar fica oculto durante a etapa. Teste web e
+  prévia ilustrativa aprovados.
 - Botão de aprovação que exige segundo clique informa o motivo: "Aprovar ação destrutiva" ou
   "Aprovar com confiança baixa", no lugar de "Aprovar mesmo assim"; a mensagem de confirmação
   explica cada motivo presente. Tela de diagnóstico com título "Diagnóstico" e descrição em uma
