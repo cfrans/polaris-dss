@@ -15,6 +15,24 @@ MOUNT = "/mnt/polaris_test"
 SAFE_NAME = re.compile(r"^[A-Za-z0-9_-][A-Za-z0-9_.-]{0,100}\.log(?:\.gz)?$")
 
 
+def human(size):
+    """Binary units with a decimal comma, like the card (`381,5 MiB`)."""
+    value, unit = float(size), 0
+    units = ("B", "KiB", "MiB", "GiB", "TiB")
+    while value >= 1024 and unit < len(units) - 1:
+        value /= 1024
+        unit += 1
+    return f"{int(value)} B" if unit == 0 else f"{value:.1f} {units[unit]}".replace(".", ",")
+
+
+def volume_line(vfs):
+    """Usage as `df` reports it: used / (used + available to unprivileged users)."""
+    used = (vfs.f_blocks - vfs.f_bfree) * vfs.f_frsize
+    available = vfs.f_bavail * vfs.f_frsize
+    percent = -(-100 * used // (used + available)) if used + available else 0
+    return f"volume {MOUNT}: {percent}% usado, {human(available)} livres"
+
+
 def same_file(current, target):
     return (current.st_dev, current.st_ino, current.st_size, current.st_mtime_ns,
             current.st_ctime_ns) == tuple(target[k] for k in
@@ -92,7 +110,14 @@ def apply_disk(operation, target):
             os.unlink(name, dir_fd=directory)
             temporary = None
             os.fsync(directory)
-            print(f"{operation}: {path}")
+            if operation == "compress":
+                compressed_size = os.stat(destination, dir_fd=directory, follow_symlinks=False).st_size
+                print(f"compress: {path} -> {path}.gz")
+                print(f"tamanho: {human(current.st_size)} -> {human(compressed_size)}")
+            else:
+                print(f"{operation}: {path}")
+                print(f"liberado: {human(current.st_size)}")
+            print(volume_line(os.fstatvfs(directory)))
     finally:
         if temporary:
             os.unlink(temporary, dir_fd=directory)

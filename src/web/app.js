@@ -1196,6 +1196,11 @@ async function mostrarResultado(id) {
     const r = await api(`/api/v1/incidentes/${id}/resultado`);
     if (estado.selecionado !== id) return;
     if (r.status !== "executando") {
+      if (r.ts_conclusao) {
+        // The card was rendered before execution; show the end time without a page reload.
+        $("d-fim").textContent = formatIncidentDate(r.ts_conclusao);
+        $("d-fim").title = `${r.status === "sucesso" ? "Resolvida" : "Fluxo encerrado"} · fuso horário local: ${Intl.DateTimeFormat().resolvedOptions().timeZone}`;
+      }
       const cor = r.status === "sucesso" ? "cor-alta" : r.status === "rejeitado" ? "" : "cor-baixa";
       corpo.innerHTML = `
         <p class="resultado-status ${cor}">${r.status}</p>

@@ -267,12 +267,16 @@ def test_disk_executor_refuses_changed_identity_and_symlink(disk_sandbox):
     assert outside.read_text() == "keep"
 
 
-def test_compression_preserves_content_and_refuses_existing_destination(disk_sandbox):
+def test_compression_preserves_content_and_refuses_existing_destination(disk_sandbox, capsys):
     import gzip
     module, make = disk_sandbox
     path, target = make("closed.log")
     content = path.read_bytes()
     module.apply_disk("compress", target)
+    lines = capsys.readouterr().out.splitlines()
+    assert lines[0] == f"compress: {path} -> {path}.gz"
+    assert lines[1].startswith(f"tamanho: {module.human(len(content))} -> ")
+    assert lines[2].startswith(f"volume {module.MOUNT}: ") and lines[2].endswith(" livres")
     assert not path.exists()
     assert gzip.decompress(path.with_name(path.name + ".gz").read_bytes()) == content
     second, other = make("closed.log")
@@ -287,6 +291,16 @@ def test_compression_refuses_log_opened_by_another_descriptor(disk_sandbox):
         with pytest.raises(ValueError, match="aberto"):
             module.apply_disk("compress", target)
     assert path.exists() and not path.with_name(path.name + ".gz").exists()
+
+
+def test_executor_reports_sizes_and_volume_like_df():
+    from types import SimpleNamespace
+    from src.scripts import apply_action
+    assert apply_action.human(512) == "512 B"
+    assert apply_action.human(400_000_000) == "381,5 MiB"
+    assert apply_action.human(1_357_964) == "1,3 MiB"
+    vfs = SimpleNamespace(f_blocks=1000, f_bfree=600, f_bavail=550, f_frsize=4096)
+    assert apply_action.volume_line(vfs) == f"volume {apply_action.MOUNT}: 43% usado, 2,1 MiB livres"
 
 
 def test_process_identity_change_never_signals_another_process(monkeypatch):

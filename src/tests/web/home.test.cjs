@@ -254,3 +254,24 @@ test("approving shows a spinner while the action runs and restores the button on
   assert.equal(button.disabled, false);
 });
 
+test("a finished execution fills the end time without reloading the card", async () => {
+  const {get, context} = home(() => ({status: "sucesso", output: "compress: /mnt/x.log -> /mnt/x.log.gz",
+    exit_code: 0, ts_conclusao: "2026-10-17T21:30:24Z", mttr_segundos: 34.2}));
+  const source = fs.readFileSync(path.join(__dirname, "../../web/app.js"), "utf8");
+  context.INTERVALO_RESULTADO_MS = 0;
+  context.escapar = text => text;
+  context.formatIncidentDate = value => `data:${value}`;
+  context.Intl = Intl;
+  const body = {innerHTML: ""};
+  const originalGet = context.$;
+  context.$ = id => id === "resultado-corpo" ? body : originalGet(id);
+  vm.runInContext(source.split("/* ---------- decisão ---------- */")[1]
+    .split("/* ---------- simulação ---------- */")[0], context);
+  get("d-fim").textContent = "Sem registro de fim";
+  context.estado.selecionado = 304;
+  await context.mostrarResultado(304);
+  assert.equal(get("d-fim").textContent, "data:2026-10-17T21:30:24Z");
+  assert.match(get("d-fim").attributes ? get("d-fim").title : "", /Resolvida/);
+  assert.match(body.innerHTML, /sucesso/);
+});
+

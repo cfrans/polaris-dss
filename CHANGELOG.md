@@ -8,6 +8,11 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 ## [Não lançado]        <!-- alvo: v0.5.0 telemetria · v0.6.0 remediação · preparação v0.7.0 -->
 
 ### Adicionado
+- Saída da ação de arquivo informa o resultado: na compressão, origem e destino com os tamanhos
+  antes e depois; na remoção, o espaço liberado; nas duas, o uso do volume como o `df` (percentual
+  e espaço livre). O cartão preenche o horário de fim assim que a execução termina, sem recarregar.
+  Altera o hash do catálogo de scripts: planos pendentes pedem novo diagnóstico. Testes aprovados
+  (filesystem em Linux como root); **[NÃO VERIFICADO]** no laboratório.
 - Ao aprovar ou rejeitar, o botão mostra um indicador giratório e "Executando…" enquanto a
   requisição de decisão, que inclui a execução aprovada, não retorna; o estado "executando" do
   resultado também exibe o indicador. Em erro, o botão volta ao rótulo original. Teste web
