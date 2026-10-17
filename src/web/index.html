@@ -298,8 +298,8 @@
               <p id="plano-fonte"></p>
               <div id="plano-evidencias"></div>
             </section>
-            <label id="plano-opcoes-label" for="plano-opcao">Ação a aprovar</label>
-            <select id="plano-opcao"></select>
+            <p id="plano-opcoes-label" class="plano-opcoes-titulo">Ação a aprovar</p>
+            <div id="plano-opcao" class="plano-opcoes" role="radiogroup" aria-labelledby="plano-opcoes-label"></div>
             <p id="plano-motivo"></p>
             <p id="plano-alvo"></p>
             <button id="btn-atualizar-plano" class="btn btn-secundario" type="button">Atualizar diagnóstico</button>
@@ -307,7 +307,7 @@
         <div class="acao">
           <div class="acao-linha">
               <span class="acao-rotulo">comando</span>
-              <details><summary>Ver execução detalhada</summary><pre id="d-comando"></pre></details>
+              <details><summary>Ver execução detalhada</summary><div id="d-comando" class="execucao-detalhada"></div></details>
           </div>
           <div class="acao-linha">
             <span class="acao-rotulo">reversão</span>

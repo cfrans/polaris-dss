@@ -5,14 +5,21 @@ const path = require("node:path");
 const vm = require("node:vm");
 
 class Element {
-  constructor() {
-    this.children = []; this.value = ""; this.textContent = ""; this.disabled = false;
-    this.classList = {toggle() {}};
+  constructor(tag = "div") {
+    this.tag = tag; this.children = []; this.value = ""; this.textContent = ""; this.disabled = false;
+    this.attributes = {}; this.classes = new Set();
+    this.classList = {toggle: (name, on) => { if (on) this.classes.add(name); else this.classes.delete(name); }};
   }
+  setAttribute(name, value) { this.attributes[name] = String(value); }
   replaceChildren() { this.children = []; this.value = ""; }
-  appendChild(child) { this.children.push(child); if (!this.value) this.value = child.value; }
+  appendChild(child) { this.children.push(child); }
+  append(...children) { this.children.push(...children); }
   set innerHTML(value) { throw new Error("Evidence must never be interpreted as HTML"); }
 }
+
+const textOf = element => element.children.length
+  ? element.children.map(textOf).join(element.tag === "div" ? " | " : "") : element.textContent;
+const option = ($, id) => $("plano-opcao").children.find(item => item.value === id);
 
 function setup() {
   const elements = new Map();
@@ -21,7 +28,7 @@ function setup() {
   const start = source.indexOf("function renderActionPlan(");
   const end = source.indexOf("function configurarAviso(", start);
   const decisions = [];
-  const context = {$, estado: {}, document: {createElement: () => new Element()},
+  const context = {$, estado: {}, document: {createElement: tag => new Element(tag)},
     pct: value => `${Math.round(value * 100)}%`, configurarDecisao: inc => decisions.push(inc),
     api: () => { throw new Error("Rendering must not write to the API"); }};
   vm.createContext(context); vm.runInContext(source.slice(start, end), context);
@@ -40,10 +47,13 @@ test("choosing another offered action updates exactly what will be approved and 
   const plan = {versao: "snapshot", coletado_em: new Date().toISOString(), aviso: "test",
     evidencias: {estado_servico: "inactive", indicios: []}, opcoes: [action("start"), action("restart", true)]};
   context.renderActionPlan({id: 1, status: "pendente", plano: plan});
-  assert.equal($("d-comando").textContent, "fixed-script start");
+  assert.equal(textOf($("d-comando")), "fixed-script start");
   context.estado.confirmandoBandaBaixa = true;
-  $("plano-opcao").value = "restart"; $("plano-opcao").onchange();
-  assert.equal($("d-comando").textContent, "fixed-script restart");
+  option($, "restart").onclick();
+  assert.equal($("plano-opcao").value, "restart");
+  assert.equal(option($, "restart").attributes["aria-checked"], "true");
+  assert.equal(option($, "start").attributes["aria-checked"], "false");
+  assert.equal(textOf($("d-comando")), "fixed-script restart");
   assert.equal(decisions.at(-1).destrutiva, true);
   assert.equal(context.estado.confirmandoBandaBaixa, false);
   assert.equal(context.estado.planoAtual.versao, "snapshot");
@@ -66,8 +76,10 @@ test("historical chosen action remains selected and cannot be changed", () => {
     opcoes: [action("start"), action("restart")],
   }});
   assert.equal($("plano-opcao").value, "restart");
-  assert.equal($("plano-opcao").disabled, true);
-  assert.equal($("d-comando").textContent, "fixed-script restart");
+  assert.ok($("plano-opcao").children.every(item => item.disabled));
+  option($, "start").onclick();
+  assert.equal($("plano-opcao").value, "restart");
+  assert.equal(textOf($("d-comando")), "fixed-script restart");
 });
 
 test("service execution is readable and both offered alternatives are visible", () => {
@@ -78,12 +90,36 @@ test("service execution is readable and both offered alternatives are visible", 
     versao: "plan", coletado_em: new Date().toISOString(), aviso: "test",
     evidencias: {}, opcoes: [start, restart],
   }});
-  assert.equal($("plano-opcao").size, 2);
+  assert.equal($("plano-opcao").children.length, 2);
+  assert.ok($("plano-opcao").children.every(item => item.tag === "button" && item.attributes.role === "radio"));
+  assert.match(textOf(option($, "start")), /start.*90%/);
   assert.match($("plano-opcoes-label").textContent, /2 opção/);
-  assert.match($("d-comando").textContent, /\/usr\/bin\/systemctl start nginx/);
-  assert.doesNotMatch($("d-comando").textContent, /opaque-base64/);
-  $("plano-opcao").value = "restart"; $("plano-opcao").onchange();
-  assert.match($("d-comando").textContent, /\/usr\/bin\/systemctl restart nginx/);
+  assert.match(textOf($("d-comando")), /\/usr\/bin\/systemctl start nginx/);
+  assert.doesNotMatch(textOf($("d-comando")), /opaque-base64/);
+  option($, "restart").onclick();
+  assert.match(textOf($("d-comando")), /\/usr\/bin\/systemctl restart nginx/);
+});
+
+test("execution detail keeps prose apart from highlighted command blocks", () => {
+  const {$, context} = setup();
+  const start = {...action("start"), operacao: "start", comando: "apply_action.py payload"};
+  context.renderActionPlan({id: 10, status: "pendente", plano: {
+    versao: "plan", coletado_em: new Date().toISOString(), aviso: "test", evidencias: {}, opcoes: [start],
+  }});
+  const blocks = $("d-comando").children;
+  const code = blocks.filter(block => block.tag === "pre");
+  const prose = blocks.filter(block => block.tag === "p");
+  assert.deepEqual(code.map(textOf), [
+    "/usr/bin/systemctl show nginx --property=ActiveState --value", "/usr/bin/systemctl start nginx"]);
+  assert.ok(prose.every(block => !/systemctl/.test(textOf(block))));
+  const tokens = code[1].children[0].children;
+  assert.deepEqual(tokens.filter(t => t.className !== "shell-plain").map(t => [t.className, t.textContent]), [
+    ["shell-command", "/usr/bin/systemctl"], ["shell-argument", "start"], ["shell-argument", "nginx"]]);
+  assert.equal(code[0].children[0].children.find(t => t.className === "shell-flag").textContent,
+    "--property=ActiveState");
+  const expected = prose.find(block => /Estado esperado/.test(textOf(block)));
+  assert.deepEqual(expected.children.map(piece => [piece.tag, piece.textContent]),
+    [["span", "Estado esperado: "], ["code", "inactive"], ["span", "."]]);
 });
 
 test("missing service exit data never invents a cause or a sudden stop", () => {

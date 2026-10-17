@@ -8,6 +8,12 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 ## [Não lançado]        <!-- alvo: v0.5.0 telemetria · v0.6.0 remediação · preparação v0.7.0 -->
 
 ### Adicionado
+- Ações oferecidas pelo plano aparecem como cartões selecionáveis com marcador de rádio,
+  confiança e estado selecionado destacado, navegáveis por setas, em lugar da lista nativa.
+  A execução detalhada separa explicação em prosa dos comandos, exibidos em blocos com cores
+  para programa, opções e argumentos; nomes literais no texto ficam em fonte monoespaçada.
+  Testes web e prévia ilustrativa a 800 e 390 px aprovados; **[NÃO VERIFICADO]** no laboratório
+  e revisão visual humana do cartão real.
 - Verificação global, reset e `run` exibem no terminal a espera de 60 s entre as duas
   inspeções como contagem `decorrido/total s` reescrita na mesma linha, em stderr; eventos JSON
   continuam em stdout. **[NÃO VERIFICADO]** no laboratório.

@@ -621,7 +621,7 @@ async function abrir(id) {
   renderFatores(inc.fatores);
   renderDescartadas(inc.candidatas_descartadas);
 
-  $("d-comando").textContent = inc.comando ?? "—";
+  renderExecution($("d-comando"), [{tipo: "codigo", conteudo: inc.comando ?? "—"}]);
   $("d-rollback").textContent = inc.rollback ?? "—";
   $("d-timeout").textContent = inc.timeout_segundos
     ? `${inc.timeout_segundos}s${inc.destrutiva ? " · ação destrutiva" : ""}`
@@ -837,20 +837,56 @@ function renderActionPlan(inc) {
   $("plano-aviso").textContent = plan.aviso;
   $("plano-fonte").textContent = `Consultado em ${new Date(plan.coletado_em).toLocaleString("pt-BR")}. O alvo será conferido novamente antes da ação.`;
   renderPlanEvidence($("plano-evidencias"), plan.evidencias);
-  const select = $("plano-opcao");
-  select.replaceChildren();
-  for (const action of plan.opcoes) {
-    const option = document.createElement("option");
-    option.value = action.id;
-    option.textContent = `${action.titulo} — ${pct(action.confianca)}${action.alvo.caminho ? ` — ${action.alvo.caminho}` : ""}`;
-    select.appendChild(option);
-  }
-  select.size = Math.min(4, Math.max(2, plan.opcoes.length));
-  select.value = inc.acao_escolhida?.id ?? plan.opcoes[0]?.id ?? "";
-  $("plano-opcoes-label").textContent = `${inc.status === "pendente" ? "Ação a aprovar" : "Ações oferecidas — escolha registrada"} · ${plan.opcoes.length} opção(ões)`;
-  select.disabled = inc.status !== "pendente" || !plan.opcoes.length;
+  const group = $("plano-opcao");
+  const editable = inc.status === "pendente" && plan.opcoes.length > 0;
+  const choose = id => {
+    group.value = id;
+    for (const item of group.children) {
+      const selected = item.value === id;
+      item.setAttribute("aria-checked", String(selected));
+      item.tabIndex = selected ? 0 : -1;
+      item.classList.toggle("selecionada", selected);
+    }
+    update();
+  };
+  group.replaceChildren();
+  plan.opcoes.forEach((action, index) => {
+    const item = document.createElement("button");
+    item.type = "button";
+    item.value = action.id;
+    item.className = "opcao-acao";
+    item.setAttribute("role", "radio");
+    item.disabled = !editable;
+    const mark = document.createElement("span");
+    mark.className = "opcao-marca";
+    mark.setAttribute("aria-hidden", "true");
+    const title = document.createElement("span");
+    title.className = "opcao-titulo";
+    title.textContent = action.titulo;
+    const confidence = document.createElement("span");
+    confidence.className = `opcao-confianca cor-${action.banda}`;
+    confidence.textContent = pct(action.confianca);
+    item.append(mark, title, confidence);
+    if (action.alvo.caminho) {
+      const target = document.createElement("span");
+      target.className = "opcao-alvo";
+      target.textContent = action.alvo.caminho;
+      item.appendChild(target);
+    }
+    item.onclick = () => { if (editable) choose(action.id); };
+    item.onkeydown = event => {
+      const step = {ArrowDown: 1, ArrowRight: 1, ArrowUp: -1, ArrowLeft: -1}[event.key];
+      if (!step || !editable) return;
+      event.preventDefault();
+      const next = plan.opcoes[(index + step + plan.opcoes.length) % plan.opcoes.length];
+      choose(next.id);
+      Array.from(group.children).find(child => child.value === next.id)?.focus?.();
+    };
+    group.appendChild(item);
+  });
+  $("plano-opcoes-label").textContent = `${inc.status === "pendente" ? "Escolha a ação a aprovar" : "Ações oferecidas — escolha registrada"} · ${plan.opcoes.length} opção(ões)`;
   const update = () => {
-    const action = plan.opcoes.find(a => a.id === select.value);
+    const action = plan.opcoes.find(a => a.id === group.value);
     if (!action) { $("btn-aprovar").disabled = true; return; }
     estado.confirmandoBandaBaixa = false;
     $("plano-motivo").textContent = `${action.motivo} Confiança técnica: ${pct(action.confianca_tecnica)}; preferência: ×${action.preferencia.fator.toFixed(2)} (${action.preferencia.escolhas} escolha(s)).`;
@@ -858,7 +894,7 @@ function renderActionPlan(inc) {
     $("plano-alvo").textContent = target.caminho
       ? `${target.caminho} · ${target.bytes.toLocaleString("pt-BR")} bytes · proprietário ${target.proprietario} · modificado em ${new Date(target.mtime_ns / 1000000).toLocaleString("pt-BR")}`
       : target.pid ? `PID ${target.pid} · ${target.nome}` : `Serviço ${target.servico} · estado ${target.estado}`;
-    $("d-comando").textContent = describePlannedAction(action);
+    renderExecution($("d-comando"), describePlannedAction(action));
     $("d-rollback").textContent = action.rollback;
     $("d-confianca").textContent = pct(action.confianca);
     $("d-confianca").className = `confianca-valor cor-${action.banda}`;
@@ -878,8 +914,7 @@ function renderActionPlan(inc) {
     }
     configurarDecisao({...inc, banda: action.banda, destrutiva: action.destrutiva});
   };
-  select.onchange = update;
-  update();
+  choose(inc.acao_escolhida?.id ?? plan.opcoes[0]?.id ?? "");
   $("btn-atualizar-plano").disabled = inc.status !== "pendente";
   if (plan.estado === "coletando") $("btn-atualizar-plano").disabled = true;
   $("btn-atualizar-plano").onclick = async () => {
@@ -895,21 +930,82 @@ function renderActionPlan(inc) {
 }
 
 function describePlannedAction(action) {
+  // Prose and commands are separate segments so the card can style them differently.
+  // `texto` may mark literal names with backticks; they are rendered as text, never as HTML.
   const target = action.alvo;
-  const guard = "Antes: validar aprovação persistida, versão do plano, validade de cinco minutos e identidade do alvo. Se algo mudou, recusar e solicitar novo diagnóstico.";
+  const text = conteudo => ({tipo: "texto", conteudo});
+  const code = conteudo => ({tipo: "codigo", conteudo});
   let steps;
   if (["start", "restart"].includes(action.operacao) && target.servico === "nginx") {
-    steps = `Conferir estado: /usr/bin/systemctl show nginx --property=ActiveState --value\nEstado esperado: ${target.estado}\nExecutar: /usr/bin/systemctl ${action.operacao} nginx`;
+    steps = [
+      text("1. Conferir o estado atual do serviço:"),
+      code("/usr/bin/systemctl show nginx --property=ActiveState --value"),
+      text(`Estado esperado: \`${target.estado}\`.`),
+      text(`2. ${action.operacao === "start" ? "Iniciar" : "Reiniciar"} o serviço:`),
+      code(`/usr/bin/systemctl ${action.operacao} nginx`),
+    ];
   } else if (action.operacao === "remove") {
-    steps = `Arquivo aprovado: ${target.caminho}\nConferir arquivo regular de root, fechado, sem links e com retenção mínima de sete dias.\nExcluir somente esse arquivo via os.unlink em Python. Exclusão irreversível; não escolher outro arquivo.`;
+    steps = [
+      text(`Arquivo aprovado: \`${target.caminho}\``),
+      text("Conferir arquivo regular de root, fechado, sem links e com retenção mínima de sete dias."),
+      text("Excluir somente esse arquivo via `os.unlink` em Python. Exclusão irreversível; não escolher outro arquivo."),
+    ];
   } else if (action.operacao === "compress") {
-    steps = `Origem aprovada: ${target.caminho}\nDestino: ${target.caminho}.gz\nConferir identidade, arquivo fechado e espaço temporário. Comprimir via gzip.GzipFile em Python; recusar destino existente. Sincronizar a gravação e excluir a origem somente após concluir e revalidar sua identidade.`;
+    steps = [
+      text(`Origem aprovada: \`${target.caminho}\``),
+      text(`Destino: \`${target.caminho}.gz\``),
+      text("Conferir identidade, arquivo fechado e espaço temporário. Comprimir via `gzip.GzipFile` em Python; recusar destino existente. Sincronizar a gravação e excluir a origem somente após concluir e revalidar sua identidade."),
+    ];
   } else if (action.operacao === "terminate") {
-    steps = `Processo aprovado: PID ${target.pid} (${target.nome}), início ${target.inicio}\nAbrir pidfd e conferir nome/início. Enviar SIGTERM; aguardar até dez segundos. Usar SIGKILL somente se a mesma identidade persistir. Não selecionar outro processo.`;
+    steps = [
+      text(`Processo aprovado: PID \`${target.pid}\` (\`${target.nome}\`), início ${target.inicio}`),
+      text("Abrir `pidfd` e conferir nome/início. Enviar `SIGTERM`; aguardar até dez segundos. Usar `SIGKILL` somente se a mesma identidade persistir. Não selecionar outro processo."),
+    ];
   } else {
-    return action.comando;
+    return [code(action.comando)];
   }
-  return `${guard}\n\n${steps}\n\nDepois: executar o verificador de saúde da regra e registrar saída e resultado na auditoria.`;
+  return [
+    text("Antes: validar aprovação persistida, versão do plano, validade de cinco minutos e identidade do alvo. Se algo mudou, recusar e solicitar novo diagnóstico."),
+    ...steps,
+    text("Depois: executar o verificador de saúde da regra e registrar saída e resultado na auditoria."),
+  ];
+}
+
+function tokenizeCommand(line) {
+  // One-line highlighting for the planned command: program, options and arguments.
+  return line.split(/(\s+)/).filter(Boolean).map((part, index) => ({
+    text: part,
+    kind: /^\s+$/.test(part) ? "plain" : index === 0 ? "command" : part.startsWith("-") ? "flag" : "argument",
+  }));
+}
+
+function renderExecution(container, segments) {
+  container.replaceChildren();
+  for (const segment of segments) {
+    if (segment.tipo === "codigo") {
+      const block = document.createElement("pre");
+      block.className = "execucao-codigo";
+      const codeElement = document.createElement("code");
+      for (const token of tokenizeCommand(segment.conteudo)) {
+        const span = document.createElement("span");
+        span.className = `shell-${token.kind}`;
+        span.textContent = token.text;
+        codeElement.appendChild(span);
+      }
+      block.appendChild(codeElement);
+      container.appendChild(block);
+      continue;
+    }
+    const paragraph = document.createElement("p");
+    paragraph.className = "execucao-texto";
+    segment.conteudo.split("`").forEach((piece, index) => {
+      if (!piece) return;
+      const span = document.createElement(index % 2 ? "code" : "span");
+      span.textContent = piece;
+      paragraph.appendChild(span);
+    });
+    container.appendChild(paragraph);
+  }
 }
 
 function renderPlanEvidence(container, evidence) {
