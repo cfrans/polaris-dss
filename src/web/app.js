@@ -1102,13 +1102,18 @@ function configurarDecisao(inc) {
   // diferença de comportamento entre as bandas — nenhuma delas executa sozinha.
   const exigeConfirmacao = inc.banda === "baixa" || inc.destrutiva;
   aprovar.classList.toggle("atencao", exigeConfirmacao);
-  aprovar.textContent = exigeConfirmacao ? "Aprovar mesmo assim" : "Aprovar e executar";
+  // The label names the reason for the extra confirmation instead of a generic "anyway".
+  aprovar.textContent = inc.destrutiva ? "Aprovar ação destrutiva"
+    : inc.banda === "baixa" ? "Aprovar com confiança baixa" : "Aprovar e executar";
+  const motivos = [
+    inc.destrutiva && "Ação destrutiva: o efeito não é desfeito automaticamente.",
+    inc.banda === "baixa" && "Confiança baixa: a evidência não sustenta bem o diagnóstico.",
+  ].filter(Boolean).join(" ");
 
   aprovar.onclick = () => {
     if (exigeConfirmacao && !estado.confirmandoBandaBaixa) {
       estado.confirmandoBandaBaixa = true;
-      $("confirmacao").textContent =
-        "Ação destrutiva ou confiança baixa. Confira o alvo e clique novamente para confirmar.";
+      $("confirmacao").textContent = `${motivos} Confira o alvo e clique novamente para confirmar.`;
       $("confirmacao").classList.remove("oculto");
       return;
     }

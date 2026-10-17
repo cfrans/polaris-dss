@@ -696,6 +696,7 @@ button:disabled, input:disabled, [aria-disabled="true"] { cursor: not-allowed; }
 }
 .diag-heading { display: grid; grid-template-columns: auto 1fr; column-gap: .8rem; align-items: center; }
 .diag-heading .diag-sub { grid-column: 2; }
+.diag-sub.diag-sub-linha { max-width: none; }
 
 .diag-topo {
   display: flex; justify-content: space-between; align-items: flex-start;

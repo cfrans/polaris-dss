@@ -159,3 +159,23 @@ test("sizes are human readable in binary units", () => {
   assert.match(lines[0], /espaço livre: 474 MiB/);
   assert.match(lines[1], /enchimento\.bin · 1,3 GiB · root/);
 });
+
+test("extra confirmation names its reason instead of a generic approve anyway", () => {
+  const source = fs.readFileSync(path.join(__dirname, "../../web/app.js"), "utf8");
+  const start = source.indexOf("function configurarDecisao(");
+  const end = source.indexOf("async function registrarExibicao(", start);
+  const elements = new Map();
+  const $ = id => { if (!elements.has(id)) elements.set(id, Object.assign(new Element(), {classList: {add() {}, remove() {}, toggle() {}}})); return elements.get(id); };
+  const decided = [];
+  const context = {$, estado: {}, decidir: (...args) => decided.push(args), mostrarResultado() {}};
+  vm.createContext(context); vm.runInContext(source.slice(start, end), context);
+  const label = inc => { context.configurarDecisao({id: 1, status: "pendente", ...inc}); return $("btn-aprovar").textContent; };
+  assert.equal(label({banda: "alta", destrutiva: false}), "Aprovar e executar");
+  assert.equal(label({banda: "baixa", destrutiva: false}), "Aprovar com confiança baixa");
+  assert.equal(label({banda: "media", destrutiva: true}), "Aprovar ação destrutiva");
+  $("btn-aprovar").onclick();
+  assert.match($("confirmacao").textContent, /^Ação destrutiva: .*clique novamente/);
+  assert.equal(decided.length, 0);
+  $("btn-aprovar").onclick();
+  assert.deepEqual(decided, [[1, true]]);
+});

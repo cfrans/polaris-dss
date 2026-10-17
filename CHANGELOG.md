@@ -250,6 +250,10 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
   permanecem preservadas na auditoria e a primeira ingestão vira a referência canônica.
 
 ### Alterado
+- Botão de aprovação que exige segundo clique informa o motivo: "Aprovar ação destrutiva" ou
+  "Aprovar com confiança baixa", no lugar de "Aprovar mesmo assim"; a mensagem de confirmação
+  explica cada motivo presente. Tela de diagnóstico com título "Diagnóstico" e descrição em uma
+  linha. Testes web aprovados.
 - Laboratório: R002 passa a ser alimentada por gatilho de host `Polaris: High CPU utilization`
   (mesma métrica `system.cpu.util`, janela de 2 min, tag `polaris=enabled`), com o gatilho oficial
   de 5 min desativado só no host alvo. Configuração aplicada no Zabbix e documentada em
