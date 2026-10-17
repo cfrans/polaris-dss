@@ -82,6 +82,9 @@ metric; the shorter window reduces detection time equally in both experiment arm
 companion template discovers filesystem alerts, while bundled R001 execution remains limited to
 the controlled mount. Trigger discovery does not authorize arbitrary cleanup destinations.
 Before every rehearsal confirm alert closure/rearming, no duplicates and synchronized clocks.
+Keep the operator's Zabbix frontend refresh equal to the Polaris queue polling (3 s): set the
+user profile Refresh to `3s` and follow *Monitoring → Problems* rather than a dashboard widget,
+whose minimum refresh is 10 s. Otherwise the baseline arm sees the same problem later.
 
 An IP-configured experiment target requires a matching valid incident IP. The webhook Media Type
 already sends `host_ip`; reconciliation needs host/interface read permission and an unambiguous
