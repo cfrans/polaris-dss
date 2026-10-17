@@ -8,6 +8,14 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 ## [Não lançado]        <!-- alvo: v0.5.0 telemetria · v0.6.0 remediação · preparação v0.7.0 -->
 
 ### Adicionado
+- Caixa de evidências acompanha a altura do diagnóstico; cards de confirmação ocupam o espaço
+  disponível com conteúdo centralizado verticalmente. Conferido em prévia ilustrativa e implantado
+  no laboratório com CSS confirmado por hash HTTP; revisão visual humana permanece pendente.
+- Corrigido fechamento HTML da seção de datas que comprometia a estrutura do cartão; datas ao lado
+  do título em telas largas, confiança à direita e conteúdo seguinte sem vazios. Fundos das caixas
+  suavizados e estilos responsivos corrigidos. Validado em prévia local ilustrativa a 1915, 1265 e
+  390 px e nos 32 testes web. Implantado no laboratório: API/banco saudáveis e hashes HTTP
+  conferidos; **[NÃO VERIFICADO]** revisão visual humana do cartão real.
 - [NÃO VERIFICADO] Cartão de incidente ajustado: início e fim ficam empilhados numa caixa única compacta;
   confiança, faixa, teto e explicação ficam no canto superior direito; a explicação preserva a dica
   por hover/foco e também abre em modal por clique; evidências em duas colunas, adaptadas a telas estreitas.
