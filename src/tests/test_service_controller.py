@@ -68,7 +68,7 @@ def test_controller_arms_observer_after_commit_and_before_injection_without_reco
     outcome = controller.run_round(connection, METADATA, action, lambda: True,
                                    Observer(events), sleep=lambda seconds: events.append(seconds))
     assert outcome == (1, START + timedelta(seconds=30))
-    assert events == ['check', 60, 'check', ('observe', 1), 'inject', 'wait', 'stop_observer']
+    assert events == ['check', controller.STABILITY_WAIT_S, 'check', ('observe', 1), 'inject', 'wait', 'stop_observer']
     assert 'reset' not in events
     assert not any('decisao_humana' in sql or 'SET resolvido' in sql for sql, _ in connection.calls)
     assert 'pg_advisory_unlock' in connection.calls[-1][0]

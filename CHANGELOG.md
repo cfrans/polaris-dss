@@ -14,9 +14,9 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
   para programa, opções e argumentos; nomes literais no texto ficam em fonte monoespaçada.
   Testes web e prévia ilustrativa a 800 e 390 px aprovados; **[NÃO VERIFICADO]** no laboratório
   e revisão visual humana do cartão real.
-- Verificação global, reset e `run` exibem no terminal a espera de 60 s entre as duas
-  inspeções como contagem `decorrido/total s` reescrita na mesma linha, em stderr; eventos JSON
-  continuam em stdout. **[NÃO VERIFICADO]** no laboratório.
+- Verificação global, reset e `run` exibem no terminal a espera entre as duas inspeções como
+  contagem `decorrido/total s` reescrita na mesma linha, em stderr; eventos JSON continuam em
+  stdout. Conferido no laboratório em check global real (0/60 a 60/60 s).
 - Inspeção de leitura destacada, alternativas visíveis com contagem e explicação da execução
   com operação systemctl ou procedimentos Python e suas guardas, em lugar do payload Base64.
   Coletor inclui resultado/código de saída e horário de inatividade do nginx registrados pelo
@@ -236,6 +236,10 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
   permanecem preservadas na auditoria e a primeira ingestão vira a referência canônica.
 
 ### Alterado
+- Intervalo entre as duas amostras de saúde antes da injeção e nas verificações globais reduzido
+  de 60 s para 30 s, em constante única (`STABILITY_WAIT_S`). Os itens do Zabbix são coletados a
+  cada 10 s; a espera é instrumentação, fora de t0..t5. Manual do laboratório e contratos dos
+  controladores atualizados. **[NÃO VERIFICADO]** no laboratório.
 - Registros recentes ocultam por padrão alertas sem regra atribuída. Checkbox no canto inferior direito,
   ao lado dos ocultos, permite incluí-los e lembra a escolha no navegador; filtro SQL é aplicado antes do limite de seis
   registros, inclusive quando um alerta sem regra foi encerrado na origem. Auditoria, fila

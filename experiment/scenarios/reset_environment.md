@@ -30,7 +30,7 @@ Under the shared target lock, the command:
    mount is isolated, about 2 GB and free of unrelated data. CPU instrumentation requires one
    available CPU. The disk check preserves every file; an empty-fixture check never resets it.
 3. Runs the independent nginx/CPU/disk health probes without sudo.
-4. Waits 60 seconds and repeats all checks. These two samples do not prove continuous health.
+4. Waits 30 seconds and repeats all checks. These two samples do not prove continuous health.
 
 Inspection uses administrative privileges only for the fixed instrumentation check scripts.
 No check creates a fixture, injects a fault, stops/starts a service or removes a file. Failure
@@ -55,12 +55,12 @@ timestamps, approvals and operational audit records are unchanged. If another sc
 following reset, the command reports failure rather than cleaning it. A failure after reset may
 mean its action already occurred; inspect the target and existing evidence before retrying.
 
-Because explicit reset already executes both global inspection passes (60 seconds apart) under the
+Because explicit reset already executes both global inspection passes (30 seconds apart) under the
 shared target lock, a subsequent `service_down` or `cpu_high` round on the same target and frozen
 revision—with no changes to services, processes, volumes or external intervention since that
 approved reset—may reuse the reset's global inspection instead of running a separate `--check`
 command before invoking the scenario controller (which still runs its own scenario checks and
-60-second wait). An explicit `--check` remains required before the first round of a session, after
+30-second wait). An explicit `--check` remains required before the first round of a session, after
 any resumption or intermediate intervention, and for `disk_full` after preparing the disk fixture.
 
 Exit 0 emits JSON with `automatic_checks_passed`, target, optional `reset_run_id` and an explicit
@@ -72,7 +72,7 @@ printed. Check evidence after interruption or transport error; no automatic rese
 
 - Confirm NTP/skew on the controller, Zabbix and target.
 - Confirm old monitoring problems closed and triggers rearmed, without duplicates.
-- Wait at least five minutes between rounds; the 60-second check is not that interval.
+- Wait at least five minutes between rounds; the 30-second check is not that interval.
 - Confirm frozen SHA/image/KB, scenario/arm order and identical monitoring intervals.
 - Save raw round/audit evidence before reset and inspect unrelated services/files for collateral effects.
 

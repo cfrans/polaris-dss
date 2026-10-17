@@ -10,7 +10,7 @@ import time
 from experiment.rounds import locked_round
 from experiment.scenarios.resource_controller import ResourceTransport
 from experiment.scenarios.service_controller import (
-    AdminTransport, ROOT, SCENARIOS, ScenarioError, check_environment, countdown, reset_round,
+    AdminTransport, ROOT, SCENARIOS, STABILITY_WAIT_S, ScenarioError, check_environment, countdown, reset_round,
     target_lock, validate_admin,
 )
 from experiment.verify.resource_watcher import resource_probe
@@ -44,7 +44,7 @@ def check_under_lock(connection, target, probes, admins, scenario, sleep):
     if set(probes) != set(SCENARIOS) or set(admins) != set(SCENARIOS):
         raise ValueError('all three scenarios must be inspected')
     inspect_all(connection, target, probes, admins, scenario)
-    sleep(60)
+    sleep(STABILITY_WAIT_S)
     inspect_all(connection, target, probes, admins, scenario)
     return dict(automatic_checks_passed=True, target=target, next_scenario=scenario,
                 manual_checks_required=list(MANUAL_CHECKS))

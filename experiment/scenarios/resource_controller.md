@@ -16,7 +16,7 @@ it does not replace the full environment checklist. Use one canonical target str
 
 The controllers share the same target lock with R003. They refuse any unassessed, non-discarded
 round or pending/executing R001/R002/R003 incident on that configured target. They check health,
-wait 60 seconds, repeat checks, commit `t0`, arm the observer on a separate connection, and then
+wait 30 seconds, repeat checks, commit `t0`, arm the observer on a separate connection, and then
 inject. The operator conducts baseline or persisted HITL approval in another terminal/browser.
 Failures preserve/discard evidence using the same rules as R003. No recovery happens automatically.
 
@@ -86,7 +86,7 @@ python -m experiment.scenarios.resource_controller disk_full prepare --admin-use
 This creates `polaris_r001_lab.log.gz` from 400 MiB of random input, verifies gzip integrity,
 sets its age to eight days and records a root-owned 0600 `.polaris-r001.state` manifest. Preparation
 is outside the measured round; it must finish within the transport's 180-second deadline. The
-round's own 60-second settling period follows preparation. A partial preparation remains visible
+round's own 30-second settling period follows preparation. A partial preparation remains visible
 for administrative review; it does not create a retrospective round. If preparation failed before
 any round exists, the administrator may explicitly send the fixed disk script with `reset` after
 checking that no round/controller is active. Do not remove an untracked fixture blindly.

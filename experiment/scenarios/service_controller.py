@@ -24,6 +24,9 @@ ROOT = Path(__file__).resolve().parents[2]
 SCRIPT = Path(__file__).resolve().with_name('service_scenario.sh')
 LOCK_NAMESPACE = 17017
 SCENARIOS = {'service_down': 'R003', 'cpu_high': 'R002', 'disk_full': 'R001'}
+# Gap between the two health samples taken before injection and in global checks. Zabbix items
+# poll every 10 s, so 30 s spans three collection cycles; it is instrumentation, outside t0..t5.
+STABILITY_WAIT_S = 30
 
 
 class ScenarioError(RuntimeError):
@@ -157,7 +160,7 @@ def run_round(connection, metadata: RoundMetadata, admin_action, probe, observer
     with target_lock(connection, metadata.target):
         check_environment(connection, metadata.target, probe)
         admin_action('check')
-        sleep(60)
+        sleep(STABILITY_WAIT_S)
         check_environment(connection, metadata.target, probe)
         admin_action('check')
         observer.target = metadata.target

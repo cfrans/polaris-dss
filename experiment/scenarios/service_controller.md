@@ -52,7 +52,7 @@ Sequence:
 2. Refuse prior unassessed rounds of any scenario and pending/executing R001/R002/R003 incidents
    for that target.
    Confirm healthy nginx through the independent verifier and the administrative script's check.
-3. Wait 60 seconds, then repeat those checks. An unhealthy environment is refused, not repaired.
+3. Wait 30 seconds, then repeat those checks. An unhealthy environment is refused, not repaired.
 4. Persist and commit the round and `t0` using the existing registration helper.
 5. Start the independent observer on its own PostgreSQL connection, wait until it claims the row,
    then send the fixed `inject` script through administrative SSH stdin. The script checks that

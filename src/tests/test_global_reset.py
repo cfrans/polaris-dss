@@ -32,7 +32,7 @@ def test_global_check_inspects_every_scenario_twice_without_mutating_database():
                                 sleep=lambda seconds: events.append(seconds))
     assert result['automatic_checks_passed'] is True
     assert result['manual_checks_required']
-    assert events == [('service_down', 'check'), ('cpu_high', 'check'), ('disk_full', 'check-clean'), 60,
+    assert events == [('service_down', 'check'), ('cpu_high', 'check'), ('disk_full', 'check-clean'), reset.STABILITY_WAIT_S,
                       ('service_down', 'check'), ('cpu_high', 'check'), ('disk_full', 'check-clean')]
     assert not any(sql.startswith(('INSERT', 'UPDATE', 'DELETE', 'TRUNCATE')) for sql, _ in connection.calls)
 
