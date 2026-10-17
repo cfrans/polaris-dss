@@ -8,6 +8,10 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 ## [Não lançado]        <!-- alvo: v0.5.0 telemetria · v0.6.0 remediação · preparação v0.7.0 -->
 
 ### Adicionado
+- Base de conhecimento do operador para o braço baseline (`experiment/kb_operador/`): R001 e R002
+  executados a partir do KB com comandos copiados, R003 de memória. Inclui remoção de gzip antigo
+  e compressão de log fechado em R001 e listagem por `top` em modo batch em R002. Comandos
+  conferidos no alvo do laboratório; a compressão não se aplica ao fixture da coleta.
 - Saída da ação de arquivo informa o resultado: na compressão, origem e destino com os tamanhos
   antes e depois; na remoção, o espaço liberado; nas duas, o uso do volume como o `df` (percentual
   e espaço livre). O cartão preenche o horário de fim assim que a execução termina, sem recarregar.

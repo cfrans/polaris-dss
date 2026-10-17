@@ -6,6 +6,10 @@
 > operator does not run the Polaris collector or executor below; those bytes stay a reference for
 > the policy limits only. The policy below still bounds what a correct manual remedy may change
 > (which file, which process), and every command and navigation still counts as a step.
+>
+> The operator procedures live in [the operator knowledge base](kb_operador/README.md): R001 and
+> R002 are executed from the KB, with commands copied; R003 is typed from memory. Opening or
+> scrolling the KB counts as a navigation step; web search and AI assistance are not used.
 
 Use this procedure with KB 1.0.2. It supersedes blanket disk cleanup and late CPU candidate
 selection in the earlier runbooks. Rehearse it before official collection. It changes neither
