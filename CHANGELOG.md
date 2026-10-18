@@ -38,22 +38,21 @@ ensaios e mantêm a marca onde o comportamento específico não foi observado no
   antes e depois; na remoção, o espaço liberado; nas duas, o uso do volume como o `df` (percentual
   e espaço livre). O cartão preenche o horário de fim assim que a execução termina, sem recarregar.
   Altera o hash do catálogo de scripts: planos pendentes pedem novo diagnóstico. Testes aprovados
-  (filesystem em Linux como root); **[NÃO VERIFICADO]** no laboratório.
+  (filesystem em Linux como root); Verificação de 18/Out/2026: saída observada no laboratório (fumaça 19: 400,1 MiB liberados, volume a 75%; a leitura do volume foi corrigida na v1.0.1). Fim sem recarregar **[NÃO VERIFICADO]** isoladamente.
 - Ao aprovar ou rejeitar, o botão mostra um indicador giratório e "Executando…" enquanto a
   requisição de decisão, que inclui a execução aprovada, não retorna; o estado "executando" do
   resultado também exibe o indicador. Em erro, o botão volta ao rótulo original. Teste web
-  aprovado; **[NÃO VERIFICADO]** no laboratório.
+  aprovado; Verificação de 18/Out/2026: indicador observado pelo autor no laboratório (rodada 14).
 - Comando do plano mostra por padrão um resumo de uma linha (o comando systemctl, ou o que será
   excluído, comprimido ou encerrado, com o tamanho); o procedimento completo com guardas fica em
   "Ver execução detalhada". Tamanhos na inspeção de leitura em unidades binárias legíveis (KiB,
   MiB, GiB); o alvo aprovado mantém também a contagem exata de bytes. Testes web e prévia
-  ilustrativa aprovados; **[NÃO VERIFICADO]** no laboratório.
+  ilustrativa aprovados; Verificação de 18/Out/2026: resumo e detalhe recolhido observados no laboratório (captura da rodada 14); tamanhos da inspeção de R001 **[NÃO VERIFICADO]** por captura.
 - Ações oferecidas pelo plano aparecem como cartões selecionáveis com marcador de rádio,
   confiança e estado selecionado destacado, navegáveis por setas, em lugar da lista nativa.
   A execução detalhada separa explicação em prosa dos comandos, exibidos em blocos com cores
   para programa, opções e argumentos; nomes literais no texto ficam em fonte monoespaçada.
-  Testes web e prévia ilustrativa a 800 e 390 px aprovados; **[NÃO VERIFICADO]** no laboratório
-  e revisão visual humana do cartão real.
+  Testes web e prévia ilustrativa a 800 e 390 px aprovados; Verificação de 18/Out/2026: observado no laboratório e aprovado visualmente pelo autor (rodadas 10 a 14).
 - Verificação global, reset e `run` exibem no terminal a espera entre as duas inspeções como
   contagem `decorrido/total s` reescrita na mesma linha, em stderr; eventos JSON continuam em
   stdout. Conferido no laboratório em check global real (0/60 a 60/60 s).
@@ -69,28 +68,28 @@ ensaios e mantêm a marca onde o comportamento específico não foi observado no
   do título em telas largas, confiança à direita e conteúdo seguinte sem vazios. Fundos das caixas
   suavizados e estilos responsivos corrigidos. Validado em prévia local ilustrativa a 1915, 1265 e
   390 px e nos 32 testes web. Implantado no laboratório: API/banco saudáveis e hashes HTTP
-  conferidos; **[NÃO VERIFICADO]** revisão visual humana do cartão real.
-- [NÃO VERIFICADO] Cartão de incidente ajustado: início e fim ficam empilhados numa caixa única compacta;
+  conferidos; Verificação de 18/Out/2026: cartão real revisado pelo autor nas sessões de 16 e 17/Out.
+- Cartão de incidente ajustado: início e fim ficam empilhados numa caixa única compacta;
   confiança, faixa, teto e explicação ficam no canto superior direito; a explicação preserva a dica
-  por hover/foco e também abre em modal por clique; evidências em duas colunas, adaptadas a telas estreitas.
-- [NÃO VERIFICADO] Preferências permitem definir o período (1–365 dias, padrão 30) da contagem de ocorrências da
+  por hover/foco e também abre em modal por clique; evidências em duas colunas, adaptadas a telas estreitas. Verificação de 18/Out/2026: superado em parte em 17/Out: início e fim passaram a duas colunas sem caixa, no cartão aprovado pelo autor.
+- Preferências permitem definir o período (1–365 dias, padrão 30) da contagem de ocorrências da
   mesma regra no mesmo host, exibida no cartão do incidente. A configuração não altera a confiança
-  nem invalida planos pendentes.
+  nem invalida planos pendentes. Verificação de 18/Out/2026: contagem e período padrão exibidos no laboratório (incidente 313: 8 ocorrências em 30 dias); alteração do período **[NÃO VERIFICADO]**, não exercitada para não mudar a configuração antes da coleta.
 - [NÃO VERIFICADO] Cartão de incidente mais compacto, retorno animado entre preferências e tela anterior,
   ícone de preferências e estilos próprios para campos numéricos e listas suspensas.
-- [NÃO VERIFICADO] Preferências exibidas em tela própria, agrupadas em recomendações e histórico de incidentes;
+- Preferências exibidas em tela própria, agrupadas em recomendações e histórico de incidentes;
   detalhes do incidente reorganizados em duas colunas, com host/IP, horários com segundos e histórico
-  filtrado por host, regra e período configurado.
-- [NÃO VERIFICADO] Link do host para a interface do Zabbix disponível somente quando `event.get` retorna
-  um único host com identificador válido; link abre em nova aba e não impede o cartão quando indisponível.
+  filtrado por host, regra e período configurado. Verificação de 18/Out/2026: host/IP, horários com segundos e ocorrências por host, regra e período observados no laboratório (captura da rodada 14 e API); tela de preferências **[NÃO VERIFICADO]** por captura.
+- Link do host para a interface do Zabbix disponível somente quando `event.get` retorna
+  um único host com identificador válido; link abre em nova aba e não impede o cartão quando indisponível. Verificação de 18/Out/2026: link presente no detalhe do laboratório (`zabbix_host_url` com o hostid do vm-alvo); abertura em nova aba **[NÃO VERIFICADO]**.
 - [NÃO VERIFICADO] Explicação da confiança aparece como dica flutuante com ícone informativo; ocorrências
   abrem em modal com cada registro selecionável para consultar seu cartão.
-- [NÃO VERIFICADO] Cinco verificações de diagnóstico são apresentadas em cards horizontais, com a
-  quantidade de colunas adaptada à largura disponível.
+- Cinco verificações de diagnóstico são apresentadas em cards horizontais, com a
+  quantidade de colunas adaptada à largura disponível. Verificação de 18/Out/2026: observado na captura da tela de diagnóstico do laboratório.
 - [NÃO VERIFICADO] Abertura e fechamento animados para ciência de scripts, aviso de segurança, preferências,
   diagnóstico e cartões, respeitando a opção de movimento reduzido do sistema.
-- [NÃO VERIFICADO NO LABORATÓRIO] novo fluxo completo de remediação com planos, escolhas e
-  preferências; coletor de leitura exercitado no alvo, aplicação/ensaios gerais ainda pendentes.
+- Novo fluxo completo de remediação com planos, escolhas e
+  preferências. Verificação de 18/Out/2026: ensaios 10, 11 e 14 e fumaças 18 e 19, com preferência padrão de desempate.
 - Diagnóstico SSH limitado e somente de leitura antes da apresentação de R001/R002/R003,
   com metadados de arquivos, identidade de processo e padrões conhecidos de erros do nginx.
   Incidente persistido antes da coleta; tempo diagnóstico incluído no processamento/MTTR.
@@ -111,7 +110,7 @@ ensaios e mantêm a marca onde o comportamento específico não foi observado no
   `/api/v1/historico-decisoes` agrega decisões persistidas por horário UTC, preenche intervalos
   vazios e distingue falha de consulta de ausência de decisões. Não calcula KPIs experimentais.
   Validado em PostgreSQL descartável e prévia identificada com dados sintéticos;
-  **[NÃO VERIFICADO NO LABORATÓRIO]** implantação desta rota e consulta do histórico real.
+  Verificação de 18/Out/2026: rota implantada; a série de sete dias coincide com a contagem direta no banco (3, 7 e 2 decisões por dia).
 - Relógio local com segundos/data no cabeçalho da interface e do laboratório, com fuso
   indicado no tooltip. Painel compacto de CPU/memória do servidor via GET `/api/v1/servidor`
   e host técnico explícito em `POLARIS_ZABBIX_HOST`; somente leitura de itens no Zabbix,
@@ -135,7 +134,7 @@ ensaios e mantêm a marca onde o comportamento específico não foi observado no
   exige histórico/debug desligados antes de injetar. Backup e relatório persistem no host, sem
   sobrescrita; análise montada somente no processo temporário. Roteiro público incluído.
   Testes offline com Docker falso e geração de comandos/avaliação aprovados;
-  **[NÃO VERIFICADO NO LABORATÓRIO]** montagens Compose e fluxo integrado, adiado pelo autor.
+  Verificação de 18/Out/2026: `lab.py` e montagens Compose usados em todas as rodadas de 17 e 18/Out; a tela de laboratório não foi usada nos ensaios.
 - Checklist global do experimento e reset administrativo explícito por ID de rodada: lock
   compartilhado por alvo, recusa de rodada não avaliada/incidente aberto e inspeção dos três
   cenários em duas amostras separadas por 60 s. Check de mount vazio não prepara nem remove
@@ -143,7 +142,7 @@ ensaios e mantêm a marca onde o comportamento específico não foi observado no
   reparar sujeira alheia ou mudar avaliação/timestamps/aprovação. NTP, rearme, cinco minutos,
   versões e efeitos colaterais continuam em checklist manual explícito. Runbooks atualizados.
   Suite local com PostgreSQL descartável: 430 aprovados, sem pulos; shells/SSH simulados.
-  **[NÃO VERIFICADO NO LABORATÓRIO]** inspeções físicas, acesso administrativo e ciclo integrado.
+  Verificação de 18/Out/2026: checklist e reset usados em todas as rodadas de 17 e 18/Out; o intervalo passou a 30 s.
 - Relatório descritivo do experimento: resumos de MTTR e passos por cenário/braço com média,
   desvio amostral, mínimo/máximo, contagens e lacunas; redução entre braços e comparação por
   repetições pareadas. Acerto humano agregado por contagens; decomposição somente com vínculo
@@ -160,7 +159,7 @@ ensaios e mantêm a marca onde o comportamento específico não foi observado no
   Observadores sem sudo: disco abaixo de 85%; CPU abaixo de 70% por janela amostrada de 30 s,
   seguida de três checks qualificadores. Registro só de t5; avaliação humana e aprovação preservadas.
   Locks e t0/t5 testados no PostgreSQL local descartável; scripts testados com utilitários falsos.
-  **[NÃO VERIFICADO NO LABORATÓRIO]** SSH/sudo, systemd, pressão real e ensaio dos dois braços.
+  Verificação de 18/Out/2026: R001 e R002 ensaiados nos dois braços (rodadas 11, 14, 16 e 17).
   Runbooks e CLIs documentados; análise/checklist global implementados em continuidade, com ensaio integrado pendente.
 - Controlador experimental R003 para baseline/HITL: checks de nginx e registros anteriores,
   espera de 60 s, commit de t0 antes de armar observador e injetar, com lock por alvo e conexão
@@ -169,7 +168,7 @@ ensaios e mantêm a marca onde o comportamento específico não foi observado no
   Nenhuma aprovação automática ou remediação pelo controlador; timestamps/auditoria preservados.
   Observador cancelável; erros e IDs mantidos para avaliação. CLI documentada para checkout ou
   imagem sem Git. Testes simulados e shell com comandos falsos aprovados;
-  **[NÃO VERIFICADO NO LABORATÓRIO]** SSH/sudo e ciclo real dos dois braços. Locks compartilhados
+  Verificação de 18/Out/2026: R003 ensaiado nos dois braços (rodadas 10 e 15); a espera passou a 30 s. Locks compartilhados
   validados localmente no PostgreSQL descartável em continuidade. t0 inclui o
   despacho da instrumentação anterior à parada; esse atraso ainda deve ser observado no ensaio.
 - Gestão das rodadas do experimento: registro de t0 confirmado antes de um callback de injeção,
@@ -177,7 +176,7 @@ ensaios e mantêm a marca onde o comportamento específico não foi observado no
   evidências. Valida alvo, versão da base, horários e aprovação do incidente para avaliação HITL
   de sucesso; regras divergentes e falhas sem incidente permanecem registráveis. O observador
   recusa gravar t5 após avaliação humana. Testes simulados locais aprovados;
-  **[NÃO VERIFICADO NO LABORATÓRIO]** transações/locks reais e integração. Controlador R003 e
+  Verificação de 18/Out/2026: vínculo, avaliação, descarte e reset usados em todas as rodadas de 17 e 18/Out. Controlador R003 e
   reset explícito preparados em continuidade; controladores CPU/disco preparados posteriormente,
   checklist global implementado em continuidade; ensaio integrado pendente.
 - Tela de ciência apresenta finalidade e efeitos dos cinco scripts padrão, mantendo o nome
@@ -189,8 +188,9 @@ ensaios e mantêm a marca onde o comportamento específico não foi observado no
   com proteção contra observadores concorrentes e sobrescrita de rodadas descartadas ou medidas.
 - Exportação CSV das rodadas com metadados, timestamps UTC e MTTR em segundos, preservando rodadas
   incompletas e descartadas e recusando substituir arquivos existentes. Verificação local com
-  respostas simuladas; **[NÃO VERIFICADO NO LABORATÓRIO]** o uso integrado de SSH/PostgreSQL e o
-  procedimento manual. Integração no laboratório continua pendente; demais cenários e análise foram implementados em continuidade;
+  respostas simuladas; Verificação de 18/Out/2026: relatórios gerados no laboratório antes e depois de cada descarte; o
+  relatório reproduzido do snapshot da fumaça 19 em banco descartável, com a imagem v1.0.1-experimento,
+  saiu byte a byte idêntico nos sete arquivos. Demais cenários e análise foram implementados em continuidade;
   não houve coleta experimental. O acerto humano foi preparado em continuidade; a view do servidor
   sem migração 007 ainda usa desfechos aprovados e não equivale ao acerto do protocolo.
 
@@ -199,7 +199,7 @@ ensaios e mantêm a marca onde o comportamento específico não foi observado no
   amostra de 1 s (incidente 305), porque comparava um processo com o limiar de 90% do host. A
   inspeção passa a usar amostra de três segundos e a oferecer encerrar o maior consumidor
   permitido com pelo menos 50% de uma CPU. Testes com os valores reais dos incidentes 303 e 305;
-  altera o hash do catálogo. **[NÃO VERIFICADO]** no laboratório.
+  altera o hash do catálogo. Verificação de 18/Out/2026: opção oferecida no laboratório na rodada 14 (stress-ng-cpu, PID 226249).
 - Marcos operacionais de `audit_log` (`ts_criacao`, `ts_exibicao`, `ts_aprovacao`,
   `ts_conclusao`) e `evento_ingestao.registrado_em` passam a usar
   `clock_timestamp()` em `src/db/queries.py` em vez de `NOW()` congelado no início da transação.
@@ -208,7 +208,7 @@ ensaios e mantêm a marca onde o comportamento específico não foi observado no
   invariante de aprovação humana, registros históricos e o `t5` experimental independente
   (`experiment_run.ts_verificado_ok`). Validado nos testes unitários e no PostgreSQL 16.15
   descartável (`18 passed` em `test_persistencia.py`; regressão completa Linux/PostgreSQL com
-  `527 passed, 2 skipped` em `12,12s`); **[NÃO VERIFICADO NO LABORATÓRIO]** implantação no PCT 151.
+  `527 passed, 2 skipped` em `12,12s`); Verificação de 18/Out/2026: implantado; conclusão registrada 2,6 s após a aprovação nos incidentes 300 e 301 (P-54 encerrada).
 - Janelas F3/F4 usam `statement_timestamp()`, com limite fixo por consulta e compatível com
   condições temporais de índice. O teste de conclusão compara `ts_conclusao` com o relógio do
   PostgreSQL capturado ao final do executor simulado, incluindo atraso anterior à execução
@@ -237,7 +237,7 @@ ensaios e mantêm a marca onde o comportamento específico não foi observado no
   240 testes selecionados aprovados em PostgreSQL descartável, incluindo os dois caminhos reais
   de ingestão até o vínculo. Regressão completa Linux/PostgreSQL em 14/Out: 525 aprovados,
   dois gráficos opcionais pulados por Matplotlib ausente, um aviso de depreciação Starlette.
-  **[NÃO VERIFICADO NO LABORATÓRIO]** implantação e evento novo real.
+  Verificação de 18/Out/2026: IP 192.168.0.152 preservado e vínculo com a regra esperada em todas as rodadas HITL.
 - Views de MTTR, passos e decomposição alinhadas ao relatório descritivo pela migração 008:
   exigem avaliação humana e preservam falhas válidas; MTTR com apenas um braço informa a
   amostra existente e mantém medidas/redução ausentes como nulas. Decomposição exige vínculo
@@ -309,15 +309,15 @@ ensaios e mantêm a marca onde o comportamento específico não foi observado no
 - Laboratório: R002 passa a ser alimentada por gatilho de host `Polaris: High CPU utilization`
   (mesma métrica `system.cpu.util`, janela de 2 min, tag `polaris=enabled`), com o gatilho oficial
   de 5 min desativado só no host alvo. Configuração aplicada no Zabbix e documentada em
-  `docs/operations.md`; **[NÃO VERIFICADO]** primeiro evento real com o gatilho novo.
+  `docs/operations.md`; Verificação de 18/Out/2026: eventos reais do gatilho novo nas rodadas 13, 14 e 17 (detecção entre 1 min 55 s e 3 min 30 s).
 - t5 do cenário de CPU passa a ser a primeira amostra saudável da janela de 30 s, gravada só
   depois de a janela e os três checks a confirmarem; antes era a primeira amostra após a janela,
   o que somava cerca de 30 s ao MTTR. Serviço e disco, sem janela, não mudam. Testes do
-  observador atualizados; **[NÃO VERIFICADO]** no laboratório.
+  observador atualizados; Verificação de 18/Out/2026: observado nas rodadas 14 e 17.
 - Intervalo entre as duas amostras de saúde antes da injeção e nas verificações globais reduzido
   de 60 s para 30 s, em constante única (`STABILITY_WAIT_S`). Os itens do Zabbix são coletados a
   cada 10 s; a espera é instrumentação, fora de t0..t5. Manual do laboratório e contratos dos
-  controladores atualizados. **[NÃO VERIFICADO]** no laboratório.
+  controladores atualizados. Verificação de 18/Out/2026: contagem 30/30 s observada em todas as rodadas de 17 e 18/Out.
 - Registros recentes ocultam por padrão alertas sem regra atribuída. Checkbox no canto inferior direito,
   ao lado dos ocultos, permite incluí-los e lembra a escolha no navegador; filtro SQL é aplicado antes do limite de seis
   registros, inclusive quando um alerta sem regra foi encerrado na origem. Auditoria, fila
@@ -330,7 +330,7 @@ ensaios e mantêm a marca onde o comportamento específico não foi observado no
   não abrem incidentes nem registram sua exibição. Marca vetorial original e título retornam
   à home; cabeçalho compacto reúne ferramentas em menu e exibe a versão declarada pela API,
   inclusive no laboratório. Navegação e 20 testes JavaScript conferidos localmente;
-  **[NÃO VERIFICADO NO LABORATÓRIO]** implantação e aceite visual deste lote.
+  Verificação de 18/Out/2026: implantado e em uso pelo autor nos ensaios; versão declarada exibida no cabeçalho.
 - Cabeçalho permanece fixo e reduz a altura ao rolar, com vidro fosco. Indicadores discretos
   de Zabbix/banco e estados verdes, âmbar, vermelhos ou cinza distinguem conexão confirmada,
   atenção, falha e consulta indisponível. Engrenagem abre menu com ícones e transição; painéis
