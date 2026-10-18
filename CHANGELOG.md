@@ -7,6 +7,11 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 
 ## [Não lançado]
 
+## [1.0.2-experimento] — 2026-10-18
+
+Substitui a coleta interrompida na v1.0.1-experimento; nova amostra após validação de prontidão.
+Notas em [v1.0.2-experimento](docs/release-notes/v1.0.2-experimento.md).
+
 ### Corrigido
 - Reconciliação recebia alertas sem alvo/chave SSH e criava incidentes sem plano, bloqueando
   a aprovação se chegasse antes do webhook. API e reconciliador passam a compartilhar alvo,
@@ -20,8 +25,10 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 Validação: 588 testes Python aprovados em Linux/PostgreSQL descartável, dois gráficos opcionais
 pulados por Matplotlib ausente; 43 testes JavaScript aprovados. Inclui R001/R002/R003 por ambos
 os caminhos de ingestão, duplicata durante inspeção, sete recusas de configuração e recuperação
-do card sem plano. Leitura SSH nos serviços implantados e ensaio físico pós-correção ainda
-[NÃO VERIFICADO] nesta etapa.
+do card sem plano. Leituras SSH reais dos três cenários aprovadas na API e no reconciliador
+implantados no 151, com paridade de configuração/montagens aprovada e diagnóstico 5/5. O ensaio
+físico com injeção e aprovação pós-correção ainda está [NÃO VERIFICADO]; não é substituído por
+leituras de ambiente saudável ou por testes automatizados.
 
 ## [1.0.1-experimento] — 2026-10-18
 

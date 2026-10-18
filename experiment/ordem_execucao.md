@@ -6,6 +6,11 @@ combinações cenário × braço aparecem uma vez, em ordem aleatória. Isso esp
 longo da coleta, para que aprendizado, fadiga e variação do laboratório não se concentrem num braço,
 e mantém pares completos se a coleta for interrompida ao fim de um bloco.
 
+**Reinício em 18/Out/2026:** a coleta v1.0.1-experimento foi interrompida integralmente após um
+defeito no diagnóstico por reconciliação. A v1.0.2-experimento conserva este sorteio, sem
+ressortear em função dos resultados. Depois de validar a prontidão, iniciar novamente pela
+ordem 1, bloco 1, repetição 1, com novos IDs e evidências separadas da amostra interrompida.
+
 Siga a tabela em ordem. A coluna **repetição** é o valor de `--repetition` no `lab.py run`.
 Rodada inválida é descartada com motivo e **repetida na mesma posição** antes de seguir; falha válida
 de remediação é resultado e não se repete. Desvios da ordem são registrados com o motivo.
