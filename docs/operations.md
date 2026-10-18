@@ -44,6 +44,13 @@ This grants root-capable command execution through `timeout`; it is not a per-sc
 Use only a disposable, isolated target under this model. There is no automatic target installer.
 Check actual binary paths/packages and permissions before testing; do not modify sudo during a round.
 
+Both API and reconciler need the same `TARGET_SSH_HOST`, `TARGET_SSH_USER` and service key.
+Compose mounts the dedicated service key and verified `known_hosts` read-only in both processes:
+reconciliation also collects diagnostic evidence when it creates an incident. It does not execute
+remediation; execution remains in the API after persisted human approval. Recreate both services
+after changing their configuration. A missing plan disables approval and offers an explicit
+**Atualizar diagnóstico** action; do not bypass it or grant approval through SQL.
+
 Start database/API, migrate, then start reconciliation:
 
 ```bash
@@ -54,7 +61,7 @@ docker compose up -d polaris-reconciler
 docker compose ps
 ```
 
-The current schema has eight numbered migrations. They run once with checksum verification;
+The current schema has ten numbered migrations. They run once with checksum verification;
 never edit an applied SQL file or recreate the volume to bypass a migration problem.
 Wait for API/database health before calling endpoints. A connection reset immediately after
 recreation can occur during startup; a persistent failure needs logs/diagnostics.

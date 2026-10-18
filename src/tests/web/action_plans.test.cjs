@@ -185,3 +185,18 @@ test("extra confirmation names its reason instead of a generic approve anyway", 
   $("btn-aprovar").onclick();
   assert.deepEqual(decided, [[1, true]]);
 });
+
+for (const rule of ["R001", "R002", "R003"]) {
+  test(`missing ${rule} plan blocks approval and offers explicit diagnostic recovery`, async () => {
+    const {$, context} = setup();
+    const requests = [];
+    context.api = async (url, options) => requests.push([url, options.method]);
+    context.abrir = async id => requests.push([id, "open"]);
+    context.renderActionPlan({id: 320, regra: rule, status: "pendente", plano: null});
+    assert.equal($("btn-aprovar").disabled, true);
+    assert.equal($("plano-acao").classes.has("oculto"), false);
+    assert.equal(context.estado.planoAtual, null);
+    await $("btn-atualizar-plano").onclick();
+    assert.deepEqual(requests, [["/api/v1/incidentes/320/diagnostico", "POST"], [320, "open"]]);
+  });
+}

@@ -58,7 +58,7 @@ from .schemas import (
 )
 
 router = APIRouter()
-VERSAO_API = "1.0.1-experimento"
+VERSAO_API = "1.0.2-experimento"
 LOGGER = logging.getLogger(__name__)
 
 

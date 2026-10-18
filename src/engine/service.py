@@ -135,6 +135,8 @@ def ingerir(
     if not persistido.duplicado and sugestao is not None and sugestao.rule.id in PLAN_RULES:
         previous_version = sugestao.plan["versao"] if sugestao.plan else None
         evidence = collect_evidence(alert)
+        if evidence is None and sugestao.plan is not None:
+            evidence = {"erro": "Não foi possível coletar o diagnóstico remoto."}
         if evidence is not None:
             preferences = queries.read_preferences(conn)
             choices = queries.action_choices(conn, alert.hostname, sugestao.rule.id) if usar_historico else {}

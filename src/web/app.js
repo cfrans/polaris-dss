@@ -834,7 +834,25 @@ function renderDescartadas(lista) {
 function renderActionPlan(inc) {
   const plan = inc.plano;
   estado.planoAtual = plan ?? null;
-  $("plano-acao").classList.toggle("oculto", !plan);
+  const missing = !plan && inc.status === "pendente" && ["R001", "R002", "R003"].includes(inc.regra);
+  $("plano-acao").classList.toggle("oculto", !plan && !missing);
+  if (missing) {
+    $("btn-aprovar").disabled = true;
+    $("plano-aviso").textContent = "Diagnóstico indisponível. Atualize antes de escolher e aprovar uma ação.";
+    for (const id of ["plano-evidencias", "plano-opcao"]) $(id).replaceChildren();
+    for (const id of ["plano-fonte", "plano-opcoes-label", "plano-motivo", "plano-alvo"]) $(id).textContent = "";
+    $("btn-atualizar-plano").disabled = false;
+    $("btn-atualizar-plano").onclick = async () => {
+      $("btn-atualizar-plano").disabled = true;
+      try {
+        await api(`/api/v1/incidentes/${inc.id}/diagnostico`, {method: "POST"});
+        await abrir(inc.id);
+      } catch (error) {
+        alert(error.message);
+        $("btn-atualizar-plano").disabled = false;
+      }
+    };
+  }
   if (!plan) return;
   $("plano-aviso").textContent = plan.aviso;
   $("plano-fonte").textContent = `Consultado em ${new Date(plan.coletado_em).toLocaleString("pt-BR")}. O alvo será conferido novamente antes da ação.`;

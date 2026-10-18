@@ -23,10 +23,13 @@ def workspace(tmp_path, monkeypatch):
                "TARGET_SSH_KEY_PATH": "/run/secrets/polaris_ssh_key", "POLARIS_CONFIDENCE_HISTORY": "false",
                "POLARIS_DEBUG": "false", "DB_HOST": "polaris-db", "DB_PORT": "5432",
                "DB_USER": "postgres", "DB_NAME_AUDIT": "fixture"}
-    recon_env = {key: value for key, value in api_env.items() if not key.startswith("TARGET_") and key != "POLARIS_DEBUG"}
+    recon_env = {key: value for key, value in api_env.items() if key != "POLARIS_DEBUG"}
+    mounts = [
+        {"target": "/run/secrets/polaris_ssh_key", "type": "bind", "source": str(service_key), "read_only": True},
+        {"target": "/etc/ssh/ssh_known_hosts", "type": "bind", "source": str(tmp_path / "known_hosts"), "read_only": True}]
     config = {"services": {"polaris-api": {"environment": api_env, "volumes": [
-        {"target": "/run/secrets/polaris_ssh_key", "type": "bind", "source": str(service_key)}]},
-        "polaris-reconciler": {"environment": recon_env}}}
+        {"target": "/run/secrets/polaris_ssh_key", "type": "bind", "source": str(service_key), "read_only": True}, mounts[1]]},
+        "polaris-reconciler": {"environment": recon_env, "volumes": [dict(m) for m in mounts]}}}
     state = SimpleNamespace(config=config, api_env=dict(api_env), recon_env=dict(recon_env),
                             code=0, commands=[], overlays=[], admin_key=admin_key, service_key=service_key)
 
@@ -40,7 +43,9 @@ def workspace(tmp_path, monkeypatch):
         if "config" in command:
             return json.dumps(state.config)
         if "exec" in command:
-            return json.dumps(state.recon_env if "polaris-reconciler" in command else state.api_env)
+            env = dict(state.recon_env if "polaris-reconciler" in command else state.api_env)
+            env["_ssh_files_readable"] = getattr(state, "ssh_readable", True)
+            return json.dumps(env)
         if "ps" in command:
             return "fake-api-id"
         raise AssertionError(command)
@@ -163,3 +168,24 @@ def test_paths_resolve_from_script_instead_of_calling_directory(workspace, tmp_p
     elsewhere.mkdir()
     monkeypatch.chdir(elsewhere)
     assert lab.host_path("evidence/round.json") == lab.ROOT / "evidence/round.json"
+
+
+@pytest.mark.parametrize("problem", ["missing-target", "different-target", "missing-key", "writable-key", "missing-known-hosts", "different-key", "unreadable-ssh"])
+def test_reconciler_diagnostic_configuration_must_match_api_before_injection(workspace, problem):
+    service = workspace.config["services"]["polaris-reconciler"]
+    if problem in {"missing-target", "different-target"}:
+        value = "" if problem == "missing-target" else "other.invalid"
+        service["environment"]["TARGET_SSH_HOST"] = value
+        workspace.recon_env["TARGET_SSH_HOST"] = value
+    elif problem == "missing-key":
+        service["volumes"] = service["volumes"][1:]
+    elif problem == "writable-key":
+        service["volumes"][0]["read_only"] = False
+    elif problem == "missing-known-hosts":
+        service["volumes"] = service["volumes"][:1]
+    elif problem == "different-key":
+        service["volumes"][0]["source"] = "/other/key"
+    else:
+        workspace.ssh_readable = False
+    assert lab.main(run_options(workspace)) == 2
+    assert workspace.commands == []

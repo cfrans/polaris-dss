@@ -119,7 +119,15 @@ services:
 
       POLARIS_CONFIDENCE_HISTORY: ${POLARIS_CONFIDENCE_HISTORY:-true}
       POLARIS_POLLING_SEGUNDOS: ${POLARIS_POLLING_SEGUNDOS:-30}
+      TARGET_SSH_HOST: ${TARGET_SSH_HOST:-}
+      TARGET_SSH_USER: ${TARGET_SSH_USER:-polaris}
+      TARGET_SSH_KEY_PATH: /run/secrets/polaris_ssh_key
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    # O reconciliador também ingere incidentes e monta planos por inspeção de leitura.
+    # Não executa remediação; essa continua exclusiva da API após aprovação persistida.
+    volumes:
+      - ${TARGET_SSH_KEY_PATH:-./secrets/polaris_ed25519}:/run/secrets/polaris_ssh_key:ro
+      - ./secrets/known_hosts:/etc/ssh/ssh_known_hosts:ro
     depends_on:
       polaris-db:
         condition: service_healthy

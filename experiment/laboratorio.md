@@ -38,6 +38,9 @@ Also review untracked files and the actual build history; pinning an image does 
 Before controlled conditions, set `POLARIS_DEBUG=false` and `POLARIS_CONFIDENCE_HISTORY=false`
 in the existing `.env` and recreate **both** API and reconciler after saving. Do not print `.env`
 or copy credentials into evidence. Confirm the effective values through the diagnostic.
+Before injection, the launcher also requires API/reconciler SSH target, user and key path parity,
+identical read-only service-key/known-hosts mounts and readable SSH files in both running containers.
+The reconciler needs those files for diagnostic reads, not for approving or executing remediation.
 The launcher refuses `run` when live API/reconciler settings diverge from Compose or when history
 or debug remain enabled. It reads only selected non-secret fields for that comparison.
 

@@ -297,6 +297,11 @@ name** already monitored by Zabbix, then recreate the API service so the environ
 The browser only reads `GET /api/v1/servidor`; Zabbix credentials stay on the API server.
 This setting is independent of the SSH remediation target.
 
+The API and reconciler share the same service SSH target, user and read-only key/verified host
+mounts. Both ingestion paths must collect the diagnostic plan; only the API can execute a
+remediation after persisted human approval. Recreate both services when changing that configuration.
+
+
 The monitored host needs enabled, supported percentage items collected at least every 30 seconds:
 `system.cpu.util[,idle]` for CPU, and `vm.memory.size[pavailable]` for memory.
 CPU usage is `100 - idle`; memory usage is `100 - pavailable` (or the standard derived

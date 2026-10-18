@@ -7,6 +7,22 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 
 ## [Não lançado]
 
+### Corrigido
+- Reconciliação recebia alertas sem alvo/chave SSH e criava incidentes sem plano, bloqueando
+  a aprovação se chegasse antes do webhook. API e reconciliador passam a compartilhar alvo,
+  usuário e montagens de chave/known_hosts em leitura apenas para diagnóstico de R001/R002/R003;
+  remediação permanece condicionada à aprovação humana persistida na API.
+- Lançador recusa nova injeção quando API/reconciliador divergem na identidade SSH, nas montagens
+  ou quando os arquivos não são legíveis nos containers. Plano ausente desabilita aprovação
+  e oferece atualização explícita no card; ausência de evidência não deixa diagnóstico real
+  indefinidamente em coleta nem libera uma ação genérica.
+
+Validação: 588 testes Python aprovados em Linux/PostgreSQL descartável, dois gráficos opcionais
+pulados por Matplotlib ausente; 43 testes JavaScript aprovados. Inclui R001/R002/R003 por ambos
+os caminhos de ingestão, duplicata durante inspeção, sete recusas de configuração e recuperação
+do card sem plano. Leitura SSH nos serviços implantados e ensaio físico pós-correção ainda
+[NÃO VERIFICADO] nesta etapa.
+
 ## [1.0.1-experimento] — 2026-10-18
 
 Substitui a v1.0.0-experimento antes de qualquer rodada oficial; nenhuma amostra foi coletada com a

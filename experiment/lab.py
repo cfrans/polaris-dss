@@ -71,15 +71,42 @@ def validate_admin(args):
 
 def validate_controlled_runtime():
     configuration = json.loads(capture(compose("config", "--format", "json")))
+    target_fields = ["TARGET_SSH_HOST", "TARGET_SSH_USER", "TARGET_SSH_KEY_PATH"]
+    api_target = None
+    api_mounts = None
     for service in ("polaris-api", "polaris-reconciler"):
         fields = ["DB_HOST", "DB_PORT", "DB_USER", "DB_NAME_AUDIT", "POLARIS_CONFIDENCE_HISTORY"]
+        fields += target_fields
         if service == "polaris-api":
-            fields += ["POLARIS_DEBUG", "TARGET_SSH_HOST", "TARGET_SSH_USER", "TARGET_SSH_KEY_PATH"]
-        expression = f"import json,os; print(json.dumps({{k:os.environ.get(k) for k in {fields!r}}}))"
+            fields += ["POLARIS_DEBUG"]
+        expression = (f"import json,os; d={{k:os.environ.get(k) for k in {fields!r}}}; "
+                      "d['_ssh_files_readable']=all(os.path.isfile(p) and os.access(p,os.R_OK) "
+                      "for p in [os.environ.get('TARGET_SSH_KEY_PATH',''),'/etc/ssh/ssh_known_hosts']); "
+                      "print(json.dumps(d))")
         actual = json.loads(capture(compose("exec", "-T", service, "python", "-c", expression)))
         expected = configuration["services"][service]["environment"]
         if any(str(actual.get(key)).lower() != str(expected.get(key)).lower() for key in fields):
             raise ValueError("Compose e serviços em execução divergem; recrie API/reconciler e confira o diagnóstico.")
+        if actual.get("_ssh_files_readable") is not True:
+            raise ValueError(f"Chave SSH e known_hosts precisam estar legíveis no {service} antes da rodada.")
+        target = {key: actual.get(key) for key in target_fields}
+        if not all(target.values()):
+            raise ValueError(f"Configure alvo, usuário e chave SSH também no {service} antes da rodada.")
+        if api_target is None:
+            api_target = target
+        elif target != api_target:
+            raise ValueError("API e reconciliador devem inspecionar o mesmo alvo com a mesma identidade SSH.")
+        mounts = {item.get("target"): item for item in configuration["services"][service].get("volumes", [])}
+        for destination in (target["TARGET_SSH_KEY_PATH"], "/etc/ssh/ssh_known_hosts"):
+            mount = mounts.get(destination, {})
+            if mount.get("type") != "bind" or mount.get("read_only") is not True:
+                raise ValueError(f"Monte chave e known_hosts em leitura apenas também no {service}.")
+        sources = {path: mounts[path].get("source") for path in
+                   (target["TARGET_SSH_KEY_PATH"], "/etc/ssh/ssh_known_hosts")}
+        if api_mounts is None:
+            api_mounts = sources
+        elif sources != api_mounts:
+            raise ValueError("API e reconciliador devem usar a mesma chave e known_hosts do host.")
         if str(actual.get("POLARIS_CONFIDENCE_HISTORY")).lower() != "false":
             raise ValueError("Desligue POLARIS_CONFIDENCE_HISTORY na API e no reconciler antes da rodada.")
         if service == "polaris-api" and str(actual.get("POLARIS_DEBUG")).lower() != "false":
