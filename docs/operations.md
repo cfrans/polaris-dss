@@ -157,3 +157,13 @@ Use [the full laboratory workflow](../experiment/laboratorio.md) for actions tha
 Do not run them unattended. Stop when the wrong target, unexpected data, clock discrepancy,
 unknown host key, wrong image or ambiguous identity is found. Cleanup is separate from measured
 remediation; no successful check alone establishes experimental correctness.
+
+
+### Polling event evidence
+
+The reconciliation API account also needs read access to trigger items (`trigger.get`) and item
+history (`history.get`). A single item on a single event host supplies the key and the latest
+historical sample at or before the event clock/ns. The current `lastvalue` is deliberately not used
+for an older event. Missing history remains partial evidence; multiple items/hosts are not guessed.
+Event tags still take precedence for type classification, while the actual metric key continues
+to constrain rule matching. This does not authorize remediation or alter the human approval guard.

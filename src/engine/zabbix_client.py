@@ -13,6 +13,7 @@ O caminho primário de ingestão é o webhook; o cliente é a rede de proteção
 from __future__ import annotations
 
 import re
+import logging
 import posixpath
 from dataclasses import dataclass, replace
 from datetime import datetime, timezone
@@ -22,6 +23,8 @@ from urllib.parse import urlencode, urlparse, urlunparse
 import httpx
 
 from .models import Alert, normalize_ip
+
+LOGGER = logging.getLogger(__name__)
 
 # O Zabbix expõe a severidade ora como número, ora como rótulo, dependendo da macro usada.
 SEVERIDADE_POR_CODIGO = {
@@ -228,7 +231,7 @@ class ZabbixClient:
         sua interface principal de agente por IP. Identidade ausente/ambígua permanece sem IP.
         """
         problemas = self._chamar("problem.get", {
-            "output": ["eventid", "name", "severity", "clock", "objectid"],
+            "output": ["eventid", "name", "severity", "clock", "ns", "objectid"],
             "selectTags": ["tag", "value"],
             "recent": False,
             "sortfield": ["eventid"],
@@ -265,7 +268,56 @@ class ZabbixClient:
             p["host"] = host_por_evento.get(p["eventid"], "")
             hosts = event_hosts.get(p["eventid"], [])
             p["host_ip"] = addresses.get(str(hosts[0].get("hostid"))) if len(hosts) == 1 else None
+        self._enriquecer_metricas(problemas, event_hosts)
         return problemas
+
+    def _enriquecer_metricas(self, problemas, event_hosts):
+        """Resolve item inequívoco e valor histórico, nunca LASTVALUE após o evento."""
+        trigger_ids = sorted({str(p["objectid"]) for p in problemas
+                              if str(p.get("objectid", "")).isdigit()})
+        if not trigger_ids:
+            return
+        try:
+            triggers = self._chamar("trigger.get", {
+                "triggerids": trigger_ids, "output": ["triggerid"],
+                "selectItems": ["itemid", "key_", "value_type", "hostid"],
+            }) or []
+        except ZabbixError:
+            LOGGER.warning("Reconciliação sem metadados de itens; evidência parcial.")
+            return
+        items_by_trigger = {str(t["triggerid"]): t.get("items") or [] for t in triggers}
+        for problem in problemas:
+            hosts = event_hosts.get(problem["eventid"], [])
+            items = items_by_trigger.get(str(problem.get("objectid")), [])
+            # ITEM.KEY1 follows expression order; selectItems does not promise that order.
+            # Multiple items/hosts are ambiguous, so do not select the first arbitrarily.
+            if len(hosts) != 1 or len(items) != 1:
+                continue
+            item = items[0]
+            if str(item.get("hostid")) != str(hosts[0].get("hostid")) or not item.get("key_"):
+                continue
+            problem["item_key"] = item["key_"]
+            clock = str(problem.get("clock", ""))
+            value_type = str(item.get("value_type", ""))
+            if not clock.isdigit() or value_type not in {"0", "1", "2", "3", "4"}:
+                continue
+            try:
+                cutoff = (int(clock), int(problem.get("ns", 0)))
+                samples = self._chamar("history.get", {
+                    "itemids": [str(item["itemid"])], "history": int(value_type),
+                    "output": ["itemid", "clock", "ns", "value"],
+                    "time_till": int(clock), "sortfield": ["clock", "ns"],
+                    "sortorder": "DESC", "limit": 100,
+                }) or []
+                eligible = [s for s in samples
+                            if str(s.get("itemid")) == str(item["itemid"])
+                            and (int(s["clock"]), int(s.get("ns", 0))) <= cutoff]
+                if eligible:
+                    latest = max(eligible, key=lambda s: (int(s["clock"]), int(s.get("ns", 0))))
+                    problem["item_value"] = latest["value"]
+            except (ZabbixError, KeyError, ValueError, TypeError):
+                LOGGER.warning("Reconciliação sem valor histórico do evento %s; evidência parcial.",
+                               problem["eventid"])
 
     def alertas_abertos(self) -> list[Alert]:
         """Problemas em aberto já convertidos para o formato interno."""
@@ -278,6 +330,8 @@ class ZabbixClient:
                 "severity": p.get("severity"),
                 "event_time": p.get("clock"),
                 "tags": p.get("tags", []),
+                "item_key": p.get("item_key"),
+                "item_value": p.get("item_value"),
             })
             for p in self.problemas_abertos()
         ]

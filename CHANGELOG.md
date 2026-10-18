@@ -7,6 +7,27 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 
 ## [Não lançado]
 
+## [1.0.3-experimento] — 2026-10-18
+
+Corrige o enriquecimento do polling revelado no ensaio CPU com webhook pausado.
+Notas em [v1.0.3-experimento](docs/release-notes/v1.0.3-experimento.md).
+
+### Corrigido
+- Reconciliação passa a consultar a chave do item associado ao gatilho, além de tags, texto,
+  severidade, horário e identidade do host. Eventos sem polaris_tipo podem usar o mesmo fallback
+  de classificação do webhook, incluindo CPU oficial/system.cpu.util, disco e nginx.
+- Valor da métrica é consultado no histórico até o clock/ns do evento; nunca usa lastvalue atual
+  como se fosse medição da detecção. Item/host ambíguo, histórico ausente ou sem permissão mantém
+  evidência parcial, sem escolher o primeiro item nem inventar valor. A allowlist de métricas é
+  preservada mesmo quando a tag explícita contradiz a chave real.
+
+Validação: 603 testes Python aprovados em Linux/PostgreSQL isolado, dois gráficos opcionais
+pulados. Quinze regressões novas usam respostas de problem/event/host/trigger/history, conferem
+paridade dos campos normalizados com o webhook e persistência de R001/R002/R003 sem aprovação.
+Código candidato leu eventos históricos reais 739/743/745 sem alterar auditoria: classificou
+R001/R003/R002 e recuperou valores de 96,000239%, 0 e 100%, respectivamente. Ensaio físico do
+polling enriquecido permanece [NÃO VERIFICADO] até execução pelo operador.
+
 ## [1.0.2-experimento] — 2026-10-18
 
 Substitui a coleta interrompida na v1.0.1-experimento; nova amostra após validação de prontidão.

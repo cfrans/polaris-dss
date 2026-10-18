@@ -407,3 +407,9 @@ This project is licensed under the MIT License — see the [LICENSE](LICENSE) fi
 ---
 
 *Built with ☕ and determination.*
+
+
+Reconciliation enriches open events with the unambiguous trigger item key and historical value
+at or before the event time. Its API role needs trigger/item history read permission in addition
+to problem/event/host/interface reads. Missing or ambiguous data stays partial; polling does not
+substitute the current value for evidence at detection. See [operations](docs/operations.md).
