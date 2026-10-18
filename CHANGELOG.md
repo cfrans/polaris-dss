@@ -38,7 +38,7 @@ ensaios e mantêm a marca onde o comportamento específico não foi observado no
   antes e depois; na remoção, o espaço liberado; nas duas, o uso do volume como o `df` (percentual
   e espaço livre). O cartão preenche o horário de fim assim que a execução termina, sem recarregar.
   Altera o hash do catálogo de scripts: planos pendentes pedem novo diagnóstico. Testes aprovados
-  (filesystem em Linux como root); Verificação de 18/Out/2026: saída observada no laboratório (fumaça 19: 400,1 MiB liberados, volume a 75%; a leitura do volume foi corrigida na v1.0.1). Fim sem recarregar **[NÃO VERIFICADO]** isoladamente.
+  (filesystem em Linux como root); Verificação de 18/Out/2026: saída observada no laboratório (fumaça 19: 400,1 MiB liberados, volume a 75%; a leitura do volume foi corrigida na v1.0.1). Fim sem recarregar validado pelo autor no laboratório em 18/Out/2026.
 - Ao aprovar ou rejeitar, o botão mostra um indicador giratório e "Executando…" enquanto a
   requisição de decisão, que inclui a execução aprovada, não retorna; o estado "executando" do
   resultado também exibe o indicador. Em erro, o botão volta ao rótulo original. Teste web
@@ -47,7 +47,7 @@ ensaios e mantêm a marca onde o comportamento específico não foi observado no
   excluído, comprimido ou encerrado, com o tamanho); o procedimento completo com guardas fica em
   "Ver execução detalhada". Tamanhos na inspeção de leitura em unidades binárias legíveis (KiB,
   MiB, GiB); o alvo aprovado mantém também a contagem exata de bytes. Testes web e prévia
-  ilustrativa aprovados; Verificação de 18/Out/2026: resumo e detalhe recolhido observados no laboratório (captura da rodada 14); tamanhos da inspeção de R001 **[NÃO VERIFICADO]** por captura.
+  ilustrativa aprovados; Verificação de 18/Out/2026: resumo e detalhe recolhido observados no laboratório (captura da rodada 14); tamanhos da inspeção de R001 validado pelo autor no laboratório em 18/Out/2026.
 - Ações oferecidas pelo plano aparecem como cartões selecionáveis com marcador de rádio,
   confiança e estado selecionado destacado, navegáveis por setas, em lugar da lista nativa.
   A execução detalhada separa explicação em prosa dos comandos, exibidos em blocos com cores
@@ -75,19 +75,19 @@ ensaios e mantêm a marca onde o comportamento específico não foi observado no
 - Preferências permitem definir o período (1–365 dias, padrão 30) da contagem de ocorrências da
   mesma regra no mesmo host, exibida no cartão do incidente. A configuração não altera a confiança
   nem invalida planos pendentes. Verificação de 18/Out/2026: contagem e período padrão exibidos no laboratório (incidente 313: 8 ocorrências em 30 dias); alteração do período **[NÃO VERIFICADO]**, não exercitada para não mudar a configuração antes da coleta.
-- [NÃO VERIFICADO] Cartão de incidente mais compacto, retorno animado entre preferências e tela anterior,
-  ícone de preferências e estilos próprios para campos numéricos e listas suspensas.
+- Cartão de incidente mais compacto, retorno animado entre preferências e tela anterior,
+  ícone de preferências e estilos próprios para campos numéricos e listas suspensas. Verificação: validado pelo autor no laboratório em 18/Out/2026.
 - Preferências exibidas em tela própria, agrupadas em recomendações e histórico de incidentes;
   detalhes do incidente reorganizados em duas colunas, com host/IP, horários com segundos e histórico
-  filtrado por host, regra e período configurado. Verificação de 18/Out/2026: host/IP, horários com segundos e ocorrências por host, regra e período observados no laboratório (captura da rodada 14 e API); tela de preferências **[NÃO VERIFICADO]** por captura.
+  filtrado por host, regra e período configurado. Verificação de 18/Out/2026: host/IP, horários com segundos e ocorrências por host, regra e período observados no laboratório (captura da rodada 14 e API); tela de preferências validado pelo autor no laboratório em 18/Out/2026.
 - Link do host para a interface do Zabbix disponível somente quando `event.get` retorna
-  um único host com identificador válido; link abre em nova aba e não impede o cartão quando indisponível. Verificação de 18/Out/2026: link presente no detalhe do laboratório (`zabbix_host_url` com o hostid do vm-alvo); abertura em nova aba **[NÃO VERIFICADO]**.
-- [NÃO VERIFICADO] Explicação da confiança aparece como dica flutuante com ícone informativo; ocorrências
-  abrem em modal com cada registro selecionável para consultar seu cartão.
+  um único host com identificador válido; link abre em nova aba e não impede o cartão quando indisponível. Verificação de 18/Out/2026: link presente no detalhe do laboratório (`zabbix_host_url` com o hostid do vm-alvo); abertura em nova aba validado pelo autor no laboratório em 18/Out/2026.
+- Explicação da confiança aparece como dica flutuante com ícone informativo; ocorrências
+  abrem em modal com cada registro selecionável para consultar seu cartão. Verificação: validado pelo autor no laboratório em 18/Out/2026.
 - Cinco verificações de diagnóstico são apresentadas em cards horizontais, com a
   quantidade de colunas adaptada à largura disponível. Verificação de 18/Out/2026: observado na captura da tela de diagnóstico do laboratório.
-- [NÃO VERIFICADO] Abertura e fechamento animados para ciência de scripts, aviso de segurança, preferências,
-  diagnóstico e cartões, respeitando a opção de movimento reduzido do sistema.
+- Abertura e fechamento animados para ciência de scripts, aviso de segurança, preferências,
+  diagnóstico e cartões, respeitando a opção de movimento reduzido do sistema. Verificação: validado pelo autor no laboratório em 18/Out/2026.
 - Novo fluxo completo de remediação com planos, escolhas e
   preferências. Verificação de 18/Out/2026: ensaios 10, 11 e 14 e fumaças 18 e 19, com preferência padrão de desempate.
 - Diagnóstico SSH limitado e somente de leitura antes da apresentação de R001/R002/R003,
@@ -248,7 +248,7 @@ ensaios e mantêm a marca onde o comportamento específico não foi observado no
 - Cursor de mão padronizado nos links, botões e demais controles clicáveis; controles
   desabilitados indicam indisponibilidade. Explicação dos scripts abre e fecha com transição
   curta de altura, respeitando a preferência de movimento reduzido e cliques durante a animação.
-  Conferido em prévia local; **[NÃO VERIFICADO NO LABORATÓRIO]** este refinamento visual.
+  Conferido em prévia local e validado pelo autor no laboratório em 18/Out/2026.
 - Tela de ciência compacta: finalidade e efeitos ficam recolhidos ao abrir/reabrir,
   com expansão por clique ou teclado. A opção de colorir sintaxe fica menor e à direita,
   na mesma linha da explicação recolhida. Código integral, rolagem e navegação preservados.
@@ -347,7 +347,7 @@ ensaios e mantêm a marca onde o comportamento específico não foi observado no
   preserva horários, contagens e erros como texto literal. Falha na atualização limpa valores
   antigos para não apresentá-los como atuais. A interface informa que o histórico contém
   até 20 atividades significativas, sem prometer log completo. Prévia local e testes JavaScript
-  conferidos; **[NÃO VERIFICADO NO LABORATÓRIO]** implantação deste acabamento.
+  conferidos; implantado e validado pelo autor no laboratório em 18/Out/2026.
 - A chave pública validada do host alvo passa a persistir em `secrets/known_hosts` e é montada em
   leitura apenas no container; recriar a API não apaga a confiança SSH. Hosts desconhecidos ou com
   chave alterada continuam recusados.
