@@ -14,7 +14,7 @@ from enum import Enum
 from string import Formatter
 from typing import Any
 
-VERSAO_MOTOR = "0.2.0"
+VERSAO_MOTOR = "0.3.0"
 
 SEVERIDADES = ("baixa", "media", "alta", "critica")
 

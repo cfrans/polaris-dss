@@ -5,7 +5,17 @@ Todas as mudanças relevantes deste projeto são documentadas neste arquivo.
 O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o versionamento segue
 [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
-## [Não lançado]        <!-- alvo: v0.5.0 telemetria · v0.6.0 remediação · preparação v0.7.0 -->
+## [Não lançado]
+
+## [1.0.0-experimento] — 2026-10-17
+
+Código congelado para a coleta do experimento ([notas](docs/release-notes/v1.0.0-experimento.md)).
+API 1.0.0-experimento, motor 0.3.0, base de conhecimento 1.0.2, migrações 001–010. Reúne o trabalho
+de telemetria, remediação central e instrumentação posterior à v0.4.0, sem tags intermediárias.
+Suíte completa em Linux com PostgreSQL 16.15: 570 testes aprovados e 2 opcionais pulados; 40 testes
+JavaScript aprovados. Seis ensaios gerais no laboratório em 17/Out (três cenários nos dois braços),
+todos descartados como ensaio. Itens marcados **[NÃO VERIFICADO]** foram escritos antes desses
+ensaios e mantêm a marca onde o comportamento específico não foi observado no laboratório.
 
 ### Adicionado
 - Base de conhecimento do operador para o braço baseline (`experiment/kb_operador/`): R001 e R002
