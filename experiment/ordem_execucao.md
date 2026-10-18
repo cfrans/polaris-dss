@@ -1,7 +1,7 @@
 # Ordem de execução da coleta oficial
 
 Sorteada uma única vez em 17/Out/2026, antes da primeira rodada oficial, com a versão
-`v1.0.0-experimento`. Desenho em **blocos permutados**: cinco blocos; em cada bloco, as seis
+`v1.0.0-experimento`; vale para a `v1.0.1-experimento`, que a substituiu antes de qualquer rodada oficial. Desenho em **blocos permutados**: cinco blocos; em cada bloco, as seis
 combinações cenário × braço aparecem uma vez, em ordem aleatória. Isso espalha os dois braços ao
 longo da coleta, para que aprendizado, fadiga e variação do laboratório não se concentrem num braço,
 e mantém pares completos se a coleta for interrompida ao fim de um bloco.

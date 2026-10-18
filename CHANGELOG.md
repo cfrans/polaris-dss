@@ -7,6 +7,18 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 
 ## [Não lançado]
 
+## [1.0.1-experimento] — 2026-10-18
+
+Substitui a v1.0.0-experimento antes de qualquer rodada oficial; nenhuma amostra foi coletada com a
+versão anterior. Notas em [v1.0.1-experimento](docs/release-notes/v1.0.1-experimento.md).
+
+### Corrigido
+- A saída da remoção e da compressão informava o uso do volume de antes da liberação (ensaio de
+  fumaça 18: 97% depois de remover 400 MiB), porque media o volume com o próprio arquivo ainda
+  aberto pelo executor. O uso passa a ser lido depois de fechar o arquivo, com `sync` e espera de
+  até 3 s pela liberação esperada; se ela ainda não aparecer, a saída avisa em vez de mostrar o
+  valor antigo como atual. Teste do comportamento com amostras atrasadas.
+
 ## [1.0.0-experimento] — 2026-10-17
 
 Código congelado para a coleta do experimento ([notas](docs/release-notes/v1.0.0-experimento.md)).
