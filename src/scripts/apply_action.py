@@ -33,6 +33,26 @@ def volume_line(vfs):
     return f"volume {MOUNT}: {percent}% usado, {human(available)} livres"
 
 
+def settled_volume_line(directory, available_before, expected_freed, *, statvfs=None,
+                         sync=None, sleep=time.sleep, monotonic=time.monotonic, limit=3.0):
+    """Report usage only after the freed blocks show up, or say that they have not yet.
+
+    ext4 releases an unlinked file's blocks when its last descriptor closes and the journal commits;
+    reading statvfs before that reports the previous usage as if nothing had been freed.
+    """
+    statvfs = statvfs or os.fstatvfs
+    (sync or os.sync)()
+    deadline = monotonic() + limit
+    while True:
+        vfs = statvfs(directory)
+        if vfs.f_bavail * vfs.f_frsize - available_before >= 0.9 * expected_freed:
+            return volume_line(vfs)
+        if monotonic() >= deadline:
+            return (volume_line(vfs) + " (o espaço liberado ainda não aparece no sistema de arquivos;"
+                    " confira com df)")
+        sleep(0.25)
+
+
 def same_file(current, target):
     return (current.st_dev, current.st_ino, current.st_size, current.st_mtime_ns,
             current.st_ctime_ns) == tuple(target[k] for k in
@@ -107,17 +127,20 @@ def apply_disk(operation, target):
                 raise ValueError("operação inválida")
             if not same_file(os.stat(name, dir_fd=directory, follow_symlinks=False), target):
                 raise ValueError("arquivo mudou durante a operação")
+            vfs = os.fstatvfs(directory)
+            available_before = vfs.f_bavail * vfs.f_frsize
             os.unlink(name, dir_fd=directory)
             temporary = None
             os.fsync(directory)
             if operation == "compress":
                 compressed_size = os.stat(destination, dir_fd=directory, follow_symlinks=False).st_size
-                print(f"compress: {path} -> {path}.gz")
-                print(f"tamanho: {human(current.st_size)} -> {human(compressed_size)}")
+                lines = [f"compress: {path} -> {path}.gz",
+                         f"tamanho: {human(current.st_size)} -> {human(compressed_size)}"]
             else:
-                print(f"{operation}: {path}")
-                print(f"liberado: {human(current.st_size)}")
-            print(volume_line(os.fstatvfs(directory)))
+                lines = [f"{operation}: {path}", f"liberado: {human(current.st_size)}"]
+        # The source descriptor is closed here, so the unlinked blocks can actually be released.
+        lines.append(settled_volume_line(directory, available_before, current.st_blocks * 512))
+        print("\n".join(lines))
     finally:
         if temporary:
             os.unlink(temporary, dir_fd=directory)

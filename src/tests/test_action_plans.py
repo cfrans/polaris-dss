@@ -320,6 +320,24 @@ def test_executor_reports_sizes_and_volume_like_df():
     assert apply_action.volume_line(vfs) == f"volume {apply_action.MOUNT}: 43% usado, 2,1 MiB livres"
 
 
+def test_volume_is_reported_only_after_freed_blocks_appear():
+    from types import SimpleNamespace
+    from src.scripts import apply_action
+    frees = iter([100, 100, 1100])            # stale, stale, then the freed 1000 blocks show up
+    calls, clock = [], [0.0]
+    line = apply_action.settled_volume_line(
+        3, 0, 1000 * 4096 * 0.95,
+        statvfs=lambda d: (lambda v: SimpleNamespace(f_blocks=2000, f_bfree=v, f_bavail=v, f_frsize=4096))(next(frees)),
+        sync=lambda: calls.append("sync"), sleep=lambda s: clock.__setitem__(0, clock[0] + s),
+        monotonic=lambda: clock[0])
+    assert calls == ["sync"] and "ainda não aparece" not in line and line.endswith("livres")
+    stale = apply_action.settled_volume_line(
+        3, 100 * 4096, 1000 * 4096,
+        statvfs=lambda d: SimpleNamespace(f_blocks=2000, f_bfree=100, f_bavail=100, f_frsize=4096),
+        sync=lambda: None, sleep=lambda s: clock.__setitem__(0, clock[0] + s), monotonic=lambda: clock[0])
+    assert stale.endswith("(o espaço liberado ainda não aparece no sistema de arquivos; confira com df)")
+
+
 def test_process_identity_change_never_signals_another_process(monkeypatch):
     from src.scripts import apply_action
     calls = []
