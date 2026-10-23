@@ -13,6 +13,8 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
   preserva a identidade visual e respeita movimento reduzido.
 - Guia ordenado de instalação e downloads de quatro artefatos públicos da imagem instalada,
   por identificadores fixos; sem expor configuração real, provisionar infraestrutura ou remediar.
+- Percurso sem alvo real conferido também em clone limpo do GitHub e banco novo, com dez
+  migrações idempotentes e downloads idênticos ao checkout; limites externos documentados.
 
 ### Modificado
 - API identifica o desenvolvimento posterior à coleta como 1.1.0-dev; a tag e os dados da

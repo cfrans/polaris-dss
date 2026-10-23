@@ -13,6 +13,7 @@ collection database was used. Application runtime: Python 3.12.15, PostgreSQL 16
 | Area | Scope |
 |:--|:--|
 | Container installation | Image built from the development source; database and API started separately |
+| Clean published checkout | Commit `4b5d098` cloned from GitHub, separate second project/volume, example copied and no-target files prepared; syntax/build/start/migrations passed; all four HTTP downloads matched the clone byte for byte |
 | Schema | Ten migrations applied to an empty database; repeated migration applied nothing; status had no pending migration |
 | Partial configuration | Database/schema/KB checks pass; missing SSH/Zabbix and disabled reconciliation remain pending |
 | Artifact downloads | Exact installed bytes for guide/example/template/Media Type; unknown identifiers and file traversal rejected; no database dependency |
