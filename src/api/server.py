@@ -20,6 +20,7 @@ from starlette.concurrency import run_in_threadpool
 import psycopg
 from . import auth
 from .auth_routes import router as auth_router
+from .audit_routes import router as audit_router
 
 from ..engine.config import get_settings
 from ..engine.confidence import load_config
@@ -77,7 +78,7 @@ async def configuration_boundary(request: Request, call_next):
     from ..engine.config import get_environment_settings
     path = request.url.path
     try:
-        if path in {'/','/index.html','/configuracao.html','/contas.html','/laboratorio.html'}:
+        if path in {'/','/index.html','/configuracao.html','/contas.html','/laboratorio.html','/auditoria.html'}:
             try:
                 request.state.user = await run_in_threadpool(auth.authenticate, request)
             except HTTPException as exc:
@@ -155,6 +156,7 @@ app.include_router(router)
 app.include_router(installation_router)
 app.include_router(setup_router)
 app.include_router(auth_router)
+app.include_router(audit_router)
 
 # Montado por último: uma montagem em "/" captura tudo o que não casou com as rotas acima.
 app.mount("/", FreshStaticFiles(directory=WEB, html=True), name="web")

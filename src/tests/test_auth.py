@@ -36,6 +36,25 @@ def sign_in(client,username,password):
     response=client.post('/api/v1/auth/entrar',headers=HEADERS,json={'username':username,'password':password})
     assert response.status_code==200,response.text
 
+
+def test_audit_requires_real_session_and_allows_operator_read_only(access):
+    client,conn,code,password=access
+    paths=['/api/v1/auditoria','/api/v1/auditoria/1','/api/v1/auditoria/exportar?formato=json']
+    for path in paths:
+        assert client.get(path).status_code==401
+    page=client.get('/auditoria.html',follow_redirects=False)
+    assert page.status_code==303 and page.headers['location'].endswith('next=/auditoria.html')
+    bootstrap(access)
+    operator_password=secrets.token_urlsafe(24)
+    assert client.post('/api/v1/auth/usuarios',headers=HEADERS,json={
+        'username':'audit-reader','name':'Audit reader','password':operator_password,'role':'operador'}).status_code==201
+    sign_in(client,'audit-reader',operator_password)
+    assert client.get('/auditoria.html').status_code==200
+    assert client.get(paths[0]).status_code==200
+    assert client.get(paths[1]).status_code==404
+    assert client.get(paths[2]).status_code==200
+    assert client.post('/api/v1/auditoria',headers=HEADERS,json={}).status_code==405
+
 def test_bootstrap_is_single_use_and_has_no_default_login(access):
     client,conn,code,password=access
     assert client.get('/api/v1/auth/sessao').json()['bootstrap_required'] is True

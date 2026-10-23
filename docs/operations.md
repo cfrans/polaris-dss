@@ -159,6 +159,28 @@ configuration. A mutable image tag or `/health` version alone does not prove bui
 Do not update code/configuration/migrations halfway through an official comparison. A failed
 checksum requires investigation; there is no automatic database downgrade.
 
+## Read-only operational audit
+
+Open **Tools → Auditoria**, or `/auditoria.html`, with an administrator or operator session.
+Filter by creation dates, literal host/operator fragments, exact rule, current outcome/state and
+human decision. Approval and execution success are separate facts. The default UI range is the
+last 30 calendar dates in your local timezone; dates include the entire final day. A window may
+cover at most 366 days. Pages contain 25 records, ordered by creation timestamp and ID descending.
+
+Details show persisted commands, output, errors, timestamps, versions and explanation. Historical
+records are not reconstructed from today's rules. Opening them does not mark a card as displayed,
+approve an action, contact Zabbix/SSH or write to the incident/experiment tables. Session activity
+still updates normally. This is a live operational query, not an immutable experimental snapshot;
+operational completion time is distinct from independent laboratory recovery measurements.
+
+CSV/JSON exports include **all records matching the applied filters**, not just the current page.
+Each file is limited to 500 records and 8 MiB; exceeding a limit returns an error and requires
+narrower filters, without silently dropping rows or output. JSON includes filters and generation
+time; dates are UTC. CSV uses UTF-8 with BOM, JSON for structured cells, and an apostrophe before
+potential spreadsheet formulas. Use JSON to preserve original strings exactly. No vault or account
+secrets are exported, but persisted command output can contain sensitive operational data; handle
+the downloaded files according to the same access rules as incident details.
+
 ## Failures and safe stopping
 
 | Symptom | Check/action |

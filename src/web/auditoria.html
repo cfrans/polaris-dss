@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Auditoria — Polaris DSS</title>
+  <link rel="icon" href="polaris-mark.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="style.css"><link rel="stylesheet" href="acesso.css">
+  <link rel="stylesheet" href="auditoria.css">
+  <script src="session.js" defer></script><script src="auditoria.js" defer></script>
+</head>
+<body>
+<header class="topo">
+  <a class="marca" href="./"><img src="polaris-mark.svg" width="38" height="38" alt=""><span class="brand-name">Polaris <span class="brand-suffix">DSS</span></span></a>
+  <nav class="audit-nav" aria-label="Navegação"><a href="./">Painel de incidentes</a><a href="contas.html">Minha conta</a><button class="btn btn-secundario" data-logout type="button">Sair</button></nav>
+</header>
+<main class="audit-page">
+  <div class="audit-heading"><div><h1>Auditoria</h1><p>Decisões, ações e resultados registrados pelo Polaris.</p></div><span class="audit-readonly"><svg class="icon" aria-hidden="true"><use href="icons.svg#eye"></use></svg>Somente consulta</span></div>
+  <form id="audit-filters" class="audit-filters" aria-label="Filtrar auditoria">
+    <div><label for="audit-start">Criado a partir de</label><input id="audit-start" type="date" required></div>
+    <div><label for="audit-end">Até</label><input id="audit-end" type="date" required></div>
+    <div><label for="audit-host">Host</label><input id="audit-host" type="text" maxlength="128" placeholder="Nome ou parte dele"></div>
+    <div><label for="audit-rule">Regra</label><input id="audit-rule" type="text" maxlength="16" placeholder="Ex.: R001"></div>
+    <div><label for="audit-operator">Operador</label><input id="audit-operator" type="text" maxlength="64" placeholder="Usuário registrado"></div>
+    <div><label for="audit-status">Resultado / estado</label><select id="audit-status"><option value="">Todos</option value="pendente">Pendente</option><option value="executando">Em execução</option><option value="sucesso">Sucesso</option><option value="falha">Falha</option><option value="timeout">Tempo esgotado</option><option value="rejeitado">Rejeitado</option><option value="no_match">Sem regra</option><option value="encerrado_na_origem">Encerrado no Zabbix</option></select></div>
+    <div><label for="audit-decision">Decisão humana</label><select id="audit-decision"><option value="">Todas</option><option value="aprovada">Aprovada</option><option value="rejeitada">Rejeitada</option><option value="sem_decisao">Sem decisão</option></select></div>
+    <div class="audit-filter-actions"><button class="btn btn-primario" type="submit">Aplicar filtros</button><button id="audit-reset" class="btn btn-secundario" type="button">Limpar</button></div>
+    <p class="audit-filter-note">Período de criação, até 366 dias. Datas e horários no seu fuso local.</p>
+  </form>
+  <section class="audit-results" aria-labelledby="audit-results-title">
+    <div class="audit-results-heading"><div><h2 id="audit-results-title">Registros</h2><p id="audit-summary" role="status">Consultando registros…</p></div><div class="audit-exports"><span>Exportar filtros aplicados</span><button disabled id="audit-csv" class="btn btn-secundario" type="button">CSV</button><button disabled id="audit-json" class="btn btn-secundario" type="button">JSON</button></div></div>
+    <p id="audit-message" class="audit-message" role="status"></p>
+    <div class="audit-table-scroll" tabindex="0" role="region" aria-label="Tabela de auditoria">
+      <table class="audit-table"><caption class="audit-sr-only">Atendimentos registrados, do mais recente para o mais antigo</caption><thead><tr><th scope="col">Registro / criação</th><th scope="col">Host / regra</th><th scope="col">Decisão humana</th><th scope="col">Resultado / estado</th><th scope="col">Operador</th><th scope="col"><span class="audit-sr-only">Detalhes</span></th></tr></thead><tbody id="audit-rows"></tbody></table>
+    </div>
+    <div id="audit-empty" class="audit-empty" hidden><svg class="icon" aria-hidden="true"><use href="icons.svg#eye"></use></svg><h3>Nenhum registro neste recorte</h3><p>Experimente ampliar o período ou remover um filtro.</p></div>
+    <nav class="audit-pagination" aria-label="Páginas de auditoria"><button disabled id="audit-prev" class="btn btn-secundario" type="button">Anterior</button><span id="audit-page-label">—</span><button disabled id="audit-next" class="btn btn-secundario" type="button">Próxima</button></nav>
+  </section>
+  <p class="audit-footnote">Esta consulta apresenta fatos persistidos. A duração operacional não substitui as medições do experimento. Exportações: até 500 registros e 8 MiB por arquivo.</p>
+</main>
+<dialog id="audit-detail" class="audit-detail" aria-labelledby="audit-detail-title">
+  <div class="audit-detail-heading"><div><p>Registro de atendimento</p><h2 id="audit-detail-title">Detalhes</h2></div><button id="audit-close" class="icon-button" type="button" aria-label="Fechar detalhes"><svg class="icon" aria-hidden="true"><use href="icons.svg#close"></use></svg></button></div>
+  <div id="audit-detail-body" class="audit-detail-body" aria-live="polite"></div>
+</dialog>
+</body></html>

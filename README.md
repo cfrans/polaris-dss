@@ -115,6 +115,7 @@ This operational count is separate from the experiment KPIs. The first/last buck
 | **Human-approved execution** | Reviewed scripts run only after a persisted decision; actual operator steps are measured separately |
 | **Deterministic Logic** | Same input always produces the same output — fully auditable |
 | **Comprehensive Audit** | Every incident, decision, and result logged with precise timestamps |
+| **Audit browser** | Authenticated, read-only filters and persisted details, with bounded CSV/JSON exports; see [operations](docs/operations.md#read-only-operational-audit) |
 | **MTTR Tracking** | Automatic calculation of Mean Time To Repair per incident type |
 | **Lightweight** | No ML training required — runs on minimal infrastructure |
 

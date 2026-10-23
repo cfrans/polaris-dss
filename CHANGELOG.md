@@ -8,6 +8,10 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 ## [Não lançado]
 
 ### Adicionado
+- Página de auditoria autenticada, com filtros por criação/host/regra/operador/estado/decisão,
+  paginação e detalhe dos fatos persistidos, sem consultar Zabbix ou marcar exibição do card.
+  Exportação CSV/JSON dos filtros aplicados, com limites explícitos e proteção de fórmulas no CSV.
+  Validação em Docker isolado: 650 testes Python aprovados/seis opcionais pulados; 55 JavaScript.
 - Login individual com administrador/operador, criação única do primeiro administrador pelo
   código de instalação e gestão de contas. Senhas Argon2id e sessões opacas revogáveis em
   PostgreSQL, origem protegida e HTTPS fora de loopback. Migração 011 preserva auditoria histórica.

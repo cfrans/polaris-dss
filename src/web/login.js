@@ -2,7 +2,7 @@
   'use strict';
   let bootstrap=false;
   const $=id=>document.getElementById(id);
-  const destinations=['/','/configuracao.html','/contas.html','/laboratorio.html'];
+  const destinations=['/','/configuracao.html','/contas.html','/laboratorio.html','/auditoria.html'];
   const next=new URLSearchParams(location.search).get('next');
   const destination=destinations.includes(next)?next:'/';
   async function loadAppVersion() {
