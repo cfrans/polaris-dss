@@ -38,8 +38,8 @@ suggestions require additional confirmation. The script catalog hash binds appro
 
 The application commits `decisao_humana=true`, `ts_aprovacao`, operator label and script version
 before dispatch. The executor re-reads persisted approval and refuses execution without it.
-A rejection records its reason and cannot dispatch a remedy. The operator label is self-reported;
-the interface does not authenticate a person's identity.
+A rejection records its reason and cannot dispatch a remedy. The operator username comes from the authenticated session. Historical labels from the frozen
+experiment remain self-reported; no identity is reconstructed retrospectively.
 
 Scripts are central in the image and sent over SSH stdin. They are not copied into an executable
 directory on each target. Operational verification uses read-only scripts without sudo. Execution
@@ -87,15 +87,9 @@ mounts both volumes read-only. Optional legacy files use a dedicated Compose ove
 Unknown or changed SSH host keys are rejected. The separate laboratory administrative key is
 mounted only into temporary laboratory containers for administrative actions.
 
-The prototype has no individual operator login/RBAC. When the setup vault is enabled (default
-Compose), a strong locally bootstrapped administrative code unlocks a short session for setup and
-mutating API routes. Origin checking and an HttpOnly/SameSite cookie protect these requests;
-remote access requires HTTPS. Read-only operational routes remain network-readable. The webhook
-retains its separate token. This shared administrative capability does not prove who approved an
-incident or replace the persisted approval. Test receipts bind session, candidate and revision,
-expire after five minutes and are consumed on save. Connection changes fail closed for open
-incidents or unavailable DB; file locks serialize them against API/reconciler operations.
-Default Compose publishes API/database ports on all host interfaces. Use an isolated,
-access-controlled laboratory network; production authentication, TLS/access policy and restricted
-credentials require further work. Environment secrets are not automatically encrypted/removed.
-Debug alert injection must stay disabled for controlled runs.
+Individual accounts and roles protect operational API reads/writes and setup; see [access](access.md).
+The former shared setup code is now first-administrator bootstrap material only. Session token
+hashes, account password hashes and per-user script acknowledgement reside in PostgreSQL. Login
+never substitutes for a persisted human decision. The service SSH privilege remains broad.
+Default Compose publishes API/database ports on all host interfaces; use an isolated network,
+trusted TLS and protected credentials. No MFA/SSO or production certification is claimed.

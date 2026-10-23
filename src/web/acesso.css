@@ -1,0 +1,11 @@
+.polaris-toast { position:fixed; z-index:10000; right:1.3rem; bottom:1.3rem; max-width:min(380px,calc(100vw - 2.6rem)); padding:1rem 1.2rem; border:1px solid #3ecf8e88; border-radius:10px; background:#162b29; color:#e8fff3; box-shadow:0 12px 36px #0006; font-size:.9rem; opacity:0; transform:translateY(12px); pointer-events:none; transition:opacity .18s,transform .18s; }
+.polaris-toast.is-visible { opacity:1; transform:translateY(0); }
+.auth-page { min-height:100vh; display:grid; place-items:center; padding:2rem 1rem; background:var(--fundo) url('polaris-sky.svg') center/cover fixed; }
+.auth-card { width:min(100%,460px); padding:2rem; border:1px solid var(--borda); border-radius:16px; background:var(--fundo-painel); box-shadow:0 24px 70px #0004; }
+.auth-card .marca { margin-bottom:2rem; }.auth-card h1 { font-size:1.7rem; margin-bottom:.5rem; }.auth-card p { color:var(--texto-suave); line-height:1.6; font-size:.9rem; }
+.auth-form { display:grid; gap:.65rem; margin-top:1.5rem; }.auth-form label { font-size:.85rem; color:#c7d5e9; }.auth-form input,.auth-form select { width:100%; min-height:44px; padding:.7rem; background:var(--fundo-cartao); color:var(--texto); border:1px solid var(--borda); border-radius:7px; }.auth-form .btn { margin-top:.6rem; }.auth-error { color:#ffb1a9!important; margin-top:1rem; min-height:1.5em; }.auth-form [hidden], [data-bootstrap][hidden] { display:none; }
+.account-page { max-width:1000px; margin:2rem auto; padding:0 1rem; }.account-grid { display:grid; grid-template-columns:1fr 1fr; gap:1.5rem; }.account-panel { background:var(--fundo-painel); border:1px solid var(--borda); border-radius:12px; padding:1.5rem; }.account-list { display:grid; gap:.6rem; margin-top:1.3rem; }.account-row { padding:.8rem; border-bottom:1px solid var(--borda); display:flex; justify-content:space-between; align-items:center; gap:.5rem; }.session-name { color:var(--texto-suave); font-size:.8rem; }.account-panel h2 { font-size:1.1rem; }
+@media(max-width:680px) { .account-grid { grid-template-columns:1fr; }.auth-card { padding:1.5rem; }.session-name { display:none; } }
+@media(prefers-reduced-motion:reduce) { .polaris-toast { transition:none; transform:none; } }
+
+[data-admin][hidden] { display:none!important; }

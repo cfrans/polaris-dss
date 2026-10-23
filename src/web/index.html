@@ -6,6 +6,8 @@
   <title>Polaris DSS — Suporte à Decisão</title>
   <link rel="icon" href="polaris-mark.svg" type="image/svg+xml">
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="acesso.css">
+  <script src="session.js" defer></script>
 </head>
 <body>
 
@@ -59,9 +61,11 @@
       <div id="tools-panel" class="tools-popover disclosure-shell" aria-hidden="true">
         <div class="disclosure-clip" inert>
           <nav class="tools-links" aria-label="Ferramentas do Polaris">
-            <a href="configuracao.html"><svg class="icon" aria-hidden="true"><use href="icons.svg#settings"></use></svg>Configuração inicial</a>
+            <a href="contas.html">Minha conta</a>
+            <button type="button" data-logout>Sair da conta</button>
+            <a href="configuracao.html" data-admin><svg class="icon" aria-hidden="true"><use href="icons.svg#settings"></use></svg>Configuração inicial</a>
             <button id="btn-diagnostico" type="button"><svg class="icon" aria-hidden="true"><use href="icons.svg#diagnostic"></use></svg>Diagnóstico</button>
-            <button id="btn-preferencias" type="button"><svg class="icon" aria-hidden="true"><use href="icons.svg#settings"></use></svg>Preferências</button>
+            <button id="btn-preferencias" data-admin type="button"><svg class="icon" aria-hidden="true"><use href="icons.svg#settings"></use></svg>Preferências</button>
             <button id="btn-scripts" type="button"><svg class="icon" aria-hidden="true"><use href="icons.svg#code"></use></svg>Scripts e ciência</button>
             <a href="laboratorio.html"><svg class="icon" aria-hidden="true"><use href="icons.svg#lab"></use></svg>Laboratório de ensaios</a>
             <button id="btn-simular" class="oculto" type="button"><svg class="icon" aria-hidden="true"><use href="icons.svg#play"></use></svg>Simular incidente</button>
@@ -131,8 +135,8 @@
     <p>Após sua aprovação em um incidente, o Polaris pode enviar um destes scripts por SSH para
       execução no host. As ações de remediação podem usar privilégios de administrador. Leia o
       conteúdo e confirme o alvo antes de aprovar. Esta ciência geral não aprova incidentes.</p>
-    <p class="nota">A interface ainda não identifica operadores por login. Esta confirmação fica
-      lembrada neste navegador; cada decisão continua registrada separadamente na auditoria.</p>
+    <p class="nota">Esta confirmação é registrada na sua conta para a versão atual dos scripts.
+      Ela não aprova incidentes; cada decisão exige sua autorização separada.</p>
     <div class="ciencia-navegacao">
       <button id="btn-script-anterior" class="btn btn-secundario" type="button" aria-label="Script anterior">←</button>
       <strong id="ciencia-script-nome">Carregando scripts…</strong>
@@ -387,7 +391,7 @@
     </div>
     <div class="diag-acoes">
       <button id="btn-reverificar" class="btn btn-secundario" type="button"><svg class="icon" aria-hidden="true"><use href="icons.svg#refresh"></use></svg>Verificar novamente</button>
-      <button id="btn-recarregar-base" class="btn btn-secundario" type="button"><svg class="icon" aria-hidden="true"><use href="icons.svg#database"></use></svg>Recarregar base de regras</button>
+      <button id="btn-recarregar-base" data-admin class="btn btn-secundario" type="button"><svg class="icon" aria-hidden="true"><use href="icons.svg#database"></use></svg>Recarregar base de regras</button>
     </div>
   </div>
 

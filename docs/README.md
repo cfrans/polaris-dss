@@ -8,6 +8,8 @@ are separate from automated tests; no measured performance improvement is claime
 
 - [Installation and operations](operations.md): configuration, SSH trust, migrations, updates,
   backup, diagnostics and failure handling.
+- [Accounts and roles](access.md): first administrator, individual login, sessions, recovery and
+  script acknowledgement after the frozen experiment.
 - [Architecture and security boundaries](architecture.md): ingestion, human decisions,
   execution, reconciliation and the independent experiment observer.
 - [Read-only diagnostics, action plans and preferences](action_plans.md).

@@ -7,6 +7,9 @@
   <link rel="icon" href="polaris-mark.svg" type="image/svg+xml">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="configuracao.css">
+  <link rel="stylesheet" href="acesso.css">
+  <script src="session.js" defer></script>
+  <script src="toast.js" defer></script>
   <script src="configuracao.js" defer></script>
 </head>
 <body class="setup-body">
@@ -24,18 +27,7 @@
       <p>Prepare as conexões do Polaris, confira cada etapa e mantenha a configuração sob seu controle.</p></div>
     <a class="setup-guide-link" href="api/v1/instalacao/arquivos/guia" download>Baixar guia completo <span aria-hidden="true">↗</span></a>
   </div>
-  <section id="setup-access" class="setup-access" aria-labelledby="setup-access-title">
-    <div><h2 id="setup-access-title">Acesso à configuração</h2>
-      <p>Conecte os serviços e salve as credenciais em um cofre cifrado no servidor.</p></div>
-    <form id="setup-login" class="setup-form">
-      <label for="setup-access-code">Código administrativo</label>
-      <div class="setup-inline"><input id="setup-access-code" type="password" autocomplete="current-password" required maxlength="128"><button class="btn btn-primario" type="submit">Desbloquear</button></div>
-      <p id="setup-access-message" role="status">Use HTTPS ou o endereço local para inserir credenciais.</p>
-    </form>
-    <details><summary>Primeiro acesso?</summary><p>Execute uma vez no terminal do servidor. Guarde o código exibido em um gerenciador de senhas; o Polaris não o mostra novamente.</p>
-      <div class="setup-command"><div><span>No servidor Polaris</span><button type="button" data-copy="access-command" aria-label="Copiar comando" title="Copiar"><svg class="icon" aria-hidden="true"><use href="icons.svg#copy"></use></svg></button></div><pre><code id="access-command">docker compose exec polaris-api python -m src.engine.setup_vault</code></pre></div>
-      <p>Docker e banco precisam estar disponíveis antes de abrir o assistente. A chave mestra e o arquivo cifrado usam volumes separados; preserve ambos em seu plano de backup.</p></details>
-  </section>
+  <section id="setup-access" class="setup-access" aria-labelledby="setup-access-title"><h2 id="setup-access-title">Sua conta administra esta instalação</h2><p id="setup-access-message" role="status">Consultando seu acesso…</p><a href="login.html?next=/configuracao.html">Entrar na minha conta</a></section>
   <div id="setup-workspace" class="setup-workspace" hidden>
     <aside class="setup-sidebar" aria-label="Andamento da instalação">
       <div class="setup-progress-heading"><span>Configuração inicial</span><strong id="setup-count">0 de 6</strong></div>
@@ -51,7 +43,7 @@
       <p class="setup-local-note">Suas confirmações valem nesta visita. Ao recarregar, confira novamente.</p>
     </aside>
     <div class="setup-main">
-      <div class="setup-adminbar"><span>Acesso administrativo temporário</span><button id="setup-logout" type="button">Encerrar acesso</button></div>
+      <div class="setup-adminbar"><span>Conta administradora conectada</span><button id="setup-logout" type="button">Sair da conta</button></div>
       <div class="setup-checkbar">
         <div><p id="setup-feedback" role="status" aria-live="polite">Verifique as conexões quando os serviços estiverem configurados.</p>
           <small id="setup-checked-at">A consulta lê banco, Zabbix e acesso SSH. Não altera a configuração.</small></div>
@@ -66,7 +58,7 @@
             <div><dt>Monitoramento</dt><dd>Zabbix 7.0 LTS acessível pelo servidor Polaris. Você pode usar a instalação que já possui.</dd></div>
             <div><dt>Alvo de remediação</dt><dd>Um Ubuntu 24.04 LTS com SSH e systemd. O alvo é configurado explicitamente; não é qualquer host do Zabbix.</dd></div>
           </dl>
-          <div class="setup-callout"><strong>Comece em um ambiente isolado.</strong><p>Esta versão ainda não tem login de operadores e usa uma credencial SSH com alcance administrativo. Use um alvo descartável e acesso de rede restrito antes de habilitar remediações.</p></div>
+          <div class="setup-callout"><strong>Comece em um ambiente isolado.</strong><p>A credencial SSH de serviço tem alcance administrativo no alvo. Use um alvo descartável e acesso de rede restrito antes de habilitar remediações.</p></div>
           <div class="setup-command"><div><span>No servidor Polaris</span><button type="button" data-copy="prepare-command" aria-label="Copiar comando" title="Copiar"><svg class="icon" aria-hidden="true"><use href="icons.svg#copy"></use></svg></button></div><pre><code id="prepare-command">docker version
 docker compose version</code></pre></div>
           <label class="setup-confirm"><input type="checkbox" data-confirm="environment"><span>Conferi Docker, acesso de rede e portas disponíveis em um ambiente separado.</span></label>
@@ -74,7 +66,7 @@ docker compose version</code></pre></div>
         <section data-panel="1" aria-labelledby="step-title-1">
           <p class="setup-position">Etapa 2 de 6</p><h2 id="step-title-1" tabindex="-1">Inicie o Polaris</h2>
           <p class="setup-lead">Configure os arquivos locais, inicie o banco e a aplicação, e só então aplique o esquema de auditoria.</p>
-          <ol class="setup-instructions"><li>Prepare Docker e banco pelo guia; as conexões com Zabbix e alvo serão preenchidas nas próximas etapas.</li><li>O arquivo <code>.env</code> continua opcional para conexões. Valores do ambiente podem ser carregados pelo assistente sem revelar seus segredos.</li><li>Inicialize o acesso administrativo uma vez. Para novas instalações, a chave dedicada pode ser gerada na etapa SSH.</li></ol>
+          <ol class="setup-instructions"><li>Prepare Docker e banco pelo guia; as conexões com Zabbix e alvo serão preenchidas nas próximas etapas.</li><li>O arquivo <code>.env</code> continua opcional para conexões. Valores do ambiente podem ser carregados pelo assistente sem revelar seus segredos.</li><li>Crie o primeiro administrador na tela de acesso. Para novas instalações, a chave dedicada pode ser gerada na etapa SSH.</li></ol>
           <a class="setup-download" href="api/v1/instalacao/arquivos/configuracao" download>Baixar modelo de configuração</a>
           <div class="setup-command"><div><span>Na raiz do repositório</span><button type="button" data-copy="start-command" aria-label="Copiar comando" title="Copiar"><svg class="icon" aria-hidden="true"><use href="icons.svg#copy"></use></svg></button></div><pre><code id="start-command">docker compose config --quiet
 docker compose up -d --build polaris-db polaris-api

@@ -103,10 +103,10 @@ def sign_in(request: Request, body: UnlockInput, response: Response):
 
 @router.post("/sair")
 def sign_out(request: Request, response: Response, session=Depends(authorize)):
+    from .auth_routes import sign_out as account_sign_out
     with LOCK:
-        SESSIONS.pop(hashlib.sha256(request.cookies.get(COOKIE, "").encode()).hexdigest(), None)
-    response.delete_cookie(COOKIE, path="/")
-    return {"authenticated": False}
+        SESSIONS.pop(request.state.user['token_hash'], None)
+    return account_sign_out(request, response)
 
 
 @router.get("/configuracao")

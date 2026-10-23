@@ -14,7 +14,7 @@ HEADERS = {"Origin": "http://127.0.0.1", "X-Polaris-Setup": "1"}
 
 
 @pytest.fixture
-def setup_client(tmp_path, monkeypatch):
+def setup_client(tmp_path, monkeypatch, conn):
     directory, key = tmp_path / "data", tmp_path / "key" / "master.key"
     monkeypatch.setenv("POLARIS_SETUP_DIR", str(directory))
     monkeypatch.setenv("POLARIS_SETUP_KEY_FILE", str(key))
@@ -24,9 +24,16 @@ def setup_client(tmp_path, monkeypatch):
     setup_access.SESSIONS.clear()
     setup_access.ATTEMPTS.clear()
     monkeypatch.setattr("src.api.setup_configuration.ensure_idle", lambda: None)
+    import secrets
+    from src.api.auth import password_hash
+    password = secrets.token_urlsafe(24)
+    conn.execute('TRUNCATE usuarios CASCADE')
+    conn.execute("UPDATE auth_limite SET tentativas=0,janela=now()")
+    conn.execute("INSERT INTO usuarios(login,nome,senha_hash,perfil) VALUES('setup-admin','Setup admin',%s,'admin')", (password_hash(password),))
+    conn.commit()
     with TestClient(app, base_url="http://127.0.0.1") as client:
-        assert client.post("/api/v1/instalacao/acesso", json={"code": code}, headers=HEADERS).status_code == 200
-        yield client, vault, code
+        assert client.post("/api/v1/auth/entrar", json={"username":"setup-admin","password":password}, headers={**HEADERS,'X-Polaris-Auth':'1'}).status_code == 200
+        yield client, vault, password
     get_settings.cache_clear()
     setup_access.SESSIONS.clear()
     setup_access.ATTEMPTS.clear()
@@ -86,21 +93,22 @@ def test_unencrypted_remote_transport_is_rejected(setup_client):
     assert response.status_code == 403
 
 
-def test_sensitive_api_calls_require_session_and_rotation_revokes_it(setup_client):
+def test_sensitive_api_calls_require_session_and_legacy_code_cannot_login(setup_client):
     client, vault, _ = setup_client
-    assert client.post("/api/v1/regras/reload", headers={"Origin": "https://other.example"}).status_code == 403
-    vault.update(lambda data: data.update(access_hash="new-admin-code-hash"))
-    assert client.post("/api/v1/regras/reload", headers=HEADERS).status_code == 401
+    assert client.post('/api/v1/regras/reload', headers={**HEADERS,'Origin':'https://other.example'}).status_code == 403
+    assert client.post('/api/v1/instalacao/acesso', json={'code':'legacy'}, headers=HEADERS).status_code == 410
+    client.cookies.clear()
+    assert client.post('/api/v1/regras/reload', headers=HEADERS).status_code == 401
 
 
-def test_session_expiry_and_attempt_limit(setup_client):
-    client, _, code = setup_client
-    next(iter(setup_access.SESSIONS.values()))["expires"] = 0
-    assert client.get("/api/v1/instalacao/configuracao").status_code == 401
-    setup_access.ATTEMPTS.clear()
-    for _ in range(10):
-        assert client.post("/api/v1/instalacao/acesso", json={"code": "wrong"}, headers=HEADERS).status_code == 401
-    assert client.post("/api/v1/instalacao/acesso", json={"code": code}, headers=HEADERS).status_code == 429
+def test_session_expiry_and_attempt_limit(setup_client, conn):
+    client, _, password = setup_client
+    conn.execute("UPDATE sessoes SET ts_atividade=now()-interval '16 minutes'")
+    conn.commit()
+    assert client.get('/api/v1/instalacao/configuracao').status_code == 401
+    for _ in range(19):
+        assert client.post('/api/v1/auth/entrar',json={'username':'setup-admin','password':'wrong'},headers={**HEADERS,'X-Polaris-Auth':'1'}).status_code == 401
+    assert client.post('/api/v1/auth/entrar',json={'username':'setup-admin','password':password},headers={**HEADERS,'X-Polaris-Auth':'1'}).status_code == 429
 
 
 def test_environment_import_does_not_return_url_credentials(setup_client, monkeypatch):
@@ -197,8 +205,8 @@ def test_proof_belongs_to_session_and_never_accepts_changed_body(setup_client, m
     monkeypatch.setattr("src.api.setup_configuration.ZabbixClient", Zabbix)
     receipt = client.post("/api/v1/instalacao/zabbix/testar", headers=HEADERS,
         json={"url": "https://example.test", "mode": "token", "token": "tested-secret", "webhook_token": "x" * 32}).json()["receipt"]
-    client.post("/api/v1/instalacao/sair", headers=HEADERS)
-    client.post("/api/v1/instalacao/acesso", json={"code": code}, headers=HEADERS)
+    client.post("/api/v1/auth/sair", headers={**HEADERS,"X-Polaris-Auth":"1"})
+    client.post("/api/v1/auth/entrar", json={"username":"setup-admin","password":code}, headers={**HEADERS,"X-Polaris-Auth":"1"})
     assert client.post("/api/v1/instalacao/zabbix/salvar", json={"receipt": receipt}, headers=HEADERS).status_code == 409
     assert vault.read()["settings"] == {}
 

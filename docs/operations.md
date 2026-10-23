@@ -67,7 +67,7 @@ docker compose up -d polaris-reconciler
 docker compose ps
 ```
 
-The current schema has ten numbered migrations. They run once with checksum verification;
+The current schema has eleven numbered migrations. They run once with checksum verification;
 never edit an applied SQL file or recreate the volume to bypass a migration problem.
 Wait for API/database health before calling endpoints. A connection reset immediately after
 recreation can occur during startup; a persistent failure needs logs/diagnostics.
@@ -119,9 +119,9 @@ is not automated. To replace a lost or compromised administrative access code lo
 docker compose exec polaris-api python -m src.engine.setup_vault --rotate-access
 ```
 
-This preserves configuration, displays a new code once and revokes old sessions; it does not
-rotate Zabbix tokens, SSH keys or the master key. Shared code/session access is not per-operator
-authentication. GET operational API routes remain readable within the trusted network.
+This preserves configuration and displays a new installation code once; it does not bypass
+existing accounts or rotate Zabbix tokens, SSH keys or the master key. Operational API reads and
+writes now require individual login. See [accounts and recovery](access.md).
 
 Run on the Linux collection host, from the checkout. The backup helper creates a new custom-format
 dump on the host without mounting an administrative key:

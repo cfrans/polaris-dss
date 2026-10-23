@@ -35,42 +35,20 @@ def check_origin(request: Request):
 
 
 def authorize(request: Request):
-    secure_transport(request)
-    if request.method not in {"GET", "HEAD"}:
-        check_origin(request)
-    token = request.cookies.get(COOKIE, "")
-    key = hashlib.sha256(token.encode()).hexdigest()
-    data = vault_for_request().read()
+    from .auth import require_admin
+    user = require_admin(request)
+    key = user['token_hash']
     with LOCK:
         now = time.monotonic()
-        session = SESSIONS.get(key)
-        if not session or now > session["expires"] or now - session["last"] > 900 or session["access"] != data.get("access_hash"):
-            SESSIONS.pop(key, None)
-            raise HTTPException(401, "Desbloqueie o acesso administrativo ao assistente.")
-        session["last"] = now
-        return session
+        for expired in [k for k,v in SESSIONS.items() if now-v['last']>900]:
+            del SESSIONS[expired]
+        if key not in SESSIONS:
+            if len(SESSIONS)>=128:
+                raise HTTPException(429, 'Muitas sessões de configuração ativas.')
+            SESSIONS[key] = {'proofs': {}, 'last': now}
+        SESSIONS[key]['last'] = now
+        return SESSIONS[key]
 
 
 def unlock(request, code):
-    secure_transport(request)
-    check_origin(request)
-    vault = vault_for_request()
-    with LOCK:
-        now = time.monotonic()
-        while ATTEMPTS and ATTEMPTS[0] < now - 60:
-            ATTEMPTS.popleft()
-        if len(ATTEMPTS) >= 10:
-            raise HTTPException(429, "Muitas tentativas. Aguarde um minuto.")
-        ATTEMPTS.append(now)
-        data = vault.read()
-        if not data.get("access_hash") or not secrets.compare_digest(hashlib.sha256(code.encode()).hexdigest(), data["access_hash"]):
-            raise HTTPException(401, "Código de acesso inválido ou acesso ainda não inicializado.")
-        for key in list(SESSIONS):
-            if SESSIONS[key]["expires"] < now or now - SESSIONS[key]["last"] > 900:
-                del SESSIONS[key]
-        if len(SESSIONS) >= 128:
-            raise HTTPException(429, "Limite de sessões alcançado. Encerre uma sessão existente.")
-        token = secrets.token_urlsafe(32)
-        SESSIONS[hashlib.sha256(token.encode()).hexdigest()] = {
-            "access": data["access_hash"], "expires": now + 3600, "last": now, "proofs": {}}
-        return token
+    raise HTTPException(410, 'Use o login individual. O código serve apenas para criar o primeiro administrador.')

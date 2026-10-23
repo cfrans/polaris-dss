@@ -349,7 +349,12 @@ def registrar_decisao(
     decision_args = {"versao_scripts": catalog.sha256 if catalog else None}
     if action is not None:
         decision_args.update(action=action, plan_version=corpo.versao_plano)
-    if not decidir(conn, incidente_id, corpo.aprovado, corpo.operador, corpo.motivo, **decision_args):
+    from . import auth
+    user = request.state.user
+    auth.authorize_decision(conn, user)
+    if corpo.aprovado and not auth.acknowledged(user, catalog.sha256):
+        raise _erro(409, 'ciencia_necessaria', 'Revise e confirme a ciência dos scripts antes de aprovar.')
+    if not decidir(conn, incidente_id, corpo.aprovado, user['login'], corpo.motivo, **decision_args):
         raise _erro(409, "conflito_de_estado",
                     f"A decisão sobre o incidente {incidente_id} já havia sido registrada.")
 

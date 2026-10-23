@@ -302,7 +302,8 @@ def test_health_declara_modo_debug_desligado(cliente_sem_debug):
     assert cliente_sem_debug.get("/health").json()["debug"] is False
 
 
-def test_decisao_exige_operador(cliente):
+def test_decisao_obtem_operador_da_sessao(cliente):
     incidente = _criar(cliente, id_evento="api-sem-operador")["incidente_id"]
-    resposta = cliente.post(f"/api/v1/incidentes/{incidente}/decisao", json={"aprovado": True})
-    assert resposta.status_code == 422
+    resposta = cliente.post(f"/api/v1/incidentes/{incidente}/decisao", json={"aprovado": False, "motivo":"Teste"})
+    assert resposta.status_code == 202
+    assert cliente.get(f'/api/v1/incidentes/{incidente}').json()['operador'] == 'tester'

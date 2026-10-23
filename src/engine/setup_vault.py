@@ -139,8 +139,8 @@ def operation_guard(vault, exclusive=False):
 def main():
     import argparse
     from .config import get_environment_settings
-    parser = argparse.ArgumentParser(description="Inicializa o cofre ou troca seu código administrativo local.")
-    parser.add_argument("--rotate-access", action="store_true", help="troca o código e invalida sessões, preservando configurações")
+    parser = argparse.ArgumentParser(description="Inicializa o cofre ou troca seu código de instalação local.")
+    parser.add_argument("--rotate-access", action="store_true", help="troca o código de instalação, sem alterar contas ou configurações")
     args = parser.parse_args()
     vault = configured_vault(get_environment_settings())
     if vault is None:
@@ -153,7 +153,7 @@ def main():
             code = vault.initialize()
     except VaultError as exc:
         raise SystemExit(str(exc)) from None
-    print("Guarde este código administrativo em um gerenciador de senhas. Ele não será exibido novamente.")
+    print("Guarde este código de instalação em um gerenciador de senhas. Ele não será exibido novamente.")
     print(code)
 
 

@@ -12,10 +12,14 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.exceptions import RequestValidationError
 from fastapi.exception_handlers import request_validation_exception_handler
 from fastapi.staticfiles import StaticFiles
+from starlette.concurrency import run_in_threadpool
+import psycopg
+from . import auth
+from .auth_routes import router as auth_router
 
 from ..engine.config import get_settings
 from ..engine.confidence import load_config
@@ -73,6 +77,33 @@ async def configuration_boundary(request: Request, call_next):
     from ..engine.config import get_environment_settings
     path = request.url.path
     try:
+        if path in {'/','/index.html','/configuracao.html','/contas.html','/laboratorio.html'}:
+            try:
+                request.state.user = await run_in_threadpool(auth.authenticate, request)
+            except HTTPException as exc:
+                if exc.status_code == 401:
+                    return RedirectResponse('/login.html?next='+path, status_code=303, headers={'Cache-Control':'no-store'})
+                raise
+            if path == '/configuracao.html':
+                auth.require_admin(request)
+        auth_path = path.startswith('/api/v1/auth/')
+        artifacts = path.startswith('/api/v1/instalacao/arquivos/') and request.method in {'GET','HEAD'}
+        if auth_path and request.method not in {'GET','HEAD'}:
+            auth.secure_transport(request)
+            check_origin(request)
+            if request.headers.get('x-polaris-auth') != '1':
+                raise HTTPException(403, 'Cabeçalho de proteção ausente.')
+            try:
+                length = int(request.headers.get('content-length','0'))
+            except ValueError:
+                raise HTTPException(400, 'Tamanho de solicitação inválido.') from None
+            if length < 0 or length > 65536:
+                raise HTTPException(413, 'Solicitação excede o tamanho permitido.')
+        if not auth_path and not artifacts and (path.startswith('/api/') or path.startswith('/debug/')):
+            request.state.user = await run_in_threadpool(auth.authenticate, request)
+            if path.startswith('/api/v1/instalacao/') or path.startswith('/debug/') or (
+                request.method not in {'GET','HEAD'} and path in {'/api/v1/preferencias','/api/v1/regras/reload'}):
+                auth.require_admin(request)
         vault = configured_vault(get_environment_settings())
         if path.startswith("/api/v1/instalacao/"):
             if request.method not in {"GET", "HEAD"}:
@@ -88,23 +119,23 @@ async def configuration_boundary(request: Request, call_next):
             response = await call_next(request)
         else:
             with operation_guard(vault):
-                if vault and (path.startswith("/api/") or path.startswith("/debug/")) and request.method not in {"GET", "HEAD"}:
-                    authorize(request)
                 request.app.state.settings = get_settings()
                 response = await call_next(request)
-        if path.startswith("/api/v1/instalacao/"):
+        if path.startswith('/api/'):
             response.headers["Cache-Control"] = "no-store"
             response.headers["X-Content-Type-Options"] = "nosniff"
         return response
     except HTTPException as exc:
-        return JSONResponse(status_code=exc.status_code, content={"mensagem": str(exc.detail)})
+        return JSONResponse(status_code=exc.status_code, content={"mensagem": str(exc.detail)}, headers={"Cache-Control":"no-store"})
     except VaultError as exc:
         return JSONResponse(status_code=503, content={"mensagem": str(exc)})
+    except psycopg.Error:
+        return JSONResponse(status_code=503, content={'mensagem':'Banco de acesso indisponível. Confira o serviço e as migrações.'})
 
 
 @app.exception_handler(RequestValidationError)
 async def redact_setup_validation(request: Request, exc: RequestValidationError):
-    if request.url.path.startswith("/api/v1/instalacao/"):
+    if request.url.path.startswith(("/api/v1/instalacao/", '/api/v1/auth/')):
         return JSONResponse(status_code=422, content={"mensagem": "Confira os campos obrigatórios e seus formatos."})
     return await request_validation_exception_handler(request, exc)
 
@@ -123,6 +154,7 @@ async def erro_http(request: Request, exc: HTTPException) -> JSONResponse:
 app.include_router(router)
 app.include_router(installation_router)
 app.include_router(setup_router)
+app.include_router(auth_router)
 
 # Montado por último: uma montagem em "/" captura tudo o que não casou com as rotas acima.
 app.mount("/", FreshStaticFiles(directory=WEB, html=True), name="web")

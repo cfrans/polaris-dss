@@ -8,6 +8,15 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 ## [Não lançado]
 
 ### Adicionado
+- Login individual com administrador/operador, criação única do primeiro administrador pelo
+  código de instalação e gestão de contas. Senhas Argon2id e sessões opacas revogáveis em
+  PostgreSQL, origem protegida e HTTPS fora de loopback. Migração 011 preserva auditoria histórica.
+- Ciência dos scripts persistida por usuário/versão. Aprovações e rejeições usam a identidade
+  da sessão no servidor, ignorando identificação enviada pelo navegador; aprovação humana
+  persistida continua obrigatória antes da execução.
+- Toast acessível confirma cópia de comandos, tokens e chave pública, com transição discreta.
+- Login/configuração conferidos em Docker isolado: 633 testes Python e 52 JavaScript aprovados,
+  seis casos opcionais pulados; fronteira de autenticação exercitada com sessões PostgreSQL reais.
 - Configuração interativa de Zabbix e SSH com teste obrigatório antes de salvar e avançar,
   importação opcional do ambiente sem devolver segredos, chave SSH dedicada gerada no servidor
   e confirmação independente da identidade do alvo. Cópias usam somente ícone acessível.
@@ -23,18 +32,21 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
   migrações idempotentes e downloads idênticos ao checkout; limites externos documentados.
 
 ### Modificado
+- API operacional e páginas requerem login, inclusive para leitura; configurações e preferências
+  globais ficam restritas a administradores. Código compartilhado anterior só cria o primeiro
+  administrador e deixa de conceder acesso à API. Recuperação local de senha encerra sessões.
 - API e reconciliador recarregam conexões cifradas; intervalo pode ser ativado pelo assistente.
   Alterações de conexões recusam incidentes abertos, DB indisponível e operações concorrentes.
-  Mutações da API exigem sessão quando o cofre está habilitado; aprovação humana por incidente
-  permanece obrigatória. Código compartilhado não identifica individualmente o operador.
+  Acesso operacional exige sessão individual; aprovação humana por incidente permanece
+  obrigatória. O código de instalação fica restrito ao bootstrap do primeiro administrador.
 - Compose padrão usa volumes de cofre/chave e dispensa arquivos SSH vazios. Instalações que
   mantêm chave em arquivo devem incluir compose.ssh-env.yml em todos os comandos Compose.
 - Validação local ampliada: 627 testes Python e 50 JavaScript aprovados, seis opcionais pulados;
   persistência após recriação, JSON-RPC simulado e SSH restrito a true em rede Docker isolada.
   Integração externa/entrega de Action/remediação não foram repetidas neste lote.
 - API identifica o desenvolvimento posterior à coleta como 1.1.0-dev; a tag e os dados da
-  v1.0.3-experimento permanecem preservados. Nenhuma migração de banco ou mudança da fórmula
-  de confiança/base de regras.
+  v1.0.3-experimento permanecem preservados. Fórmula de confiança e base de regras inalteradas;
+  a nova migração 011 pertence somente ao controle de acesso posterior à coleta.
 
 ## [1.0.3-experimento] — 2026-10-18
 

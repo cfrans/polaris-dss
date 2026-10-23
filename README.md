@@ -157,7 +157,7 @@ docker compose up -d --build polaris-db polaris-api
 # Apply the database schema
 docker compose exec polaris-api python -m src.db.migrate
 
-# Initialize once; store the displayed administrative code in a password manager
+# Initialize once; store the displayed installation code in a password manager
 docker compose exec polaris-api python -m src.engine.setup_vault
 
 # Open http://localhost:8000/configuracao.html and test/save Zabbix and SSH connections
@@ -169,8 +169,8 @@ Follow the [ordered installation guide](docs/installation.md) for Windows comman
 forms, target preparation and optional environment import. The assistant generates a dedicated
 service key, exposes only its public half and requires independently confirmed SSH host identity.
 Configuration is encrypted in persistent volumes with the master key separate. Unlock its
-administrative session in the same browser before operational changes. Remote credential entry
-requires HTTPS; local loopback HTTP is supported. This shared access code is not individual login.
+individual account in the same browser before operational access; see [accounts and roles](docs/access.md). Remote credential entry
+requires HTTPS; local loopback HTTP is supported. The installation code creates only the first administrator; normal access uses individual login.
 Existing file-based SSH installations use the optional [`compose.ssh-env.yml`](compose.ssh-env.yml)
 with every Compose command; see [`secrets/README.md`](secrets/README.md).
 

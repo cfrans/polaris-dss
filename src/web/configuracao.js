@@ -62,6 +62,7 @@
     const receipts = {};
 
     function locked() {
+      location.href = '/login.html?next=/configuracao.html';
       $("setup-access").hidden = false;
       $("setup-workspace").hidden = true;
       for (const input of document.querySelectorAll('input[type="password"]')) input.value = "";
@@ -269,23 +270,14 @@
           if (!value) throw new Error("Nenhum novo valor disponível para copiar.");
           await navigator.clipboard.writeText(value);
           $("setup-copy-feedback").textContent = "Copiado para a área de transferência.";
+          window.PolarisToast(button.dataset.copyField ? 'Token copiado.' : button.dataset.copy === 'setup-public-key' ? 'Chave pública copiada.' : 'Comando copiado.');
           button.title = "Copiado";
-        } catch { $("setup-copy-feedback").textContent = "Selecione o novo valor ou o comando e copie manualmente."; }
+        } catch { $("setup-copy-feedback").textContent = "Selecione o novo valor ou o comando e copie manualmente."; window.PolarisToast('Não foi possível copiar. Selecione e copie manualmente.'); }
         setTimeout(() => { button.title = "Copiar"; }, 2200);
       });
     });
-    $("setup-login").addEventListener("submit", async event => {
-      event.preventDefault();
-      try {
-        await request("acesso", {code: $("setup-access-code").value});
-        $("setup-access-code").value = "";
-        await loadConfiguration();
-        $("setup-access").hidden = true;
-        $("setup-workspace").hidden = false;
-      } catch (error) { $("setup-access-message").textContent = error.message; }
-    });
     $("setup-logout").addEventListener("click", async () => {
-      try { await request("sair", {}); } finally { locked(); }
+      await window.PolarisSession.logout();
     });
     document.querySelectorAll("[data-load-env]").forEach(button => button.addEventListener("click", async () => {
       try { await loadConfiguration("environment", button.closest("form").id.includes("ssh") ? "ssh" : "zabbix"); $("setup-feedback").textContent = "Campos do ambiente carregados. Segredos permanecem no servidor; teste e salve para usar esta configuração."; }
@@ -349,7 +341,7 @@
     request("acesso").then(async status => {
       if (!status.secure_transport) {
         $("setup-access-message").textContent = "Use HTTPS ou o endereço local para acessar o assistente.";
-        $("setup-access-code").disabled = true;
+
       }
       if (status.authenticated) {
         await loadConfiguration();

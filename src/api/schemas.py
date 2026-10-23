@@ -101,7 +101,7 @@ class HistoricoOcorrencias(BaseModel):
 
 class DecisaoRequest(BaseModel):
     aprovado: bool
-    operador: str = Field(min_length=1, max_length=64)
+    operador: str | None = Field(default=None, max_length=64)
     motivo: str | None = Field(default=None, max_length=1000)
     versao_scripts: str | None = None
     opcao_id: str | None = Field(default=None, max_length=64)

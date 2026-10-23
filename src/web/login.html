@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Entrar — Polaris DSS</title><link rel="icon" href="polaris-mark.svg" type="image/svg+xml"><link rel="stylesheet" href="style.css"><link rel="stylesheet" href="acesso.css"><script src="session.js" defer></script><script src="login.js" defer></script></head>
+<body class="auth-page"><main class="auth-card">
+<a class="marca" href="./"><img src="polaris-mark.svg" width="38" height="38" alt=""><span>Polaris DSS</span></a>
+<h1 id="login-title">Bem-vindo ao Polaris</h1><p id="login-lead">Entre na sua conta para acompanhar incidentes e revisar decisões.</p>
+<form id="login-form" class="auth-form">
+<div data-bootstrap hidden><label for="bootstrap-code">Código de instalação</label><input disabled id="bootstrap-code" type="password" autocomplete="off" maxlength="128"><p>Use o código gerado no servidor para criar o primeiro administrador.</p><label for="account-name">Seu nome</label><input disabled id="account-name" maxlength="100" autocomplete="name"></div>
+<label for="username">Usuário</label><input disabled id="username" required minlength="3" maxlength="64" pattern="[a-z0-9][a-z0-9_.-]{2,63}" autocomplete="username" autocapitalize="none" spellcheck="false">
+<label for="password">Senha</label><input disabled id="password" type="password" required maxlength="128" autocomplete="current-password">
+<p data-bootstrap hidden>Crie uma frase-senha de 15 a 128 caracteres. Guarde-a em um gerenciador de senhas.</p>
+<button disabled id="login-submit" class="btn btn-primario" type="submit">Entrar</button>
+</form><p id="login-error" class="auth-error" role="status"></p><details id="bootstrap-help" hidden><summary>Preparar o primeiro acesso</summary><p>No terminal do servidor, após iniciar Docker e aplicar as migrações:</p><pre>docker compose exec polaris-api python -m src.engine.setup_vault</pre><p>O código só cria o primeiro administrador. Não há conta ou senha padrão.</p></details>
+</main></body></html>

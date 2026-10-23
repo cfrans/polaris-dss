@@ -18,6 +18,18 @@ TABELAS_VOLATEIS = (
 )
 
 
+@pytest.fixture(autouse=True)
+def business_identity(request, monkeypatch):
+    """Business regressions isolate authentication; security suites exercise real sessions."""
+    if request.node.path.name in {'test_auth.py', 'test_setup_configuration.py'}:
+        return
+    from src.api import auth
+    monkeypatch.setattr(auth, 'authenticate', lambda request: {
+        'id': 1, 'login': 'tester', 'nome': 'Test operator', 'perfil': 'admin', 'token_hash': 'business-test'})
+    monkeypatch.setattr(auth, 'acknowledged', lambda user, version: True)
+    monkeypatch.setattr(auth, 'authorize_decision', lambda conn, user: None)
+
+
 @pytest.fixture(scope="session")
 def kb():
     return load()

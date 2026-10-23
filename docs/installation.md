@@ -30,7 +30,7 @@ docker compose version
 For reproduction of the original experiment, check out `v1.0.3-experimento` in a separate
 directory and use its own instructions. Do not update a preserved collection environment.
 
-**Boundary:** this prototype has no operator login and its SSH service credential is capable
+**Boundary:** this prototype uses [individual local accounts](access.md); its SSH service credential is capable
 of root execution. Use an isolated, access-controlled environment and a disposable target.
 Do not expose the API or PostgreSQL to the Internet. A successful setup check is not a
 production-readiness or security certification. See [security boundaries](architecture.md#security-scope).
@@ -88,17 +88,16 @@ docker compose exec -T polaris-api python -m src.db.migrate --status
 docker compose exec polaris-api python -m src.engine.setup_vault
 ```
 
-There are ten numbered migrations. Repeating migration after success applies nothing. Never edit
+There are eleven numbered migrations. Repeating migration after success applies nothing. Never edit
 applied migrations or erase a volume to fix a checksum/password error. API health may fail until
 the schema is current. The last command initializes the encrypted vault once and displays a strong
 administrative code **once**. Store it in a password manager; an existing vault is never overwritten.
 
-Open `http://localhost:8000/configuracao.html` (adjust the published port). Enter the administrative
-code. HTTP credential entry is accepted only on loopback; access through another address requires
+Open `http://localhost:8000/login.html` (adjust the published port). Create the first administrator
+with the installation code, then sign in with your account. Administrators can open the wizard. HTTP credential entry is accepted only on loopback; access through another address requires
 HTTPS with a trusted TLS terminator. The session uses an HttpOnly/SameSite cookie and expires
-after 15 idle minutes or one hour. A restart also ends sessions. Unlock the assistant in the same
-browser before making operational API changes, including incident decisions. This shared code
-does not establish an individual operator identity or replace incident approval.
+after 15 idle minutes or eight hours. Sessions are persisted in PostgreSQL. Sign in before using the operational API. Decisions use the session identity. The installation
+code cannot bypass account login; neither login nor script acknowledgement replaces incident approval.
 
 Compose stores `configuration.enc` in `polaris-setup-data` and its master key in the separate
 `polaris-setup-key` volume. Both persist across container recreation; the reconciler receives

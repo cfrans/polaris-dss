@@ -4,7 +4,6 @@
 
 const INTERVALO_LISTA_MS = 3000;
 const INTERVALO_RESULTADO_MS = 1000;
-const OPERADOR = "operador";
 
 const estado = {
   selecionado: null,
@@ -28,6 +27,7 @@ async function api(caminho, opcoes = {}) {
   });
   const corpo = resposta.status === 204 ? null : await resposta.json();
   if (!resposta.ok) {
+    if (resposta.status === 401) window.location.href = '/login.html';
     throw new Error(corpo?.mensagem || corpo?.detail?.mensagem || `Falha na requisição (${resposta.status})`);
   }
   return corpo;
@@ -322,7 +322,8 @@ async function carregarScripts(forcarExibicao = false) {
     $("ciencia-erro").classList.add("oculto");
     $("btn-recarregar-scripts").classList.add("oculto");
     $("btn-continuar-ciencia").disabled = false;
-    if (!forcarExibicao && lerPreferencia(CHAVE_CIENCIA) === estado.catalogo.versao) {
+    const science = await api('/api/v1/auth/ciencia');
+    if (!forcarExibicao && science.acknowledged === true) {
       window.PolarisUI.setVisibility($("tela-ciencia"), false);
       atualizarFaixa();
     } else {
@@ -337,8 +338,15 @@ async function carregarScripts(forcarExibicao = false) {
   }
 }
 
-function continuarAposCiencia() {
+async function continuarAposCiencia() {
   if (!estado.catalogo) return;
+  try {
+    await api('/api/v1/auth/ciencia', {method:'POST', headers:{'Content-Type':'application/json','X-Polaris-Auth':'1'}, body:JSON.stringify({version:estado.catalogo.versao})});
+  } catch(error) {
+    $("ciencia-erro").textContent=error.message;
+    $("ciencia-erro").classList.remove('oculto');
+    return;
+  }
   estado.cienciaGeneration += 1;
   guardarPreferencia(CHAVE_CIENCIA, estado.catalogo.versao);
   window.PolarisUI.setVisibility($("tela-ciencia"), false);
@@ -1193,7 +1201,7 @@ async function decidir(id, aprovado) {
   try {
     await api(`/api/v1/incidentes/${id}/decisao`, {
       method: "POST",
-      body: JSON.stringify({ aprovado, operador: OPERADOR, motivo,
+      body: JSON.stringify({ aprovado, motivo,
         opcao_id: aprovado && estado.planoAtual ? $("plano-opcao").value : null,
         versao_plano: aprovado ? estado.planoAtual?.versao ?? null : null,
         versao_scripts: aprovado ? estado.catalogo?.versao : null }),

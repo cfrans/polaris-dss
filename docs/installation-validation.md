@@ -65,3 +65,13 @@ verified. Successful SSH `true`, an authenticated API read and a successful poll
 verify separate connections; none establishes successful notification delivery or remedy.
 Windows/macOS host ACL differences and a clean Zabbix deployment are not certified by the
 local no-target run. The original experiment and its preserved version remain distinct.
+
+## Individual login — 23 October 2026
+
+The local follow-up applies migration 011 only in the disposable test database. Real PostgreSQL
+security tests cover unique bootstrap, password/token hashes, logout/idle/absolute expiry, origin,
+HTTP refusal, rate limit, roles/deactivation/password change, authenticated decision attribution
+and versioned script acknowledgement without automatic approval. Business regression suites use
+an authenticated identity double; the security modules explicitly use the actual session layer.
+Login and setup must still be accepted together by the administrator in a fresh external
+installation, as deferred. No experiment/laboratory deployment or additional measurements occurred.

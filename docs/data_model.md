@@ -340,3 +340,37 @@ and acao_escolhida. Choosing an option updates comando_executado and confidence 
 the human decision in one transaction; no new approval flag is introduced.
 
 See [diagnostics and action plans](action_plans.md) for freshness and target checks.
+
+## Local accounts after the experiment
+
+Migration 011 adds `usuarios` (immutable unique login, display name, Argon2id hash, role, active
+state and creation timestamp), `sessoes` (token hash, user FK, creation/activity/expiry timestamps),
+`ciencia_scripts` (user/catalog hash and acknowledgement timestamp) and singleton `auth_limite`.
+These are access-control data, separate from experimental metrics. No historical audit row or
+operator string is rewritten. Sessions and password hashes belong in protected backups.
+
+```mermaid
+erDiagram
+    usuarios ||--o{ sessoes : autentica
+    usuarios ||--o{ ciencia_scripts : confirma
+    usuarios {
+        bigint id PK
+        varchar login UK
+        text senha_hash
+        varchar perfil
+        boolean ativo
+    }
+    sessoes {
+        char token_hash PK
+        bigint usuario_id FK
+        timestamptz ts_expiracao
+    }
+    ciencia_scripts {
+        bigint usuario_id PK,FK
+        char versao PK
+        timestamptz ts_ciencia
+    }
+```
+
+New decisions persist the authenticated immutable username in the existing audit `operador`
+column; no foreign key is retrofitted onto historical self-reported labels. See [access](access.md).
