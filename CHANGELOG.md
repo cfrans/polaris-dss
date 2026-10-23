@@ -32,6 +32,8 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
   migrações idempotentes e downloads idênticos ao checkout; limites externos documentados.
 
 ### Modificado
+- Login sem textos de boas-vindas, com imagem ampliada e centralizada acima do nome, versão
+  consultada da aplicação, link para o GitHub e controle acessível para mostrar ou ocultar a senha.
 - API operacional e páginas requerem login, inclusive para leitura; configurações e preferências
   globais ficam restritas a administradores. Código compartilhado anterior só cria o primeiro
   administrador e deixa de conceder acesso à API. Recuperação local de senha encerra sessões.
