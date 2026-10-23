@@ -2,7 +2,7 @@
 
 ### Decision Support System for IT Infrastructure Incident Remediation
 
-> A rule-based Expert System that transforms raw monitoring alerts into actionable, human-approved remediations with an auditable decision and execution trail. Performance comparison is pending controlled collection.
+> A rule-based Expert System that transforms raw monitoring alerts into actionable, human-approved remediations with an auditable decision and execution trail. The controlled experiment used the preserved v1.0.3-experimento tag; later development has separate validation scope.
 
 [![Python 3.12+](https://img.shields.io/badge/Python-3.12+-3776AB?logo=python&logoColor=white)](https://python.org)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
@@ -29,7 +29,8 @@ The system implements a **Human-in-the-Loop (HITL)** workflow with **explicit hu
 ---
 
 See the [documentation index](docs/README.md) for operational setup, security limits, diagrams,
-physical schema and experiment runbooks. Laboratory rehearsal is still required before collection.
+physical schema and experiment runbooks. Reproducing an experiment requires its frozen version,
+configuration and rehearsal; installation checks alone do not validate experimental measurements.
 
 ## 🏗️ Architecture
 
@@ -186,6 +187,10 @@ To work on the engine outside containers, install the dependencies locally with
 `pip install -r requirements.txt`.
 
 ### Zabbix is optional
+
+For an ordered installation path, use the [step-by-step guide](docs/installation.md).
+Once the API is running, **Ferramentas → Configuração inicial** opens the guided assistant.
+It provides installed artifacts and read-only checks; configuration changes remain explicit.
 
 Polaris is designed as an **intelligence layer on top of monitoring you already run**. If you have a
 Zabbix server, don't start another one — just point Polaris at it via `ZABBIX_URL` in `.env`.

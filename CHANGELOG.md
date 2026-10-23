@@ -7,6 +7,17 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 
 ## [Não lançado]
 
+### Adicionado
+- Assistente de configuração inicial com seis etapas, comandos copiáveis, confirmação manual
+  distinta de verificação automática e consultas de leitura sob demanda. Layout responsivo
+  preserva a identidade visual e respeita movimento reduzido.
+- Guia ordenado de instalação e downloads de quatro artefatos públicos da imagem instalada,
+  por identificadores fixos; sem expor configuração real, provisionar infraestrutura ou remediar.
+
+### Modificado
+- API identifica o desenvolvimento posterior à coleta como 1.1.0-dev; a tag e os dados da
+  v1.0.3-experimento permanecem preservados. Nenhuma migração de banco ou mudança do motor.
+
 ## [1.0.3-experimento] — 2026-10-18
 
 Corrige o enriquecimento do polling revelado no ensaio CPU com webhook pausado.

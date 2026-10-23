@@ -1,0 +1,91 @@
+/* Reuse the Polaris palette and typography; the rail represents the actual setup sequence. */
+.setup-skip { position: absolute; top: -80px; left: 1rem; z-index: 10; padding: .7rem; background: var(--fundo-cartao); color: var(--texto); }
+.setup-skip:focus { top: 1rem; }
+.setup-topbar { position: relative; max-width: 1440px; margin: auto; border-bottom: 1px solid var(--borda); }
+.setup-topbar .btn { font-size: .85rem; }
+.setup-page { max-width: 1320px; margin: 0 auto; padding: 2.6rem 2rem 3rem; }
+.setup-heading { display: flex; justify-content: space-between; gap: 2rem; align-items: end; margin-bottom: 2rem; }
+.setup-heading h1 { font-size: clamp(1.8rem, 3vw, 2.6rem); line-height: 1.2; letter-spacing: -.035em; font-weight: 650; }
+.setup-heading p { color: var(--texto-suave); max-width: 65ch; margin-top: .7rem; }
+.setup-guide-link { flex-shrink: 0; color: #a8caff; font-size: .9rem; text-decoration: none; border-bottom: 1px solid #4c8dff66; padding-bottom: .3rem; }
+.setup-guide-link:hover { color: var(--texto); }
+.setup-guide-link span { margin-left: .45rem; }
+.setup-workspace { display: grid; grid-template-columns: 270px minmax(0, 1fr); gap: 2.3rem; align-items: start; }
+.setup-sidebar { position: sticky; top: 1.2rem; padding-top: .8rem; }
+.setup-progress-heading { display: flex; justify-content: space-between; font-size: .82rem; color: var(--texto-suave); }
+.setup-progress-heading strong { color: var(--texto); font-weight: 500; }
+.setup-sidebar progress { display: block; appearance: none; width: 100%; height: 3px; margin: .8rem 0 1.8rem; border: 0; border-radius: 3px; background: var(--borda); accent-color: var(--acento); }
+.setup-sidebar progress::-webkit-progress-bar { background: var(--borda); border-radius: 3px; }
+.setup-sidebar progress::-webkit-progress-value { background: var(--acento); border-radius: 3px; transition: width 180ms ease; }
+.setup-steps { position: relative; display: grid; gap: .5rem; }
+.setup-steps::before { content: ""; position: absolute; top: 28px; bottom: 28px; left: 25px; width: 1px; background: var(--borda); z-index: -1; }
+.setup-steps button { display: flex; align-items: center; gap: .85rem; background: transparent; border: 1px solid transparent; padding: .7rem .65rem; text-align: left; color: #b6c2d5; border-radius: 9px; cursor: pointer; line-height: 1.3; transition: background 160ms, border-color 160ms; }
+.setup-steps button:hover { background: #1d273999; }
+.setup-steps button[aria-current="step"] { border-color: #4c8dff66; color: var(--texto); background: #213253; }
+.step-number { display: grid; place-items: center; flex-shrink: 0; width: 28px; height: 28px; background: var(--fundo); border: 1px solid var(--borda); border-radius: 50%; font-size: .8rem; color: var(--texto-suave); }
+[aria-current="step"] .step-number { background: var(--acento); color: #fff; border-color: var(--acento); }
+.setup-steps [data-state="ok"] .step-number, .setup-steps [data-state="manual"] .step-number { border-color: var(--alta); color: var(--alta); background: var(--fundo); }
+.setup-steps small { display: block; color: var(--texto-suave); font-size: .73rem; margin-top: .25rem; }
+.setup-local-note { color: var(--texto-suave); font-size: .78rem; padding: 1.1rem .5rem; max-width: 28ch; }
+.setup-main { min-width: 0; border: 1px solid var(--borda); border-radius: 14px; background: #161e2ef2; overflow: hidden; }
+.setup-checkbar { padding: 1rem 1.5rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; border-bottom: 1px solid var(--borda); background: #1d273966; }
+.setup-checkbar p { font-size: .84rem; }
+.setup-checkbar small { display: block; font-size: .75rem; color: var(--texto-suave); margin-top: .25rem; }
+.setup-checkbar .btn { white-space: nowrap; font-size: .8rem; padding: .55rem .8rem; }
+.setup-content { padding: 2rem 2.1rem; min-height: 570px; }
+.setup-content section[hidden] { display: none; }
+.setup-content section.is-entering { animation: setup-reveal 180ms ease-out; }
+@keyframes setup-reveal { from { opacity: .2; transform: translateX(6px); } to { opacity: 1; transform: translateX(0); } }
+.setup-position { font-size: .8rem; color: #a8caff; margin-bottom: .6rem; }
+.setup-content h2 { font-size: 1.7rem; letter-spacing: -.025em; line-height: 1.25; margin-bottom: .8rem; }
+.setup-content h2:focus { outline: none; }
+.setup-content p { max-width: 73ch; }
+.setup-lead { color: #bdc9dc; margin-bottom: 1.6rem; }
+.setup-requirements { display: grid; margin-bottom: 1.5rem; }
+.setup-requirements div { display: grid; grid-template-columns: 155px minmax(0, 1fr); padding: .8rem 0; gap: 1rem; border-bottom: 1px solid var(--borda); }
+.setup-requirements dt { font-weight: 600; font-size: .88rem; }
+.setup-requirements dd { color: var(--texto-suave); font-size: .87rem; }
+.setup-callout { border-left: 2px solid #659aff; background: #23375866; padding: .85rem 1rem; margin: 1.35rem 0; border-radius: 0 7px 7px 0; font-size: .86rem; }
+.setup-callout p { color: #b6c5dd; margin-top: .25rem; }
+.setup-command { margin: 1.35rem 0; border: 1px solid var(--borda); border-radius: 8px; overflow: hidden; background: #0e1420; }
+.setup-command > div { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .45rem .85rem; font-size: .74rem; color: var(--texto-suave); border-bottom: 1px solid #2b364877; }
+.setup-command button { background: transparent; border: 0; color: #a8caff; cursor: pointer; padding: .35rem 0; }
+.setup-command pre { padding: .95rem; overflow-x: auto; font-size: .8rem; line-height: 1.8; }
+.setup-content code { font-family: Consolas, "SFMono-Regular", monospace; font-size: .9em; overflow-wrap: anywhere; }
+.setup-command code { overflow-wrap: normal; }
+.setup-confirm { display: flex; align-items: start; gap: .7rem; margin-top: 1.15rem; font-size: .86rem; cursor: pointer; }
+.setup-confirm input { margin-top: .22rem; flex-shrink: 0; width: 17px; height: 17px; accent-color: var(--acento); }
+.setup-instructions { padding-left: 1.15rem; display: grid; gap: .8rem; color: #bdc9dc; font-size: .9rem; }
+.setup-downloads { display: flex; flex-wrap: wrap; gap: .7rem; }
+.setup-download { display: inline-flex; color: #b8d4ff; text-decoration: none; border: 1px solid #4c8dff66; border-radius: 7px; padding: .55rem .85rem; margin-top: 1.1rem; font-size: .84rem; }
+.setup-download:hover { background: #243b5e; }
+.setup-result { border-top: 1px solid var(--borda); padding-top: 1rem; margin-top: 1.5rem; font-size: .85rem; color: var(--texto-suave); }
+.setup-result[data-state="ok"] { color: var(--alta); }
+.setup-result[data-state="falha"] { color: #ff938a; }
+.setup-result[data-state="aviso"], .setup-result[data-state="pendente"] { color: #e5c780; }
+.setup-note { color: var(--texto-suave); font-size: .8rem; margin-top: .85rem; }
+.setup-content details { margin-top: 1.5rem; font-size: .86rem; color: var(--texto-suave); }
+.setup-content summary { cursor: pointer; color: #bdc9dc; padding: .3rem 0; }
+.setup-content details p { margin-top: .6rem; }
+.setup-summary { padding: 1rem; margin-top: 1.4rem; border: 1px solid var(--borda); border-radius: 8px; font-size: .9rem; }
+.setup-footer { display: flex; align-items: center; justify-content: space-between; gap: .7rem; border-top: 1px solid var(--borda); padding: 1rem 1.5rem; }
+.setup-footer span { color: var(--texto-suave); font-size: .8rem; }
+.setup-body :focus-visible { outline: 2px solid #8bb8ff; outline-offset: 4px; }
+@media (max-width: 950px) { .setup-workspace { grid-template-columns: 220px minmax(0, 1fr); gap: 1rem; } .setup-content { padding: 1.5rem; } .setup-checkbar { flex-direction: column; align-items: start; } .setup-requirements div { grid-template-columns: 1fr; gap: .3rem; } }
+@media (max-width: 680px) {
+  .setup-page { padding: 1.5rem 1rem 2rem; } .setup-topbar { padding: 1rem; }
+  .setup-topbar .brand-suffix { display: none; } .setup-heading { display: block; margin-bottom: 1.4rem; }
+  .setup-guide-link { display: inline-block; margin-top: .85rem; }
+  .setup-workspace { grid-template-columns: minmax(0, 1fr); } .setup-sidebar { position: static; }
+  .setup-sidebar progress { margin-bottom: .7rem; } .setup-steps { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: .25rem; }
+  .setup-steps button { padding: .45rem; justify-content: center; } .setup-steps button > span:last-child { display: none; }
+  .setup-steps::before { top: 50%; left: 10%; right: 10%; width: auto; height: 1px; bottom: auto; }
+  .setup-local-note { max-width: none; padding: .7rem 0; font-size: .74rem; }
+  .setup-content { min-height: 0; padding: 1.3rem 1rem; } .setup-checkbar { padding: .9rem 1rem; }
+  .setup-content h2 { font-size: 1.45rem; } .setup-footer { padding: .9rem 1rem; }
+  .setup-footer .btn { padding: .6rem .8rem; } .setup-footer span { font-size: .73rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .setup-content section.is-entering { animation: none; }
+  .setup-steps button, .setup-sidebar progress::-webkit-progress-value { transition: none; }
+}

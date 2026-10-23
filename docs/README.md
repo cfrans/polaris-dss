@@ -3,6 +3,9 @@
 These guides describe the current implementation. Laboratory rehearsal and official measurements
 are separate from automated tests; no measured performance improvement is claimed here.
 
+- [Step-by-step installation](installation.md): ordered setup, public artifacts and the guided
+  assistant (**Ferramentas → Configuração inicial**), with [validation scope](installation-validation.md).
+
 - [Installation and operations](operations.md): configuration, SSH trust, migrations, updates,
   backup, diagnostics and failure handling.
 - [Architecture and security boundaries](architecture.md): ingestion, human decisions,

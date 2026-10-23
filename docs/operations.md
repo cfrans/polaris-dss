@@ -1,5 +1,9 @@
 # Installation and operations
 
+For a first installation, start with [the ordered installation guide](installation.md).
+The in-app assistant at `/configuracao.html` reuses read-only checks and does not edit files
+or provision external services. This reference covers ongoing operation and troubleshooting.
+
 The supported controlled target is Ubuntu 24.04 LTS with systemd and nginx. Polaris runs through
 Docker Compose; an existing Zabbix 7.0 LTS instance can be reused. The optional `zabbix` profile
 is for an isolated installation, not a second production monitor. CPU/disk instruments require

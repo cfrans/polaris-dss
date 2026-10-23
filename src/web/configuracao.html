@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Configuração inicial — Polaris DSS</title>
+  <link rel="icon" href="polaris-mark.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="configuracao.css">
+  <script src="configuracao.js" defer></script>
+</head>
+<body class="setup-body">
+<a class="setup-skip" href="#setup-content">Ir para a etapa atual</a>
+<header class="topo setup-topbar">
+  <a class="marca" href="./" aria-label="Polaris DSS — página inicial">
+    <img class="brand-mark" src="polaris-mark.svg" width="38" height="38" alt="">
+    <span class="brand-name">Polaris <span class="brand-suffix">DSS</span></span>
+  </a>
+  <a class="btn btn-secundario" href="./">Voltar ao painel</a>
+</header>
+<main class="setup-page">
+  <div class="setup-heading">
+    <div><h1>Um caminho para começar.</h1>
+      <p>Prepare as conexões do Polaris, confira cada etapa e mantenha a configuração sob seu controle.</p></div>
+    <a class="setup-guide-link" href="api/v1/instalacao/arquivos/guia" download>Baixar guia completo <span aria-hidden="true">↗</span></a>
+  </div>
+  <div class="setup-workspace">
+    <aside class="setup-sidebar" aria-label="Andamento da instalação">
+      <div class="setup-progress-heading"><span>Configuração inicial</span><strong id="setup-count">0 de 6</strong></div>
+      <progress id="setup-progress" max="6" value="0" aria-label="Etapas conferidas">0 de 6</progress>
+      <nav class="setup-steps" aria-label="Etapas da configuração">
+        <button type="button" data-step="0" aria-current="step"><span class="step-number">1</span><span>Preparar o ambiente<small data-step-status="0">Confirmação manual</small></span></button>
+        <button type="button" data-step="1"><span class="step-number">2</span><span>Iniciar o Polaris<small data-step-status="1">Ainda não verificado</small></span></button>
+        <button type="button" data-step="2"><span class="step-number">3</span><span>Conectar o Zabbix<small data-step-status="2">Ainda não verificado</small></span></button>
+        <button type="button" data-step="3"><span class="step-number">4</span><span>Preparar o acesso SSH<small data-step-status="3">Ainda não verificado</small></span></button>
+        <button type="button" data-step="4"><span class="step-number">5</span><span>Ativar a reconciliação<small data-step-status="4">Ainda não verificado</small></span></button>
+        <button type="button" data-step="5"><span class="step-number">6</span><span>Revisar a instalação<small data-step-status="5">Confirmação manual</small></span></button>
+      </nav>
+      <p class="setup-local-note">Suas confirmações valem nesta visita. Ao recarregar, confira novamente.</p>
+    </aside>
+    <div class="setup-main">
+      <div class="setup-checkbar">
+        <div><p id="setup-feedback" role="status" aria-live="polite">Verifique as conexões quando os serviços estiverem configurados.</p>
+          <small id="setup-checked-at">A consulta lê banco, Zabbix e acesso SSH. Não altera a configuração.</small></div>
+        <button id="setup-check" class="btn btn-secundario" type="button"><svg class="icon" aria-hidden="true"><use href="icons.svg#refresh"></use></svg>Verificar conexões</button>
+      </div>
+      <div id="setup-content" class="setup-content">
+        <section data-panel="0" aria-labelledby="step-title-0">
+          <p class="setup-position">Etapa 1 de 6</p><h2 id="step-title-0" tabindex="-1">Prepare o ambiente</h2>
+          <p class="setup-lead">O Polaris conecta o monitoramento a um alvo Linux. Comece definindo onde cada parte vai funcionar.</p>
+          <dl class="setup-requirements">
+            <div><dt>Servidor Polaris</dt><dd>Git e Docker com Compose v2. No Windows e macOS, use containers Linux no Docker Desktop.</dd></div>
+            <div><dt>Monitoramento</dt><dd>Zabbix 7.0 LTS acessível pelo servidor Polaris. Você pode usar a instalação que já possui.</dd></div>
+            <div><dt>Alvo de remediação</dt><dd>Um Ubuntu 24.04 LTS com SSH e systemd. O alvo é configurado explicitamente; não é qualquer host do Zabbix.</dd></div>
+          </dl>
+          <div class="setup-callout"><strong>Comece em um ambiente isolado.</strong><p>Esta versão ainda não tem login de operadores e usa uma credencial SSH com alcance administrativo. Use um alvo descartável e acesso de rede restrito antes de habilitar remediações.</p></div>
+          <div class="setup-command"><div><span>No servidor Polaris</span><button type="button" data-copy="prepare-command">Copiar comandos</button></div><pre><code id="prepare-command">docker version
+docker compose version</code></pre></div>
+          <label class="setup-confirm"><input type="checkbox" data-confirm="environment"><span>Conferi Docker, acesso de rede e portas disponíveis em um ambiente separado.</span></label>
+        </section>
+        <section data-panel="1" aria-labelledby="step-title-1">
+          <p class="setup-position">Etapa 2 de 6</p><h2 id="step-title-1" tabindex="-1">Inicie o Polaris</h2>
+          <p class="setup-lead">Configure os arquivos locais, inicie o banco e a aplicação, e só então aplique o esquema de auditoria.</p>
+          <ol class="setup-instructions"><li>Baixe o modelo e salve como <code>.env</code> na raiz do repositório. Preserve um arquivo existente.</li><li>Troque os valores de exemplo de senha e token. Credenciais ficam no servidor, fora do Git.</li><li>Prepare os arquivos de chave e <code>known_hosts</code> conforme a etapa SSH antes de iniciar o Compose. Para uso sem alvo, siga a opção de arquivos vazios no guia.</li></ol>
+          <a class="setup-download" href="api/v1/instalacao/arquivos/configuracao" download>Baixar modelo de configuração</a>
+          <div class="setup-command"><div><span>Na raiz do repositório</span><button type="button" data-copy="start-command">Copiar comandos</button></div><pre><code id="start-command">docker compose config --quiet
+docker compose up -d --build polaris-db polaris-api
+docker compose exec -T polaris-api python -m src.db.migrate
+docker compose exec -T polaris-api python -m src.db.migrate --status</code></pre></div>
+          <div class="setup-result" data-result="services" role="status">Banco, esquema e base de conhecimento ainda não verificados.</div>
+          <details><summary>O banco não ficou pronto?</summary><p>Confira o estado dos serviços e as credenciais. Em um volume existente, mudar a senha no arquivo não muda a senha do PostgreSQL. Preserve o volume; não o apague para tentar corrigir a instalação.</p></details>
+        </section>
+        <section data-panel="2" aria-labelledby="step-title-2">
+          <p class="setup-position">Etapa 3 de 6</p><h2 id="step-title-2" tabindex="-1">Conecte o Zabbix</h2>
+          <p class="setup-lead">Uma conexão para consultar eventos. Outra para recebê-los. Confira as duas partes.</p>
+          <ol class="setup-instructions"><li>Informe a URL completa da API e credenciais de uma conta dedicada no <code>.env</code>. Confira permissões sobre os hosts e métodos da API indicados no guia.</li><li>Importe o template complementar e vincule-o junto ao <strong>Linux by Zabbix agent</strong> nos hosts pretendidos.</li><li>Importe o Media Type, configure a URL do Polaris e o mesmo token de recepção do servidor.</li><li>Associe a mídia ao usuário destinatário e crie a Trigger action com as condições do guia.</li></ol>
+          <div class="setup-downloads"><a class="setup-download" href="api/v1/instalacao/arquivos/template" download>Baixar template Linux</a><a class="setup-download" href="api/v1/instalacao/arquivos/media-type" download>Baixar Media Type</a></div>
+          <div class="setup-result" data-result="zabbix" role="status">Acesso autenticado à API ainda não verificado.</div>
+          <label class="setup-confirm"><input type="checkbox" data-confirm="zabbix"><span>Conferi os templates, a mídia do destinatário e a Action no Zabbix.</span></label>
+          <p class="setup-note">Conectar à API não comprova entrega de eventos. Esta confirmação é manual; a revisão final trata do envio.</p>
+        </section>
+        <section data-panel="3" aria-labelledby="step-title-3">
+          <p class="setup-position">Etapa 4 de 6</p><h2 id="step-title-3" tabindex="-1">Prepare o acesso SSH</h2>
+          <p class="setup-lead">Uma chave dedicada ao serviço e uma identidade do alvo conferida por você.</p>
+          <ol class="setup-instructions"><li>No alvo descartável, prepare a conta de serviço e autorize somente a chave pública.</li><li>No servidor Polaris, gere a chave dedicada se ainda não existir. A chave privada permanece nesse servidor.</li><li>Compare a impressão digital obtida pela rede com a lida diretamente no alvo. Só então salve <code>secrets/known_hosts</code>.</li><li>Confira as permissões da chave e a política <code>sudoers</code> com o administrador, seguindo o guia completo.</li></ol>
+          <div class="setup-callout"><strong>Conexão não comprova privilégio seguro.</strong><p>A política atual permite executar comandos como root por meio de timeout. O teste desta página executa apenas <code>true</code>; não valida permissões de remediação.</p></div>
+          <div class="setup-result" data-result="ssh" role="status">Conexão SSH ainda não verificada.</div>
+          <label class="setup-confirm"><input type="checkbox" data-confirm="ssh"><span>Conferi a identidade do alvo, a chave de serviço e o alcance das permissões.</span></label>
+          <details><summary>Estou apenas conhecendo a interface</summary><p>É possível iniciar sem um alvo real. Nesse caso o acesso SSH fica pendente e a execução é simulada. Isso não conclui uma instalação com remediação real. O guia explica os arquivos vazios exigidos pelos mounts do Compose.</p></details>
+        </section>
+        <section data-panel="4" aria-labelledby="step-title-4">
+          <p class="setup-position">Etapa 5 de 6</p><h2 id="step-title-4" tabindex="-1">Ative a reconciliação</h2>
+          <p class="setup-lead">O processo separado consulta o Zabbix e recupera eventos que não chegaram pela notificação.</p>
+          <div class="setup-command"><div><span>No servidor Polaris</span><button type="button" data-copy="reconcile-command">Copiar comandos</button></div><pre><code id="reconcile-command">docker compose up -d polaris-reconciler
+docker compose ps</code></pre></div>
+          <p>Após mudar a configuração, recrie API e reconciliador para que ambos recebam os mesmos valores.</p>
+          <div class="setup-command"><div><span>Após alterações no arquivo local</span><button type="button" data-copy="recreate-command">Copiar comando</button></div><pre><code id="recreate-command">docker compose up -d --build polaris-api polaris-reconciler</code></pre></div>
+          <div class="setup-result" data-result="reconciliation" role="status">Nenhum ciclo de reconciliação conferido nesta visita.</div>
+          <p class="setup-note">Intervalo zero desativa o processo. Um ciclo bem-sucedido confirma a consulta periódica; a entrega pelo Media Type é conferida separadamente.</p>
+        </section>
+        <section data-panel="5" aria-labelledby="step-title-5">
+          <p class="setup-position">Etapa 6 de 6</p><h2 id="step-title-5" tabindex="-1">Revise antes de operar</h2>
+          <p class="setup-lead">As conexões são parte do caminho. A entrega do evento e os limites de acesso também precisam da sua conferência.</p>
+          <label class="setup-confirm"><input type="checkbox" data-confirm="delivery"><span>Conferi no registro da Action um evento autorizado e seu incidente correspondente no Polaris.</span></label>
+          <label class="setup-confirm"><input type="checkbox" data-confirm="review"><span>Revisei Scripts e ciência, o alvo, as permissões, o acesso de rede e o procedimento de backup.</span></label>
+          <div class="setup-callout"><strong>Aprovação continua sendo por incidente.</strong><p>Concluir estas etapas não aprova ações nem inicia testes. Qualquer exercício com falha controlada deve ser conduzido separadamente pelo responsável.</p></div>
+          <div id="setup-summary" class="setup-summary" role="status">Ainda há etapas a conferir. Você pode voltar a qualquer uma delas.</div>
+          <p class="setup-note">Esta página não recebe senhas nem altera serviços. As confirmações manuais não são um registro de auditoria autenticado ou uma certificação de produção.</p>
+          <a class="setup-download" href="./">Abrir painel do Polaris</a>
+        </section>
+      </div>
+      <footer class="setup-footer"><button id="setup-previous" class="btn btn-secundario" type="button" disabled>Anterior</button><span id="setup-position-label">Etapa 1 de 6</span><button id="setup-next" class="btn btn-primario" type="button">Continuar</button></footer>
+    </div>
+  </div>
+  <noscript><p>Ative JavaScript para navegar pelas etapas e consultar as conexões. O guia completo pode ser baixado pelo link no início da página.</p></noscript>
+</main>
+</body>
+</html>

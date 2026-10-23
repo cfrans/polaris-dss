@@ -19,6 +19,7 @@ from ..engine.config import get_settings
 from ..engine.confidence import load_config
 from ..engine.knowledge_base import KnowledgeBaseError, load
 from .routes import VERSAO_API, router
+from .installation import router as installation_router
 
 WEB = Path(__file__).resolve().parents[1] / "web"
 
@@ -74,6 +75,7 @@ async def erro_http(request: Request, exc: HTTPException) -> JSONResponse:
 
 
 app.include_router(router)
+app.include_router(installation_router)
 
 # Montado por último: uma montagem em "/" captura tudo o que não casou com as rotas acima.
 app.mount("/", FreshStaticFiles(directory=WEB, html=True), name="web")
