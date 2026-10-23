@@ -1,4 +1,30 @@
 /* Reuse the Polaris palette and typography; the rail represents the actual setup sequence. */
+.setup-workspace[hidden], .setup-access[hidden], .setup-form [hidden] { display: none; }
+.setup-access { max-width: 760px; padding: 2rem; border: 1px solid var(--borda); border-radius: 14px; background: var(--fundo-painel); }
+.setup-access h2 { font-size: 1.4rem; margin-bottom: .5rem; }
+.setup-access p, .setup-access details { color: var(--texto-suave); font-size: .88rem; }
+.setup-access details { margin-top: 1.2rem; } .setup-access summary { cursor: pointer; }
+.setup-form { display: grid; gap: .6rem; margin: 1.4rem 0; padding: 1.2rem; background: #0e142066; border: 1px solid var(--borda); border-radius: 10px; }
+.setup-form input, .setup-form select { width: 100%; min-width: 0; min-height: 42px; color: var(--texto); background: var(--fundo-cartao); border: 1px solid var(--borda); border-radius: 7px; padding: .6rem .7rem; }
+.setup-form label { font-size: .85rem; color: #c7d5e9; }
+.setup-form input::placeholder { font-size: .78rem; color: var(--texto-suave); }
+.setup-form h3 { font-size: .95rem; }
+.setup-form button:not(.btn), .setup-adminbar button { border: 1px solid var(--borda); border-radius: 7px; color: #b8d4ff; background: transparent; padding: .6rem .8rem; cursor: pointer; font-size: .8rem; }
+.setup-form button:disabled { opacity: .45; cursor: not-allowed; }
+.setup-form-heading, .setup-form-actions, .setup-inline { display: flex; align-items: center; gap: .7rem; }
+.setup-form-heading { justify-content: space-between; margin-bottom: .5rem; }
+.setup-inline input { flex: 1; } .setup-inline button { flex-shrink: 0; }
+.setup-form-actions { flex-wrap: wrap; margin-top: .7rem; } .setup-form-actions .btn { font-size: .82rem; }
+.setup-form [role="status"] { font-size: .82rem; color: #b9c8de; overflow-wrap: anywhere; }
+.setup-fields { display: grid; grid-template-columns: 1.3fr 1fr; gap: .7rem; }
+.setup-fields > div, #setup-zabbix-token-fields, #setup-zabbix-password-fields { display: grid; gap: .5rem; }
+#setup-zabbix-token-fields[hidden], #setup-zabbix-password-fields[hidden] { display: none; }
+.setup-adminbar { display: flex; align-items: center; justify-content: space-between; padding: .55rem 1.5rem; font-size: .75rem; color: var(--texto-suave); border-bottom: 1px solid var(--borda); }
+.setup-adminbar button { border: 0; padding: .2rem; }
+.setup-command button { min-width: 34px; min-height: 34px; display: inline-grid; place-items: center; }
+.setup-steps button:disabled { cursor: not-allowed; opacity: .48; }
+.setup-sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+@media (max-width: 680px) { .setup-access { padding: 1.2rem; } .setup-form { padding: .85rem; } .setup-inline, .setup-form-heading { flex-wrap: wrap; } .setup-fields { grid-template-columns: 1fr; } }
 .setup-skip { position: absolute; top: -80px; left: 1rem; z-index: 10; padding: .7rem; background: var(--fundo-cartao); color: var(--texto); }
 .setup-skip:focus { top: 1rem; }
 .setup-topbar { position: relative; max-width: 1440px; margin: auto; border-bottom: 1px solid var(--borda); }

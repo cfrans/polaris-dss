@@ -124,25 +124,29 @@ def main(argv: list[str] | None = None) -> int:
     )
     if intervalo < 0:
         parser.error("o intervalo não pode ser negativo")
-    if args.loop and intervalo == 0:
+    if args.loop and args.intervalo == 0:
         print("reconciliação periódica desativada (intervalo zero)")
         return 0
 
     kb, cfg = load(), load_config()
-
-    try:
-        cliente = cliente_do_ambiente()
-    except ZabbixError as exc:
-        print(f"reconciliação indisponível: {exc}", file=sys.stderr)
-        return 2
-
+    from .config import get_environment_settings
+    from .setup_vault import configured_vault, operation_guard, VaultError
     while True:
+        settings = get_settings()
+        intervalo = args.intervalo if args.intervalo is not None else settings.polaris_polling_segundos
+        if intervalo <= 0:
+            if not args.loop:
+                return 0
+            time.sleep(5)
+            continue
         falhou = False
         try:
-            with conectar() as conn:
-                print(executar_ciclo(conn, cliente, kb, cfg, intervalo), flush=True)
-        except ZabbixError as exc:
-            print(f"ciclo falhou: {exc}", file=sys.stderr)
+            with operation_guard(configured_vault(get_environment_settings())):
+                cliente = cliente_do_ambiente()
+                with conectar() as conn:
+                    print(executar_ciclo(conn, cliente, kb, cfg, intervalo), flush=True)
+        except (ZabbixError, VaultError):
+            print("Reconciliação aguardando configuração válida ou conexão disponível.", file=sys.stderr)
             falhou = True
         if not args.loop:
             return 2 if falhou else 0

@@ -9,6 +9,8 @@ secrets/
 *.key
 id_rsa*
 id_ed25519*
+configuration.enc
+.configuration-*
 
 # Histórico e metadados do repositório
 .git

@@ -217,7 +217,7 @@ def _verificar_alvo() -> Verificacao:
     if not s.target_ssh_host:
         return Verificacao("alvo", "Host alvo (SSH)", NAO_CONFIGURADO,
                            "TARGET_SSH_HOST não definido — a remediação usará o executor simulado")
-    if not s.target_ssh_key_path or not Path(s.target_ssh_key_path).exists():
+    if not s.target_ssh_key_path or (s.target_ssh_key_path != "@cofre" and not Path(s.target_ssh_key_path).exists()):
         return Verificacao("alvo", "Host alvo (SSH)", FALHA,
                            f"chave não encontrada em {s.target_ssh_key_path or '(vazio)'}")
 

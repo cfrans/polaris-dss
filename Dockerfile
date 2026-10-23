@@ -24,6 +24,10 @@ RUN chown root:root /app /app/src /app/src/scripts /app/src/scripts/*.sh /app/sr
     && chmod 0755 /app /app/src /app/src/scripts \
     && chmod 0444 /app/src/scripts/*.sh /app/src/scripts/*.py
 
+RUN mkdir -p /var/lib/polaris/setup /var/lib/polaris/key \
+    && chown -R polaris:polaris /var/lib/polaris \
+    && chmod 0700 /var/lib/polaris/setup /var/lib/polaris/key
+
 USER polaris
 
 EXPOSE 8000

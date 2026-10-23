@@ -83,14 +83,16 @@ services:
       TARGET_SSH_HOST: ${TARGET_SSH_HOST:-}
       TARGET_SSH_USER: ${TARGET_SSH_USER:-polaris}
       TARGET_SSH_KEY_PATH: /run/secrets/polaris_ssh_key
+      POLARIS_SETUP_DIR: ${POLARIS_SETUP_DIR:-/var/lib/polaris/setup}
+      POLARIS_SETUP_KEY_FILE: ${POLARIS_SETUP_KEY_FILE:-/var/lib/polaris/key/master.key}
 
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
     ports:
       - "${POLARIS_API_PORT:-8000}:8000"
     volumes:
-      # Chave dedicada e identidade validada do host alvo, ambas em leitura apenas.
-      - ${TARGET_SSH_KEY_PATH:-./secrets/polaris_ed25519}:/run/secrets/polaris_ssh_key:ro
-      - ./secrets/known_hosts:/etc/ssh/ssh_known_hosts:ro
+      # Cofre e chave mestra separados. Chave SSH de ambiente: compose.ssh-env.yml opcional.
+      - polaris-setup-data:/var/lib/polaris/setup
+      - polaris-setup-key:/var/lib/polaris/key
     depends_on:
       polaris-db:
         condition: service_healthy
@@ -122,12 +124,14 @@ services:
       TARGET_SSH_HOST: ${TARGET_SSH_HOST:-}
       TARGET_SSH_USER: ${TARGET_SSH_USER:-polaris}
       TARGET_SSH_KEY_PATH: /run/secrets/polaris_ssh_key
+      POLARIS_SETUP_DIR: ${POLARIS_SETUP_DIR:-/var/lib/polaris/setup}
+      POLARIS_SETUP_KEY_FILE: ${POLARIS_SETUP_KEY_FILE:-/var/lib/polaris/key/master.key}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
     # O reconciliador também ingere incidentes e monta planos por inspeção de leitura.
     # Não executa remediação; essa continua exclusiva da API após aprovação persistida.
     volumes:
-      - ${TARGET_SSH_KEY_PATH:-./secrets/polaris_ed25519}:/run/secrets/polaris_ssh_key:ro
-      - ./secrets/known_hosts:/etc/ssh/ssh_known_hosts:ro
+      - polaris-setup-data:/var/lib/polaris/setup:ro
+      - polaris-setup-key:/var/lib/polaris/key:ro
     depends_on:
       polaris-db:
         condition: service_healthy
@@ -136,7 +140,7 @@ services:
     # A imagem compartilhada verifica a API HTTP; este processo não serve HTTP.
     healthcheck:
       disable: true
-    # Intervalo zero encerra normalmente e mantém o serviço desativado; falhas reais reiniciam.
+    # Intervalo zero aguarda ativação pelo assistente; falhas reais reiniciam.
     restart: on-failure
 
   # ---------------------------------------------------------------------------
@@ -224,3 +228,6 @@ networks:
 volumes:
   polaris-db-data:
   zabbix-db-data:
+
+  polaris-setup-data:
+  polaris-setup-key:

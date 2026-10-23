@@ -3,7 +3,8 @@
 This is the installation path for the guided-setup development version after
 `v1.0.3-experimento`. The experiment tag and its measurements remain unchanged.
 The web assistant is available at **Tools → Configuração inicial** or `/configuracao.html`.
-It provides instructions, public downloads and read-only checks; it does not change configuration.
+It provides forms, connection tests, encrypted configuration and public downloads. Zabbix and
+SSH connections can be entered in the browser; environment-based configuration remains optional.
 This guide remains usable when the API cannot start.
 
 ## 1. Choose the environment
@@ -34,7 +35,7 @@ of root execution. Use an isolated, access-controlled environment and a disposab
 Do not expose the API or PostgreSQL to the Internet. A successful setup check is not a
 production-readiness or security certification. See [security boundaries](architecture.md#security-scope).
 
-## 2. Configure the application
+## 2. Bootstrap Docker and the audit database
 
 Copy the example once. Do not overwrite an existing `.env` during an update.
 
@@ -50,8 +51,11 @@ Windows PowerShell:
 Copy-Item .env.example .env
 ```
 
-Edit `.env` locally. Replace the example database password, Zabbix credentials and webhook
-token before starting. Keep all private values outside Git, screenshots and support messages.
+Edit `.env` locally to replace the database password and select free published ports. The database
+must exist before the assistant can operate; it cannot change its own database credentials.
+Clear example Zabbix credentials if you will use the forms. Keep private values outside Git,
+screenshots and support messages. Zabbix, webhook, target and polling values below are optional
+environment inputs; tested values saved by the assistant take precedence.
 
 | Variable | What to set |
 |:--|:--|
@@ -60,9 +64,9 @@ token before starting. Keep all private values outside Git, screenshots and supp
 | `ZABBIX_TOKEN` | API token for a dedicated Zabbix account with access to the monitored host group |
 | `ZABBIX_USER` / `ZABBIX_PASSWORD` | Alternative to a token; clear the example values when using a token |
 | `POLARIS_WEBHOOK_TOKEN` | A distinct random secret, also configured in the Zabbix Media Type |
-| `TARGET_SSH_HOST` | IP or name of the single remediation target; leave empty for simulated execution only |
+| `TARGET_SSH_HOST` | Single remediation target; the assistant accepts a literal IPv4/IPv6 address |
 | `TARGET_SSH_USER` | Target service account, normally `polaris` |
-| `TARGET_SSH_KEY_PATH` | Host path to the dedicated service private key, normally `./secrets/polaris_ed25519` |
+| `TARGET_SSH_KEY_PATH` | Optional host private-key path, used only with `compose.ssh-env.yml` |
 | `POLARIS_POLLING_SEGUNDOS` | Reconciliation interval, normally 30; zero disables the loop |
 | `POLARIS_DEBUG` | Keep `false`; setup does not require alert injection |
 | `POLARIS_API_PORT` / `POLARIS_DB_PORT` | Free host ports, normally 8000/5432 |
@@ -74,7 +78,65 @@ the host. If host tools use a different published DB port, adjust their `DB_PORT
 Keep `POLARIS_CONFIDENCE_HISTORY` appropriate to normal operation; disabling history and
 setting experimental timings belong to the experiment protocol, not the common setup.
 
-## 3. Prepare SSH trust before mounting files
+## 3. Start and unlock the assistant
+
+```bash
+docker compose config --quiet
+docker compose up -d --build polaris-db polaris-api
+docker compose exec -T polaris-api python -m src.db.migrate
+docker compose exec -T polaris-api python -m src.db.migrate --status
+docker compose exec polaris-api python -m src.engine.setup_vault
+```
+
+There are ten numbered migrations. Repeating migration after success applies nothing. Never edit
+applied migrations or erase a volume to fix a checksum/password error. API health may fail until
+the schema is current. The last command initializes the encrypted vault once and displays a strong
+administrative code **once**. Store it in a password manager; an existing vault is never overwritten.
+
+Open `http://localhost:8000/configuracao.html` (adjust the published port). Enter the administrative
+code. HTTP credential entry is accepted only on loopback; access through another address requires
+HTTPS with a trusted TLS terminator. The session uses an HttpOnly/SameSite cookie and expires
+after 15 idle minutes or one hour. A restart also ends sessions. Unlock the assistant in the same
+browser before making operational API changes, including incident decisions. This shared code
+does not establish an individual operator identity or replace incident approval.
+
+Compose stores `configuration.enc` in `polaris-setup-data` and its master key in the separate
+`polaris-setup-key` volume. Both persist across container recreation; the reconciler receives
+read-only mounts. Do not remove either volume. Losing the key makes the configuration unreadable;
+possessing both permits decryption. Back them up separately with restricted access. The two
+`POLARIS_SETUP_*` paths are supplied by Compose; custom paths require matching mounts.
+
+The default Compose needs no SSH placeholder files. DB/schema/KB can pass without a configured
+target, but later steps stay blocked. This is a partial installation, not end-to-end acceptance.
+
+## 4. Configure connections in the browser
+
+In the Zabbix step, enter its URL and either an API token or dedicated username/password. Generate
+or enter a separate reception token (at least 24 characters). Copy a new reception token into the
+Zabbix Media Type before saving: saved secrets are never returned by the API. **Testar conexão**
+checks Zabbix 7.0 and an authenticated host query. **Salvar conexão testada** becomes available
+only after success. The test expires after five minutes; editing, failure, another configuration
+revision or saving consumes/invalidates it. A successful API query does not prove every permission
+or event delivery. Complete the manual integration in section 6.
+
+**Carregar do ambiente** fills public fields and indicates whether secrets are available on the
+server. Empty secret fields reuse that selected source; they are never prefilled with the secret.
+Test and save to copy the effective connection into the encrypted vault. Existing `.env` secrets
+are not retroactively encrypted: remove migrated values yourself only after verifying operation.
+
+For SSH, enter the target IP/account and generate a dedicated key. Only its public half is shown;
+the private half is encrypted on the server. Authorize the public line on the target as below.
+Use **Consultar identidade pela rede**, then independently obtain the fingerprint directly on
+the target. Enter that trusted fingerprint; the application never automatically trusts a scanned
+key. **Testar acesso SSH** verifies the pin, authenticates and executes only `true`. Save after
+success. Unknown or changed host keys are rejected. This test does not verify sudo privileges.
+
+Changes to active connections/polling are refused while any incident is pending or executing, or
+when the database cannot establish that no such incident exists. API operations and reconciler
+cycles share a process lock with setup writes. Resolve incidents through their normal workflow;
+do not change rows to bypass the guard. If another operation/configuration intervenes, test again.
+
+### Target preparation and optional environment key
 
 For a real target, an administrator creates a dedicated account on that Ubuntu target:
 
@@ -83,7 +145,10 @@ sudo adduser --disabled-password --gecos '' polaris
 sudo install -d -m 0700 -o polaris -g polaris /home/polaris/.ssh
 ```
 
-Generate a **new service key**, from the repository root on the Docker host. Never reuse your
+For the browser path, append only the generated public line to the target account's
+`authorized_keys`, with owner `polaris:polaris` and mode `0600`. Nothing private goes to the target.
+
+For the optional environment/file path, generate a **new service key** on the Docker host. Never reuse your
 personal or administrative private key. Do not regenerate or overwrite an existing service key.
 The `secrets` directory already exists in the checkout.
 
@@ -126,54 +191,18 @@ under `timeout` as root; it is **not** a per-script restriction. SSH connection 
 not verify this policy. Do not apply it to a production host as a generic installer step.
 Scripts stay central in Polaris; do not install a remediation-script directory on the target.
 
-For a local interface-only installation with **no target**, leave `TARGET_SSH_HOST` empty.
-Compose still requires regular source files for both bind mounts. Create empty placeholder
-files at `secrets/polaris_ed25519` and `secrets/known_hosts` **only if absent**. These placeholders
-are not credentials and SSH must remain unconfigured. Replace them through the real trust
-procedure before configuring a real target. A missing source may otherwise become a directory.
-
-For this no-target option, create only missing files on Linux/macOS:
+Only the environment/file path needs both regular files before mounting. Add the optional
+Compose file to **every** operation for that installation, including later updates:
 
 ```bash
-for file in secrets/polaris_ed25519 secrets/known_hosts; do
-  if [ ! -e "$file" ]; then (umask 077; touch "$file"); fi
-done
+docker compose -f docker-compose.yml -f compose.ssh-env.yml config --quiet
+docker compose -f docker-compose.yml -f compose.ssh-env.yml up -d polaris-api polaris-reconciler
 ```
 
-Or on Windows PowerShell:
+The API sees the file at `/run/secrets/polaris_ssh_key`; never mount the operator's SSH directory.
+The default browser path requires neither this override nor files under `secrets/`.
 
-```powershell
-foreach ($setupFile in @('secrets/polaris_ed25519', 'secrets/known_hosts')) {
-  if (-not (Test-Path -LiteralPath $setupFile)) {
-    New-Item -ItemType File -Path $setupFile | Out-Null
-  }
-}
-```
-
-## 4. Start the services in order
-
-Validate Compose syntax without printing the resolved configuration, which may contain secrets:
-
-```bash
-docker compose config --quiet
-docker compose up -d --build polaris-db polaris-api
-docker compose exec -T polaris-api python -m src.db.migrate
-docker compose exec -T polaris-api python -m src.db.migrate --status
-docker compose ps
-```
-
-There are ten numbered migrations. The application must reach the empty database before they
-can be applied; API health can be unhealthy until migration completes. Re-running the migrate
-command after success applies nothing. Never edit applied migrations or erase a volume to fix
-a checksum error. A database password mismatch on an old volume is not fixed by migration.
-
-Open `http://localhost:8000/configuracao.html` (substitute the published API port). Use
-**Verificar conexões** after making changes. The assistant reads dependencies on demand,
-including an SSH `true` command if a real target is configured. It performs no remediation.
-For the no-target installation, database/schema/KB can pass while SSH and Zabbix stay pending.
-That is a partial installation, not an end-to-end success.
-
-## 5. Connect Zabbix manually
+## 6. Complete the Zabbix integration manually
 
 In Zabbix 7.0, create a dedicated API identity with host-group read access. Enable the API role
 methods required for `host.get`, `event.get`, `problem.get`, `trigger.get`, `item.get` and
@@ -206,7 +235,7 @@ R001 can discover filesystem events, but its bundled cleanup policy is restricte
 `/mnt/polaris_test`. Do not create or fill this volume during normal installation. A Zabbix host
 being monitored does not become an authorized SSH destination automatically.
 
-## 6. Start reconciliation and review
+## 7. Start reconciliation and review
 
 After configuring Zabbix, start the separate reconciler:
 
@@ -215,7 +244,10 @@ docker compose up -d polaris-reconciler
 docker compose ps
 ```
 
-If configuration changed after startup, recreate **both** API and reconciler from the same image:
+Set the polling interval in the assistant (5–3600 seconds, or zero to pause). The running reconciler reads saved
+configuration on its next cycle, including activation from an environment interval of zero.
+Browser-saved connections require no container recreation. Changes to environment values still
+require recreating **both** API and reconciler from the same image:
 
 ```bash
 docker compose up -d --build polaris-api polaris-reconciler

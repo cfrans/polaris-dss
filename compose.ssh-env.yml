@@ -1,0 +1,11 @@
+# Optional dedicated SSH files for environment-based installations.
+# docker compose -f docker-compose.yml -f compose.ssh-env.yml up -d
+services:
+  polaris-api:
+    volumes:
+      - ${TARGET_SSH_KEY_PATH:-./secrets/polaris_ed25519}:/run/secrets/polaris_ssh_key:ro
+      - ./secrets/known_hosts:/etc/ssh/ssh_known_hosts:ro
+  polaris-reconciler:
+    volumes:
+      - ${TARGET_SSH_KEY_PATH:-./secrets/polaris_ed25519}:/run/secrets/polaris_ssh_key:ro
+      - ./secrets/known_hosts:/etc/ssh/ssh_known_hosts:ro

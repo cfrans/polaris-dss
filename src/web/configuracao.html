@@ -24,7 +24,19 @@
       <p>Prepare as conexões do Polaris, confira cada etapa e mantenha a configuração sob seu controle.</p></div>
     <a class="setup-guide-link" href="api/v1/instalacao/arquivos/guia" download>Baixar guia completo <span aria-hidden="true">↗</span></a>
   </div>
-  <div class="setup-workspace">
+  <section id="setup-access" class="setup-access" aria-labelledby="setup-access-title">
+    <div><h2 id="setup-access-title">Acesso à configuração</h2>
+      <p>Conecte os serviços e salve as credenciais em um cofre cifrado no servidor.</p></div>
+    <form id="setup-login" class="setup-form">
+      <label for="setup-access-code">Código administrativo</label>
+      <div class="setup-inline"><input id="setup-access-code" type="password" autocomplete="current-password" required maxlength="128"><button class="btn btn-primario" type="submit">Desbloquear</button></div>
+      <p id="setup-access-message" role="status">Use HTTPS ou o endereço local para inserir credenciais.</p>
+    </form>
+    <details><summary>Primeiro acesso?</summary><p>Execute uma vez no terminal do servidor. Guarde o código exibido em um gerenciador de senhas; o Polaris não o mostra novamente.</p>
+      <div class="setup-command"><div><span>No servidor Polaris</span><button type="button" data-copy="access-command" aria-label="Copiar comando" title="Copiar"><svg class="icon" aria-hidden="true"><use href="icons.svg#copy"></use></svg></button></div><pre><code id="access-command">docker compose exec polaris-api python -m src.engine.setup_vault</code></pre></div>
+      <p>Docker e banco precisam estar disponíveis antes de abrir o assistente. A chave mestra e o arquivo cifrado usam volumes separados; preserve ambos em seu plano de backup.</p></details>
+  </section>
+  <div id="setup-workspace" class="setup-workspace" hidden>
     <aside class="setup-sidebar" aria-label="Andamento da instalação">
       <div class="setup-progress-heading"><span>Configuração inicial</span><strong id="setup-count">0 de 6</strong></div>
       <progress id="setup-progress" max="6" value="0" aria-label="Etapas conferidas">0 de 6</progress>
@@ -39,6 +51,7 @@
       <p class="setup-local-note">Suas confirmações valem nesta visita. Ao recarregar, confira novamente.</p>
     </aside>
     <div class="setup-main">
+      <div class="setup-adminbar"><span>Acesso administrativo temporário</span><button id="setup-logout" type="button">Encerrar acesso</button></div>
       <div class="setup-checkbar">
         <div><p id="setup-feedback" role="status" aria-live="polite">Verifique as conexões quando os serviços estiverem configurados.</p>
           <small id="setup-checked-at">A consulta lê banco, Zabbix e acesso SSH. Não altera a configuração.</small></div>
@@ -54,16 +67,16 @@
             <div><dt>Alvo de remediação</dt><dd>Um Ubuntu 24.04 LTS com SSH e systemd. O alvo é configurado explicitamente; não é qualquer host do Zabbix.</dd></div>
           </dl>
           <div class="setup-callout"><strong>Comece em um ambiente isolado.</strong><p>Esta versão ainda não tem login de operadores e usa uma credencial SSH com alcance administrativo. Use um alvo descartável e acesso de rede restrito antes de habilitar remediações.</p></div>
-          <div class="setup-command"><div><span>No servidor Polaris</span><button type="button" data-copy="prepare-command">Copiar comandos</button></div><pre><code id="prepare-command">docker version
+          <div class="setup-command"><div><span>No servidor Polaris</span><button type="button" data-copy="prepare-command" aria-label="Copiar comando" title="Copiar"><svg class="icon" aria-hidden="true"><use href="icons.svg#copy"></use></svg></button></div><pre><code id="prepare-command">docker version
 docker compose version</code></pre></div>
           <label class="setup-confirm"><input type="checkbox" data-confirm="environment"><span>Conferi Docker, acesso de rede e portas disponíveis em um ambiente separado.</span></label>
         </section>
         <section data-panel="1" aria-labelledby="step-title-1">
           <p class="setup-position">Etapa 2 de 6</p><h2 id="step-title-1" tabindex="-1">Inicie o Polaris</h2>
           <p class="setup-lead">Configure os arquivos locais, inicie o banco e a aplicação, e só então aplique o esquema de auditoria.</p>
-          <ol class="setup-instructions"><li>Baixe o modelo e salve como <code>.env</code> na raiz do repositório. Preserve um arquivo existente.</li><li>Troque os valores de exemplo de senha e token. Credenciais ficam no servidor, fora do Git.</li><li>Prepare os arquivos de chave e <code>known_hosts</code> conforme a etapa SSH antes de iniciar o Compose. Para uso sem alvo, siga a opção de arquivos vazios no guia.</li></ol>
+          <ol class="setup-instructions"><li>Prepare Docker e banco pelo guia; as conexões com Zabbix e alvo serão preenchidas nas próximas etapas.</li><li>O arquivo <code>.env</code> continua opcional para conexões. Valores do ambiente podem ser carregados pelo assistente sem revelar seus segredos.</li><li>Inicialize o acesso administrativo uma vez. Para novas instalações, a chave dedicada pode ser gerada na etapa SSH.</li></ol>
           <a class="setup-download" href="api/v1/instalacao/arquivos/configuracao" download>Baixar modelo de configuração</a>
-          <div class="setup-command"><div><span>Na raiz do repositório</span><button type="button" data-copy="start-command">Copiar comandos</button></div><pre><code id="start-command">docker compose config --quiet
+          <div class="setup-command"><div><span>Na raiz do repositório</span><button type="button" data-copy="start-command" aria-label="Copiar comando" title="Copiar"><svg class="icon" aria-hidden="true"><use href="icons.svg#copy"></use></svg></button></div><pre><code id="start-command">docker compose config --quiet
 docker compose up -d --build polaris-db polaris-api
 docker compose exec -T polaris-api python -m src.db.migrate
 docker compose exec -T polaris-api python -m src.db.migrate --status</code></pre></div>
@@ -73,7 +86,18 @@ docker compose exec -T polaris-api python -m src.db.migrate --status</code></pre
         <section data-panel="2" aria-labelledby="step-title-2">
           <p class="setup-position">Etapa 3 de 6</p><h2 id="step-title-2" tabindex="-1">Conecte o Zabbix</h2>
           <p class="setup-lead">Uma conexão para consultar eventos. Outra para recebê-los. Confira as duas partes.</p>
-          <ol class="setup-instructions"><li>Informe a URL completa da API e credenciais de uma conta dedicada no <code>.env</code>. Confira permissões sobre os hosts e métodos da API indicados no guia.</li><li>Importe o template complementar e vincule-o junto ao <strong>Linux by Zabbix agent</strong> nos hosts pretendidos.</li><li>Importe o Media Type, configure a URL do Polaris e o mesmo token de recepção do servidor.</li><li>Associe a mídia ao usuário destinatário e crie a Trigger action com as condições do guia.</li></ol>
+          <form id="setup-zabbix-form" class="setup-form" autocomplete="off">
+            <div class="setup-form-heading"><h3>Acesso ao monitoramento</h3><button type="button" data-load-env>Carregar do ambiente</button></div>
+            <label for="setup-zabbix-url">IP ou URL do Zabbix</label><input id="setup-zabbix-url" type="text" inputmode="url" placeholder="https://monitor.exemplo" required maxlength="2048">
+            <label for="setup-zabbix-mode">Forma de acesso</label><select id="setup-zabbix-mode"><option value="token">Token de API</option><option value="password">Usuário e senha</option></select>
+            <div id="setup-zabbix-token-fields"><label for="setup-zabbix-token">Token de API</label><input id="setup-zabbix-token" type="password" autocomplete="new-password" maxlength="8192"></div>
+            <div id="setup-zabbix-password-fields" hidden><label for="setup-zabbix-user">Usuário</label><input id="setup-zabbix-user" type="text" maxlength="128"><label for="setup-zabbix-password">Senha</label><input id="setup-zabbix-password" type="password" autocomplete="new-password" maxlength="8192"></div>
+            <label for="setup-webhook-token">Token para receber eventos</label><div class="setup-inline"><input id="setup-webhook-token" type="password" autocomplete="new-password" maxlength="8192"><button id="setup-generate-token" type="button">Gerar token</button><button type="button" data-copy-field="setup-webhook-token" aria-label="Copiar novo token de recepção" title="Copiar novo token de recepção"><svg class="icon" aria-hidden="true"><use href="icons.svg#copy"></use></svg></button></div>
+            <p class="setup-note">Use o mesmo token no Media Type do Zabbix. Copie o novo valor antes de salvar; depois ele fica mascarado e não poderá ser recuperado pela tela.</p>
+            <div class="setup-form-actions"><button class="btn btn-secundario" type="submit">Testar conexão</button><button id="setup-save-zabbix" class="btn btn-primario" type="button" disabled>Salvar conexão testada</button></div>
+            <p id="setup-zabbix-message" role="status">Preencha os campos ou carregue os valores do ambiente.</p>
+          </form>
+          <ol class="setup-instructions"><li>Preencha e teste a conexão acima, ou carregue os valores do ambiente. Confira permissões sobre os hosts e métodos da API indicados no guia.</li><li>Importe o template complementar e vincule-o junto ao <strong>Linux by Zabbix agent</strong> nos hosts pretendidos.</li><li>Importe o Media Type, configure a URL do Polaris e o mesmo token de recepção do servidor.</li><li>Associe a mídia ao usuário destinatário e crie a Trigger action com as condições do guia.</li></ol>
           <div class="setup-downloads"><a class="setup-download" href="api/v1/instalacao/arquivos/template" download>Baixar template Linux</a><a class="setup-download" href="api/v1/instalacao/arquivos/media-type" download>Baixar Media Type</a></div>
           <div class="setup-result" data-result="zabbix" role="status">Acesso autenticado à API ainda não verificado.</div>
           <label class="setup-confirm"><input type="checkbox" data-confirm="zabbix"><span>Conferi os templates, a mídia do destinatário e a Action no Zabbix.</span></label>
@@ -82,21 +106,33 @@ docker compose exec -T polaris-api python -m src.db.migrate --status</code></pre
         <section data-panel="3" aria-labelledby="step-title-3">
           <p class="setup-position">Etapa 4 de 6</p><h2 id="step-title-3" tabindex="-1">Prepare o acesso SSH</h2>
           <p class="setup-lead">Uma chave dedicada ao serviço e uma identidade do alvo conferida por você.</p>
-          <ol class="setup-instructions"><li>No alvo descartável, prepare a conta de serviço e autorize somente a chave pública.</li><li>No servidor Polaris, gere a chave dedicada se ainda não existir. A chave privada permanece nesse servidor.</li><li>Compare a impressão digital obtida pela rede com a lida diretamente no alvo. Só então salve <code>secrets/known_hosts</code>.</li><li>Confira as permissões da chave e a política <code>sudoers</code> com o administrador, seguindo o guia completo.</li></ol>
+          <form id="setup-ssh-form" class="setup-form" autocomplete="off">
+            <div class="setup-form-heading"><h3>Conexão ao alvo</h3><button type="button" data-load-env>Carregar do ambiente</button></div>
+            <div class="setup-fields"><div><label for="setup-ssh-host">IP do alvo</label><input id="setup-ssh-host" type="text" required maxlength="64" placeholder="192.0.2.10"></div><div><label for="setup-ssh-user">Usuário de serviço</label><input id="setup-ssh-user" type="text" required maxlength="64" value="polaris"></div></div>
+            <button id="setup-generate-key" class="btn btn-secundario" type="button">Gerar chave dedicada</button>
+            <p class="setup-note">Somente a chave pública sai do servidor. Autorize-a no alvo; a chave privada fica cifrada no cofre.</p>
+            <div class="setup-command"><div><span>Chave pública para o alvo</span><button type="button" data-copy="setup-public-key" aria-label="Copiar chave pública" title="Copiar"><svg class="icon" aria-hidden="true"><use href="icons.svg#copy"></use></svg></button></div><pre><code id="setup-public-key">Gere uma chave dedicada ou carregue a configuração do ambiente.</code></pre></div>
+            <button id="setup-inspect-host" type="button">Consultar identidade pela rede</button><p id="setup-observed-fingerprint" class="setup-note"></p>
+            <label for="setup-ssh-fingerprint">Impressão digital confirmada diretamente no alvo</label><input id="setup-ssh-fingerprint" type="text" placeholder="SHA256:…" required maxlength="60" autocomplete="off">
+            <p class="setup-note">Compare com <code>ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub</code> no alvo. Consultar a rede não estabelece confiança sozinho.</p>
+            <div class="setup-form-actions"><button class="btn btn-secundario" type="submit">Testar acesso SSH</button><button id="setup-save-ssh" class="btn btn-primario" type="button" disabled>Salvar acesso testado</button></div><p id="setup-ssh-message" role="status"></p>
+          </form>
+          <ol class="setup-instructions"><li>No alvo descartável, prepare a conta de serviço e autorize somente a chave pública gerada acima.</li><li>A chave privada permanece cifrada no servidor Polaris. Para usar um arquivo existente, carregue a configuração do ambiente e utilize o Compose opcional indicado no guia.</li><li>Compare a impressão digital obtida pela rede com a lida diretamente no alvo. O teste só autentica após essa conferência.</li><li>Confira a política <code>sudoers</code> com o administrador, seguindo o guia completo.</li></ol>
           <div class="setup-callout"><strong>Conexão não comprova privilégio seguro.</strong><p>A política atual permite executar comandos como root por meio de timeout. O teste desta página executa apenas <code>true</code>; não valida permissões de remediação.</p></div>
           <div class="setup-result" data-result="ssh" role="status">Conexão SSH ainda não verificada.</div>
           <label class="setup-confirm"><input type="checkbox" data-confirm="ssh"><span>Conferi a identidade do alvo, a chave de serviço e o alcance das permissões.</span></label>
-          <details><summary>Estou apenas conhecendo a interface</summary><p>É possível iniciar sem um alvo real. Nesse caso o acesso SSH fica pendente e a execução é simulada. Isso não conclui uma instalação com remediação real. O guia explica os arquivos vazios exigidos pelos mounts do Compose.</p></details>
+          <details><summary>Estou apenas conhecendo a interface</summary><p>É possível iniciar sem um alvo real. O Compose padrão não exige arquivos SSH; o acesso fica pendente e as etapas seguintes permanecem bloqueadas. Isso não conclui uma instalação com remediação real.</p></details>
         </section>
         <section data-panel="4" aria-labelledby="step-title-4">
           <p class="setup-position">Etapa 5 de 6</p><h2 id="step-title-4" tabindex="-1">Ative a reconciliação</h2>
           <p class="setup-lead">O processo separado consulta o Zabbix e recupera eventos que não chegaram pela notificação.</p>
-          <div class="setup-command"><div><span>No servidor Polaris</span><button type="button" data-copy="reconcile-command">Copiar comandos</button></div><pre><code id="reconcile-command">docker compose up -d polaris-reconciler
+          <form id="setup-polling-form" class="setup-form"><label for="setup-polling-interval">Consultar eventos a cada (segundos)</label><div class="setup-inline"><input id="setup-polling-interval" type="number" value="30" min="0" max="3600" required><button class="btn btn-primario" type="submit">Salvar intervalo</button></div><p class="setup-note">Use 5 a 3600 segundos para ativar ou zero para pausar as consultas. A etapa só avança após um ciclo ativo verificado.</p><p id="setup-polling-message" role="status">O processo separado precisa estar em execução no servidor.</p></form>
+          <div class="setup-command"><div><span>No servidor Polaris</span><button type="button" data-copy="reconcile-command" aria-label="Copiar comando" title="Copiar"><svg class="icon" aria-hidden="true"><use href="icons.svg#copy"></use></svg></button></div><pre><code id="reconcile-command">docker compose up -d polaris-reconciler
 docker compose ps</code></pre></div>
-          <p>Após mudar a configuração, recrie API e reconciliador para que ambos recebam os mesmos valores.</p>
-          <div class="setup-command"><div><span>Após alterações no arquivo local</span><button type="button" data-copy="recreate-command">Copiar comando</button></div><pre><code id="recreate-command">docker compose up -d --build polaris-api polaris-reconciler</code></pre></div>
+          <p>Conexões salvas pelo assistente são lidas pelos dois processos, sem recriar containers. Alterações no ambiente ainda exigem recriação.</p>
+          <div class="setup-command"><div><span>Após alterações no arquivo local</span><button type="button" data-copy="recreate-command" aria-label="Copiar comando" title="Copiar"><svg class="icon" aria-hidden="true"><use href="icons.svg#copy"></use></svg></button></div><pre><code id="recreate-command">docker compose up -d --build polaris-api polaris-reconciler</code></pre></div>
           <div class="setup-result" data-result="reconciliation" role="status">Nenhum ciclo de reconciliação conferido nesta visita.</div>
-          <p class="setup-note">Intervalo zero desativa o processo. Um ciclo bem-sucedido confirma a consulta periódica; a entrega pelo Media Type é conferida separadamente.</p>
+          <p class="setup-note">No ambiente, intervalo zero pausa as consultas até a ativação. Um ciclo bem-sucedido confirma a consulta periódica; a entrega pelo Media Type é conferida separadamente.</p>
         </section>
         <section data-panel="5" aria-labelledby="step-title-5">
           <p class="setup-position">Etapa 6 de 6</p><h2 id="step-title-5" tabindex="-1">Revise antes de operar</h2>
@@ -105,13 +141,14 @@ docker compose ps</code></pre></div>
           <label class="setup-confirm"><input type="checkbox" data-confirm="review"><span>Revisei Scripts e ciência, o alvo, as permissões, o acesso de rede e o procedimento de backup.</span></label>
           <div class="setup-callout"><strong>Aprovação continua sendo por incidente.</strong><p>Concluir estas etapas não aprova ações nem inicia testes. Qualquer exercício com falha controlada deve ser conduzido separadamente pelo responsável.</p></div>
           <div id="setup-summary" class="setup-summary" role="status">Ainda há etapas a conferir. Você pode voltar a qualquer uma delas.</div>
-          <p class="setup-note">Esta página não recebe senhas nem altera serviços. As confirmações manuais não são um registro de auditoria autenticado ou uma certificação de produção.</p>
+          <p class="setup-note">As credenciais são salvas com cifra no servidor. As confirmações manuais não substituem testes e não certificam uma instalação de produção.</p>
           <a class="setup-download" href="./">Abrir painel do Polaris</a>
         </section>
       </div>
       <footer class="setup-footer"><button id="setup-previous" class="btn btn-secundario" type="button" disabled>Anterior</button><span id="setup-position-label">Etapa 1 de 6</span><button id="setup-next" class="btn btn-primario" type="button">Continuar</button></footer>
     </div>
   </div>
+  <p id="setup-copy-feedback" class="setup-sr-only" role="status" aria-live="polite"></p>
   <noscript><p>Ative JavaScript para navegar pelas etapas e consultar as conexões. O guia completo pode ser baixado pelo link no início da página.</p></noscript>
 </main>
 </body>

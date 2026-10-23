@@ -8,6 +8,12 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 ## [Não lançado]
 
 ### Adicionado
+- Configuração interativa de Zabbix e SSH com teste obrigatório antes de salvar e avançar,
+  importação opcional do ambiente sem devolver segredos, chave SSH dedicada gerada no servidor
+  e confirmação independente da identidade do alvo. Cópias usam somente ícone acessível.
+- Cofre Fernet com chave mestra em volume separado, escrita atômica e acesso administrativo
+  inicializado no terminal. Sessões curtas, HTTPS fora de loopback, origem protegida e recibos
+  de teste vinculados à sessão/configuração, com validade e uso único.
 - Assistente de configuração inicial com seis etapas, comandos copiáveis, confirmação manual
   distinta de verificação automática e consultas de leitura sob demanda. Layout responsivo
   preserva a identidade visual e respeita movimento reduzido.
@@ -17,8 +23,18 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
   migrações idempotentes e downloads idênticos ao checkout; limites externos documentados.
 
 ### Modificado
+- API e reconciliador recarregam conexões cifradas; intervalo pode ser ativado pelo assistente.
+  Alterações de conexões recusam incidentes abertos, DB indisponível e operações concorrentes.
+  Mutações da API exigem sessão quando o cofre está habilitado; aprovação humana por incidente
+  permanece obrigatória. Código compartilhado não identifica individualmente o operador.
+- Compose padrão usa volumes de cofre/chave e dispensa arquivos SSH vazios. Instalações que
+  mantêm chave em arquivo devem incluir compose.ssh-env.yml em todos os comandos Compose.
+- Validação local ampliada: 627 testes Python e 50 JavaScript aprovados, seis opcionais pulados;
+  persistência após recriação, JSON-RPC simulado e SSH restrito a true em rede Docker isolada.
+  Integração externa/entrega de Action/remediação não foram repetidas neste lote.
 - API identifica o desenvolvimento posterior à coleta como 1.1.0-dev; a tag e os dados da
-  v1.0.3-experimento permanecem preservados. Nenhuma migração de banco ou mudança do motor.
+  v1.0.3-experimento permanecem preservados. Nenhuma migração de banco ou mudança da fórmula
+  de confiança/base de regras.
 
 ## [1.0.3-experimento] — 2026-10-18
 

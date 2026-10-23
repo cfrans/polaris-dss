@@ -143,13 +143,29 @@ def runner_ssh(host: str, usuario: str, caminho_chave: str, porta: int = 22) -> 
                 input_data: bytes | None = None) -> tuple[int, str, str]:
         cliente = paramiko.SSHClient()
         cliente.set_missing_host_key_policy(paramiko.RejectPolicy())
-        if SYSTEM_KNOWN_HOSTS.is_file():
+        from .config import get_environment_settings
+        from .setup_vault import configured_vault
+        vault = configured_vault(get_environment_settings())
+        saved = vault.read() if vault else {}
+        if saved.get("ssh_known_hosts"):
+            entry = paramiko.hostkeys.HostKeyEntry.from_line(saved["ssh_known_hosts"])
+            for hostname in entry.hostnames:
+                cliente.get_host_keys().add(hostname, entry.key.get_name(), entry.key)
+        if saved.get("ssh_known_hosts") and host in entry.hostnames:
+            pass  # The explicitly confirmed vault pin takes precedence over legacy files.
+        elif SYSTEM_KNOWN_HOSTS.is_file():
             cliente.load_system_host_keys(str(SYSTEM_KNOWN_HOSTS))
         else:
             cliente.load_system_host_keys()
         try:
+            from .setup_connections import read_private_key
+            private = saved.get("ssh_private_key") if caminho_chave == "@cofre" else None
+            if caminho_chave == "@cofre" and not private:
+                raise ValueError("Chave dedicada indisponível no cofre.")
             cliente.connect(hostname=host, port=porta, username=usuario,
-                            key_filename=caminho_chave, timeout=10, auth_timeout=10)
+                            pkey=read_private_key(private) if private else None,
+                            key_filename=None if private else caminho_chave, timeout=10, auth_timeout=10,
+                            allow_agent=False, look_for_keys=False)
             stdin, stdout, stderr = cliente.exec_command(comando, timeout=timeout)
             if input_data is not None:
                 stdin.write(input_data)

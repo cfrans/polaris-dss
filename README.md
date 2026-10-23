@@ -147,14 +147,9 @@ This operational count is separate from the experiment KPIs. The first/last buck
 git clone https://github.com/cfrans/polaris-dss.git
 cd polaris-dss
 
-# Set up environment variables
+# Bootstrap the database and ports (monitoring/SSH can be configured in the browser)
 cp .env.example .env
-# Edit .env with your credentials
-
-# Generate the service SSH key used to reach the remediation target
-ssh-keygen -t ed25519 -N "" -f secrets/polaris_ed25519 -C "polaris-dss"
-# Create the persistent host-key file before starting Compose
-touch secrets/known_hosts
+# Replace the example database password; clear unused example monitoring credentials
 
 # Build and start the audit database + API + HITL interface
 docker compose up -d --build polaris-db polaris-api
@@ -162,14 +157,22 @@ docker compose up -d --build polaris-db polaris-api
 # Apply the database schema
 docker compose exec polaris-api python -m src.db.migrate
 
-# Start the reconciler only after the schema is current
+# Initialize once; store the displayed administrative code in a password manager
+docker compose exec polaris-api python -m src.engine.setup_vault
+
+# Open http://localhost:8000/configuracao.html and test/save Zabbix and SSH connections
+# Start the separate reconciler after the schema is current
 docker compose up -d polaris-reconciler
 ```
 
-Only that one key is mounted into the API container, read-only — never your whole `~/.ssh`. Authorize
-its public half on the target host's `polaris` account. The target's verified public host key is
-mounted separately from `secrets/known_hosts`, also read-only. Compare its fingerprint directly on
-the target before adding it; see [`secrets/README.md`](secrets/README.md).
+Follow the [ordered installation guide](docs/installation.md) for Windows commands, connection
+forms, target preparation and optional environment import. The assistant generates a dedicated
+service key, exposes only its public half and requires independently confirmed SSH host identity.
+Configuration is encrypted in persistent volumes with the master key separate. Unlock its
+administrative session in the same browser before operational changes. Remote credential entry
+requires HTTPS; local loopback HTTP is supported. This shared access code is not individual login.
+Existing file-based SSH installations use the optional [`compose.ssh-env.yml`](compose.ssh-env.yml)
+with every Compose command; see [`secrets/README.md`](secrets/README.md).
 
 The schema is **not** applied automatically: `CREATE TABLE IF NOT EXISTS` creates a missing table but
 does not alter an existing one, and PostgreSQL's `docker-entrypoint-initdb.d` only runs on first
@@ -190,7 +193,8 @@ To work on the engine outside containers, install the dependencies locally with
 
 For an ordered installation path, use the [step-by-step guide](docs/installation.md).
 Once the API is running, **Ferramentas → Configuração inicial** opens the guided assistant.
-It provides installed artifacts and read-only checks; configuration changes remain explicit.
+It provides installed artifacts, guarded connection forms and encrypted configuration; each
+connection must be tested before it can be saved and its step completed.
 
 Polaris is designed as an **intelligence layer on top of monitoring you already run**. If you have a
 Zabbix server, don't start another one — just point Polaris at it via `ZABBIX_URL` in `.env`.
@@ -302,8 +306,8 @@ name** already monitored by Zabbix, then recreate the API service so the environ
 The browser only reads `GET /api/v1/servidor`; Zabbix credentials stay on the API server.
 This setting is independent of the SSH remediation target.
 
-The API and reconciler share the same service SSH target, user and read-only key/verified host
-mounts. Both ingestion paths must collect the diagnostic plan; only the API can execute a
+The API and reconciler share the same configured SSH target, account and confirmed host identity
+through encrypted setup volumes (or optional read-only legacy files). Both ingestion paths must collect the diagnostic plan; only the API can execute a
 remediation after persisted human approval. Recreate both services when changing that configuration.
 
 

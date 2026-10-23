@@ -81,11 +81,21 @@ The current target sudo authorization for `/usr/bin/timeout` is broad: it permit
 command under that wrapper. Application allowlists/script hashes do not make this credential a
 command-restricted OS account. Keep the target disposable and the service key protected.
 
-Only the dedicated service private key and verified host-key file are mounted into the API,
-read-only. Unknown or changed SSH host keys are rejected. The separate administrative key is
+Guided setup stores connections and the service private key using authenticated encryption,
+with the master key in a separate persistent volume. The API writes the vault; the reconciler
+mounts both volumes read-only. Optional legacy files use a dedicated Compose override.
+Unknown or changed SSH host keys are rejected. The separate laboratory administrative key is
 mounted only into temporary laboratory containers for administrative actions.
 
-The prototype has no operator login/RBAC. The webhook token protects that endpoint, not the
-whole UI/API. Default Compose publishes API/database ports on all host interfaces. Use an isolated,
+The prototype has no individual operator login/RBAC. When the setup vault is enabled (default
+Compose), a strong locally bootstrapped administrative code unlocks a short session for setup and
+mutating API routes. Origin checking and an HttpOnly/SameSite cookie protect these requests;
+remote access requires HTTPS. Read-only operational routes remain network-readable. The webhook
+retains its separate token. This shared administrative capability does not prove who approved an
+incident or replace the persisted approval. Test receipts bind session, candidate and revision,
+expire after five minutes and are consumed on save. Connection changes fail closed for open
+incidents or unavailable DB; file locks serialize them against API/reconciler operations.
+Default Compose publishes API/database ports on all host interfaces. Use an isolated,
 access-controlled laboratory network; production authentication, TLS/access policy and restricted
-credentials require further work. Debug alert injection must stay disabled for controlled runs.
+credentials require further work. Environment secrets are not automatically encrypted/removed.
+Debug alert injection must stay disabled for controlled runs.

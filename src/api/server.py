@@ -13,6 +13,8 @@ from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
+from fastapi.exceptions import RequestValidationError
+from fastapi.exception_handlers import request_validation_exception_handler
 from fastapi.staticfiles import StaticFiles
 
 from ..engine.config import get_settings
@@ -20,6 +22,9 @@ from ..engine.confidence import load_config
 from ..engine.knowledge_base import KnowledgeBaseError, load
 from .routes import VERSAO_API, router
 from .installation import router as installation_router
+from .setup_configuration import router as setup_router
+from .setup_access import authorize, check_origin
+from ..engine.setup_vault import configured_vault, operation_guard, VaultError
 
 WEB = Path(__file__).resolve().parents[1] / "web"
 
@@ -63,6 +68,47 @@ app = FastAPI(
 )
 
 
+@app.middleware("http")
+async def configuration_boundary(request: Request, call_next):
+    from ..engine.config import get_environment_settings
+    path = request.url.path
+    try:
+        vault = configured_vault(get_environment_settings())
+        if path.startswith("/api/v1/instalacao/"):
+            if request.method not in {"GET", "HEAD"}:
+                check_origin(request)
+                if request.headers.get("x-polaris-setup") != "1":
+                    raise HTTPException(403, "Cabeçalho de proteção ausente.")
+                try:
+                    length = int(request.headers.get("content-length", "0"))
+                except ValueError:
+                    raise HTTPException(400, "Tamanho de solicitação inválido.") from None
+                if length < 0 or length > 65536:
+                    raise HTTPException(413, "Solicitação excede o tamanho permitido.")
+            response = await call_next(request)
+        else:
+            with operation_guard(vault):
+                if vault and (path.startswith("/api/") or path.startswith("/debug/")) and request.method not in {"GET", "HEAD"}:
+                    authorize(request)
+                request.app.state.settings = get_settings()
+                response = await call_next(request)
+        if path.startswith("/api/v1/instalacao/"):
+            response.headers["Cache-Control"] = "no-store"
+            response.headers["X-Content-Type-Options"] = "nosniff"
+        return response
+    except HTTPException as exc:
+        return JSONResponse(status_code=exc.status_code, content={"mensagem": str(exc.detail)})
+    except VaultError as exc:
+        return JSONResponse(status_code=503, content={"mensagem": str(exc)})
+
+
+@app.exception_handler(RequestValidationError)
+async def redact_setup_validation(request: Request, exc: RequestValidationError):
+    if request.url.path.startswith("/api/v1/instalacao/"):
+        return JSONResponse(status_code=422, content={"mensagem": "Confira os campos obrigatórios e seus formatos."})
+    return await request_validation_exception_handler(request, exc)
+
+
 @app.exception_handler(HTTPException)
 async def erro_http(request: Request, exc: HTTPException) -> JSONResponse:
     """Formato único de erro, com mensagem legível em português — ela aparece na interface."""
@@ -76,6 +122,7 @@ async def erro_http(request: Request, exc: HTTPException) -> JSONResponse:
 
 app.include_router(router)
 app.include_router(installation_router)
+app.include_router(setup_router)
 
 # Montado por último: uma montagem em "/" captura tudo o que não casou com as rotas acima.
 app.mount("/", FreshStaticFiles(directory=WEB, html=True), name="web")

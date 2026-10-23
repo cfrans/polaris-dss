@@ -27,7 +27,29 @@ enable a running reconciler or inject faults. The installed demonstration API ke
 no Zabbix credentials and polling disabled. The Windows Bash-dependent JavaScript regression
 was verified in the Linux Node image instead of changing the test to ignore the failure.
 
-## External/manual acceptance still required
+## Interactive configuration — 23 October 2026
+
+The follow-up used a separate `polaris-config-review` Docker project with fresh audit/setup/key
+volumes, loopback-only API/DB ports and synthetic credentials. No collection host or real `.env`
+was contacted/read. API/reconciler were recreated and retained the encrypted connection while
+their environment connection values stayed empty. The reconciler read its vault/key mounts
+read-only and activated polling from zero after an interval was saved in the browser.
+
+| Area | Observed result |
+|:--|:--|
+| Regression | 627 Python tests passed, six optional graphics/root cases skipped; 50 JS tests passed in Node 22.23.4/Linux |
+| Security boundaries | Eighteen setup cases cover ciphertext/missing key, revision/operation locks, origin/session/rotation/expiry/rate limit, secret redaction, single-use/expired/session-bound test receipts, host pin before SSH authentication and fail-closed open-incident/DB checks |
+| Browser | Locked navigation, credential modes, editing invalidates save, rejected credentials, masked saved values, SSH wrong/right fingerprint, persistence after recreation; desktop and 390 px without horizontal page overflow |
+| Connection fixture | Standard-library JSON-RPC simulator returns 7.0.99 and accepts only its synthetic token; Paramiko test server authorizes the generated public key and accepts only `true` |
+| Runtime sharing | Saved SSH private key consumed in memory by the normal diagnostic runner; API and reconciler read saved settings and a recent polling cycle succeeded |
+
+The fixture is **not a Zabbix installation** and the SSH endpoint is not the Ubuntu remediation
+target. Manual confirmations used while exercising UI controls in this fixture are not evidence
+of a real Action, sudo policy or delivered incident. Those acceptance checks remain below.
+New/replaced service keys must still be authorized by the real target administrator. Access-code
+rotation is separate from secret/master-key rotation; no automated master-key migration is claimed.
+
+## External/manual acceptance still required (current scope)
 
 This local validation does not repeat the existing laboratory's real SSH remediation or
 reconfigure its Zabbix. A new installation still requires its administrator to:

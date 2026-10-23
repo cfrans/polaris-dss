@@ -1,8 +1,8 @@
 # Installation and operations
 
 For a first installation, start with [the ordered installation guide](installation.md).
-The in-app assistant at `/configuracao.html` reuses read-only checks and does not edit files
-or provision external services. This reference covers ongoing operation and troubleshooting.
+The in-app assistant at `/configuracao.html` tests and saves encrypted connections. It does not
+provision external services. This reference covers ongoing operation and troubleshooting.
 
 The supported controlled target is Ubuntu 24.04 LTS with systemd and nginx. Polaris runs through
 Docker Compose; an existing Zabbix 7.0 LTS instance can be reused. The optional `zabbix` profile
@@ -12,7 +12,8 @@ additional target fixtures described in their [controller guide](../experiment/s
 ## Configure and start
 
 From a checkout, follow [README installation](../README.md#-getting-started). Copy `.env.example`
-to `.env`, replace example credentials and set the complete Zabbix JSON-RPC URL. Inside containers,
+to `.env`, replace the database password, then initialize administrative access and use the forms
+or optional environment inputs for Zabbix/SSH. Saved connections override those inputs. Inside containers,
 `localhost` refers to the current container: use the existing server address or Compose service
 name, not a host-only loopback URL. Database values inside the application are supplied by Compose.
 Keep `.env`, private keys, dumps and evidence outside Git and image builds.
@@ -49,10 +50,11 @@ Use only a disposable, isolated target under this model. There is no automatic t
 Check actual binary paths/packages and permissions before testing; do not modify sudo during a round.
 
 Both API and reconciler need the same `TARGET_SSH_HOST`, `TARGET_SSH_USER` and service key.
-Compose mounts the dedicated service key and verified `known_hosts` read-only in both processes:
+The default Compose shares encrypted configuration and a separate master key with both processes:
 reconciliation also collects diagnostic evidence when it creates an incident. It does not execute
-remediation; execution remains in the API after persisted human approval. Recreate both services
-after changing their configuration. A missing plan disables approval and offers an explicit
+remediation; execution remains in the API after persisted human approval. Saved connections reload
+without recreation; environment changes still require recreating both services. Optional file-based
+SSH needs `-f docker-compose.yml -f compose.ssh-env.yml` on every Compose command. A missing plan disables approval and offers an explicit
 **Atualizar diagnóstico** action; do not bypass it or grant approval through SQL.
 
 Start database/API, migrate, then start reconciliation:
@@ -106,6 +108,20 @@ For server gauges only, enroll an observability host with enabled CPU-idle and m
 percentage items, no remediation templates/triggers. Optional gauges do not change the SSH target.
 
 ## Back up and update
+
+Preserve **both** setup volumes, keeping the `polaris-setup-key` master-key backup separate and
+access-restricted from the `polaris-setup-data` ciphertext backup. Database dumps do not include
+these volumes. Stop API/reconciler during a consistent configuration backup. Never replace a
+missing master key with a new file: restore the matching pair. Master-key rotation/migration
+is not automated. To replace a lost or compromised administrative access code locally:
+
+```bash
+docker compose exec polaris-api python -m src.engine.setup_vault --rotate-access
+```
+
+This preserves configuration, displays a new code once and revokes old sessions; it does not
+rotate Zabbix tokens, SSH keys or the master key. Shared code/session access is not per-operator
+authentication. GET operational API routes remain readable within the trusted network.
 
 Run on the Linux collection host, from the checkout. The backup helper creates a new custom-format
 dump on the host without mounting an administrative key:

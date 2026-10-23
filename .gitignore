@@ -68,6 +68,11 @@ Thumbs.db
 htmlcov/
 .pytest_cache/
 
+# Local encrypted setup remains deployment data, outside source/history.
+configuration.enc
+.configuration-*
+master.key
+
 # Arquivos de instrucao para agentes de IA: vivem no workspace privado, nunca aqui
 AGENTS.md
 CLAUDE.md

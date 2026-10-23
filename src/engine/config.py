@@ -54,6 +54,8 @@ class Settings(BaseSettings):
     scripts_path: Path = ROOT / "src" / "scripts"
 
     log_level: str = "INFO"
+    polaris_setup_dir: str = ""
+    polaris_setup_key_file: str = ""
 
     @property
     def database_url(self) -> str:
@@ -64,5 +66,20 @@ class Settings(BaseSettings):
 
 
 @lru_cache
-def get_settings() -> Settings:
+def get_environment_settings() -> Settings:
     return Settings()
+
+
+def get_settings() -> Settings:
+    base = get_environment_settings()
+    from .setup_vault import configured_vault
+    vault = configured_vault(base)
+    saved = vault.read() if vault else {}
+    allowed = {"zabbix_url", "zabbix_user", "zabbix_password", "zabbix_token",
+               "polaris_webhook_token", "target_ssh_host", "target_ssh_user",
+               "target_ssh_key_path", "polaris_polling_segundos", "polaris_zabbix_host"}
+    overrides = {key: value for key, value in saved.get("settings", {}).items() if key in allowed}
+    return Settings.model_validate({**base.model_dump(), **overrides}) if overrides else base
+
+
+get_settings.cache_clear = get_environment_settings.cache_clear

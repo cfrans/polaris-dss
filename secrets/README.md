@@ -3,6 +3,11 @@
 Holds the SSH key pair the Polaris service account uses to reach the remediation target.
 Nothing in this directory is versioned except this file.
 
+This is the **optional environment/file path**. The default guided installation instead generates
+the service key in an encrypted server vault and displays only the public half; no files in this
+directory are needed. See [installation](../docs/installation.md). To use the files below, include
+`-f docker-compose.yml -f compose.ssh-env.yml` in every Compose operation, including updates.
+
 Generate the pair once, then authorize the public key on the target host:
 
 ```bash

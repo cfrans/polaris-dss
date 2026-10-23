@@ -1,6 +1,14 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const {evaluate, readChecks} = require("../../web/configuracao.js");
+const {evaluate, readChecks, canVisit} = require("../../web/configuracao.js");
+
+test("navigation blocks bypasses and edits revoke downstream access", () => {
+  assert.equal(canVisit(0, ["pendente"]), true);
+  assert.equal(canVisit(2, ["manual", "unknown"]), false);
+  assert.equal(canVisit(3, ["manual", "ok", "pendente"]), false);
+  assert.equal(canVisit(3, ["manual", "ok", "ok"]), true);
+  assert.equal(canVisit(6, ["ok", "ok", "ok", "ok", "ok", "ok"]), false);
+});
 
 const now = Date.now();
 const allManual = {environment: true, zabbix: true, ssh: true, delivery: true, review: true};
