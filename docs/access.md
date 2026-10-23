@@ -5,14 +5,14 @@ retroactively authenticate historical operator labels or change the experiment's
 
 ## First administrator
 
-Start the database/API, apply all **eleven** migrations and initialize the vault using the
+Start the database/API, apply all **twelve** migrations and initialize the vault using the
 [installation guide](installation.md). Open `/login.html`. With no accounts, it asks for the
 installation code, your name, a unique lowercase username and a 15–128 character passphrase.
 The code comes from `python -m src.engine.setup_vault` in the container; no default account exists.
 Bootstrap is serialized in the database and closes once the first account exists. An old shared
 setup code can no longer unlock application sessions or make incident decisions.
 
-The first account is an administrator. After signing in, **Tools → Minha conta** lets an
+The first account is an administrator. After signing in, **Preferências → Gestão de contas** lets an
 administrator create administrator/operator accounts and deactivate other accounts. Usernames
 are immutable and accounts are retained for historical attribution; self-deactivation is refused.
 The administrator must share initial credentials privately. There is no public signup, email
@@ -26,6 +26,14 @@ docker compose exec polaris-api python -m src.api.auth --reset-password username
 
 This preserves account role/active status and revokes its sessions. `--rotate-access` in the
 vault command rotates only the first-installation code; it does not bypass an existing login.
+
+The initials avatar after the header clock opens **Minha conta** and **Sair da conta**. Personal
+display choices are under **Preferências → Exibição** and are available to both roles. They are
+stored by authenticated user in PostgreSQL, not in browser storage. Compact density, initial
+audit page size, optional remembered filters, local/UTC presentation and reduced motion do not
+change operational ranking, measurements or permission checks. Turning remembered filters off
+erases the saved filter state; exports and aggregated decision charts retain their original UTC
+semantics. See [operations](operations.md).
 
 ## Roles and sessions
 

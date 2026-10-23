@@ -67,6 +67,83 @@ def test_bootstrap_is_single_use_and_has_no_default_login(access):
     assert client.post('/api/v1/auth/bootstrap',headers=HEADERS,json={'username':'other-admin','name':'Test','password':password,'code':code}).status_code==409
     assert client.post('/api/v1/instalacao/acesso',headers=HEADERS,json={'code':code}).status_code==410
 
+
+def test_preferences_page_and_legacy_account_keep_real_role_boundaries(access):
+    client,conn,code,password=access
+    for path in ['/preferencias.html','/contas.html']:
+        response=client.get(path,follow_redirects=False)
+        assert response.status_code==303
+        assert response.headers['location']=='/login.html?next='+path
+    bootstrap(access)
+    original=client.get('/api/v1/preferencias').json()
+    assert client.put('/api/v1/preferencias',headers=HEADERS,json={
+        key:original[key] for key in ['modo_preferencia','desconto_maximo','minimo_escolhas','periodo_ocorrencias_dias']
+    }).status_code==200
+    other=secrets.token_urlsafe(24)
+    assert client.post('/api/v1/auth/usuarios',headers=HEADERS,json={
+        'username':'preferences-reader','name':'Preferences reader','password':other,'role':'operador'
+    }).status_code==201
+    sign_in(client,'preferences-reader',other)
+    assert client.get('/preferencias.html').status_code==200
+    legacy=client.get('/contas.html',follow_redirects=False)
+    assert legacy.status_code==303 and legacy.headers['location']=='/preferencias.html#minha-conta'
+    assert client.get('/api/v1/preferencias').json()==original
+    assert client.put('/api/v1/preferencias',headers=HEADERS,json={
+        'modo_preferencia':'desligado','desconto_maximo':0,'minimo_escolhas':3,'periodo_ocorrencias_dias':1
+    }).status_code==403
+    assert client.get('/api/v1/preferencias').json()==original
+    assert client.get('/api/v1/auth/usuarios').status_code==403
+
+
+def test_display_preferences_are_personal_and_opt_out_erases_remembered_filters(access):
+    client,conn,code,password=access
+    path='/api/v1/auth/exibicao'
+    assert client.get(path).status_code==401
+    client,conn,password=bootstrap(access)
+    shared=client.get('/api/v1/preferencias').json()
+    defaults=client.get(path).json()
+    assert defaults=={'density':'comfortable','page_size':25,'remember_filters':False,'time_zone':'local','motion':'system','audit':{}}
+    assert conn.execute('SELECT count(*) AS n FROM preferencias_exibicao').fetchone()['n']==0
+    personal={key:value for key,value in defaults.items() if key!='audit'}
+    personal.update(density='compact',page_size=10,remember_filters=True,time_zone='utc',motion='reduced')
+    assert client.put(path,headers=HEADERS,json=personal).status_code==200
+    state={'start':'2026-10-01','end':'2026-10-22','host':'<host> %_','q':'literal output','ordenar':'id','direcao':'asc'}
+    assert client.put(path+'/auditoria',headers=HEADERS,json=state).json()=={'saved':True}
+    stored=client.get(path).json()
+    assert stored['audit']['host']==state['host'] and stored['audit']['start']==state['start']
+    other=secrets.token_urlsafe(24)
+    assert client.post('/api/v1/auth/usuarios',headers=HEADERS,json={
+        'username':'display-reader','name':'Display reader','password':other,'role':'operador'}).status_code==201
+    sign_in(client,'display-reader',other)
+    assert client.get(path+'?usuario_id=1').json()==defaults
+    assert client.put(path,headers=HEADERS,json={**personal,'density':'comfortable'}).status_code==200
+    assert client.get(path).json()['density']=='comfortable'
+    sign_in(client,'admin-test',password)
+    assert client.get(path).json()==stored
+    assert client.put(path,headers=HEADERS,json={**personal,'remember_filters':False}).json()['audit']=={}
+    assert client.put(path+'/auditoria',headers=HEADERS,json=state).json()=={'saved':False}
+    assert client.get(path).json()['audit']=={}
+    assert client.get('/api/v1/preferencias').json()==shared
+    assert conn.execute('SELECT count(*) AS n FROM audit_log').fetchone()['n']==0
+
+
+def test_display_preferences_validate_scope_values_and_request_origin(access):
+    client,conn,password=bootstrap(access)
+    path='/api/v1/auth/exibicao'
+    default=client.get(path).json()
+    for body in [{'user_id':1},{'token':'do-not-echo-this'},{'density':'injected'},
+                 {'page_size':1000000},{'time_zone':'Arbitrary/Zone'},{'audit':{'host':'arbitrary'}}]:
+        response=client.put(path,headers=HEADERS,json=body)
+        assert response.status_code==422
+        assert 'do-not-echo-this' not in response.text
+    for body in [{'ordenar':'id;DROP TABLE usuarios'},{'host':'x'*129},
+                 {'start':'2026-10-22','end':'2026-01-01'},{'start':'2026-02-30','end':'2026-03-02'},
+                 {'start':'2026-01-01'},{'start':'2020-01-01','end':'2026-01-01'}]:
+        assert client.put(path+'/auditoria',headers=HEADERS,json=body).status_code==422
+    assert client.put(path,headers={'Origin':'http://127.0.0.1'},json={}).status_code==403
+    assert client.put(path,headers={**HEADERS,'Origin':'https://other.test'},json={}).status_code==403
+    assert client.get(path).json()==default
+
 def test_cookie_logout_hash_and_session_expiry(access):
     client,conn,password=bootstrap(access)
     raw=client.cookies.get(auth.COOKIE)

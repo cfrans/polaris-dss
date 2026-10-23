@@ -110,3 +110,38 @@ def test_offsets_are_normalized_to_utc_and_defaults_are_bounded(cliente):
     assert data['filtros']['inicio'] == '2026-10-01T00:00:00+00:00'
     defaults = cliente.get('/api/v1/auditoria').json()['filtros']
     assert (datetime.fromisoformat(defaults['fim']) - datetime.fromisoformat(defaults['inicio'])).days == 30
+
+
+def test_free_search_reads_all_matching_records_before_pagination_and_exports(cliente, conn):
+    for n in range(30): record(conn,str(n),output='Other data')
+    target=record(conn,'needle',output='Literal %_ & special; recuperação correta')
+    conn.commit()
+    found=listing(cliente,q='%_ &',limit=10)
+    assert found['total']==1 and found['itens'][0]['id']==target
+    assert listing(cliente,q="' OR true --")['total']==0
+    assert listing(cliente,q='RECUPERAÇÃO')['total']==1
+    assert listing(cliente,q='Historical action')['total']==31
+    assert listing(cliente,q='Sem decisão')['total']==31
+    assert listing(cliente,q='15/10/2026')['total']==31
+    exported=cliente.get('/api/v1/auditoria/exportar',params={**WINDOW,'formato':'json','q':'%_ &'}).json()
+    assert exported['total']==1 and exported['itens'][0]['id']==target
+    assert exported['filtros']['q']=='%_ &'
+
+
+@pytest.mark.parametrize('column', ['id','criacao','host','regra','decisao','status','operador'])
+def test_sorting_is_global_stable_and_exported_in_selected_order(cliente, conn, column):
+    record(conn,'sort-1',host='zeta',operator='zoe',decision=False,status='rejeitado',rule='R003',created='2026-10-17T00:00:00Z')
+    record(conn,'sort-2',host='Alpha',operator='Ana',decision=True,status='falha',rule='R001',created='2026-10-15T00:00:00Z')
+    record(conn,'sort-3',host='beta',operator='Bruno',decision=None,status='sucesso',rule='R002',created='2026-10-16T00:00:00Z')
+    conn.commit()
+    ascending=listing(cliente,ordenar=column,direcao='asc')['itens']
+    descending=listing(cliente,ordenar=column,direcao='desc')['itens']
+    assert [r['id'] for r in ascending]==[r['id'] for r in reversed(descending)]
+    assert listing(cliente,ordenar=column,direcao='asc',limit=1,offset=1)['itens'][0]['id']==ascending[1]['id']
+    exported=cliente.get('/api/v1/auditoria/exportar',params={**WINDOW,'formato':'json','ordenar':column,'direcao':'asc'}).json()
+    assert [r['id'] for r in exported['itens']]==[r['id'] for r in ascending]
+
+
+@pytest.mark.parametrize('params',[{'q':'a'*201},{'ordenar':'id; DROP TABLE audit_log'},{'direcao':'ASC NULLS FIRST'}])
+def test_search_and_sort_validation_reject_unbounded_or_executable_input(cliente,params):
+    assert cliente.get('/api/v1/auditoria',params={**WINDOW,**params}).status_code==422

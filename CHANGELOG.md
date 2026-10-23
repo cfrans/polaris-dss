@@ -8,6 +8,12 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 ## [Não lançado]
 
 ### Adicionado
+- Preferências pessoais de Exibição: densidade confortável/compacta, tamanho inicial da
+  auditoria, lembrança opcional de filtros/busca/ordenação, horário local/UTC e redução de
+  movimento. Configuração salva por conta em PostgreSQL, separada dos ajustes operacionais.
+  Desativar a lembrança apaga seus filtros salvos. Migração nova 012 preserva dados anteriores.
+  Validação isolada: 664 testes Python aprovados/seis opcionais pulados e 70 JavaScript;
+  persistência, UTC, filtros lembrados e restauração conferidos no navegador.
 - Página de auditoria autenticada, com filtros por criação/host/regra/operador/estado/decisão,
   paginação e detalhe dos fatos persistidos, sem consultar Zabbix ou marcar exibição do card.
   Exportação CSV/JSON dos filtros aplicados, com limites explícitos e proteção de fórmulas no CSV.
@@ -36,10 +42,31 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
   migrações idempotentes e downloads idênticos ao checkout; limites externos documentados.
 
 ### Modificado
+- Subpainéis lado a lado nas Preferências acompanham a altura da maior caixa, incluindo
+  identidade/senha em Minha conta. Em telas estreitas, a disposição se adapta a uma coluna.
+- Identificação da conta no cabeçalho usa avatar quadrado com iniciais, à direita do relógio.
+  O avatar abre um menu próprio com Minha conta e Sair; saída removida das ferramentas e
+  mantida em vermelho. Menu acessível por teclado, com fechamento por Escape, saída do foco
+  ou clique externo, usando as mesmas transições dos demais menus. Validação: 65 testes JS
+  e 61 Python direcionados aprovados, com sessões PostgreSQL isoladas e revisão responsiva.
+- Preferências volta ao menu de todos os perfis e reúne seções separadas de Minha conta,
+  Operação e Gestão de contas. Operador consulta ajustes globais; somente administrador pode
+  alterá-los ou gerenciar contas. Endereços antigos continuam levando à seção correspondente.
+  O conteúdo das seções fica em um painel com fundo, borda e espaçamento responsivo.
+- Cabeçalho identifica a conta conectada, com acesso a Minha conta e nome/login/perfil
+  na descrição acessível. Navegação, permissões e formulários validados em Docker isolado:
+  662 testes Python aprovados/seis opcionais pulados e 62 JavaScript.
+- Auditoria com 10/25/50/100 registros por página, páginas numeradas, busca livre ao digitar
+  em todos os resultados e ordenação crescente/decrescente por coluna, também nas exportações.
+- Cabeçalho compartilhado entre home, auditoria, conta, configuração e laboratório, com o
+  mesmo comportamento ao rolar, menus e recursos. Conta/saída recebem ícones; saída fica
+  por último e destacada em vermelho. Reconciliação usa o mesmo componente nas páginas.
+- Revisão interativa validada em Docker isolado: 661 testes Python aprovados/seis opcionais
+  pulados e 60 JavaScript; busca/ordenação global, cabeçalho e paginação móvel conferidos.
 - Login sem textos de boas-vindas, com imagem ampliada e centralizada acima do nome, versão
   consultada da aplicação, link para o GitHub e controle acessível para mostrar ou ocultar a senha.
-- API operacional e páginas requerem login, inclusive para leitura; configurações e preferências
-  globais ficam restritas a administradores. Código compartilhado anterior só cria o primeiro
+- API operacional e páginas requerem login, inclusive para leitura; configuração de conexões e
+  alterações de preferências globais ficam restritas a administradores. Código compartilhado anterior só cria o primeiro
   administrador e deixa de conceder acesso à API. Recuperação local de senha encerra sessões.
 - API e reconciliador recarregam conexões cifradas; intervalo pode ser ativado pelo assistente.
   Alterações de conexões recusam incidentes abertos, DB indisponível e operações concorrentes.

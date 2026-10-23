@@ -353,6 +353,7 @@ operator string is rewritten. Sessions and password hashes belong in protected b
 erDiagram
     usuarios ||--o{ sessoes : autentica
     usuarios ||--o{ ciencia_scripts : confirma
+    usuarios ||--o| preferencias_exibicao : personaliza
     usuarios {
         bigint id PK
         varchar login UK
@@ -370,7 +371,21 @@ erDiagram
         char versao PK
         timestamptz ts_ciencia
     }
+    preferencias_exibicao {
+        bigint usuario_id PK,FK
+        jsonb configuracao
+        jsonb filtros_auditoria
+        timestamptz atualizado_em
+    }
 ```
 
 New decisions persist the authenticated immutable username in the existing audit `operador`
 column; no foreign key is retrofitted onto historical self-reported labels. See [access](access.md).
+
+Migration 012 adds `preferencias_exibicao`, zero or one row per account, with a cascading user
+FK, object-only JSONB `configuracao` and `filtros_auditoria` (both default `{}`), and non-null
+`atualizado_em` defaulting to `clock_timestamp()`. The authenticated identity determines ownership;
+the interface cannot submit a different account ID. Settings and filter updates are separate,
+and disabling remembered filters clears their JSONB state. This table does not reference or
+update audit/experiment rows and does not participate in KPI views. Earlier migration files and
+the preserved experiment diagrams remain unchanged.

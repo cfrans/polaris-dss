@@ -154,7 +154,7 @@
         $("setup-feedback").textContent = snapshot.failed
           ? "Parte das consultas não respondeu. Os resultados indisponíveis permanecem pendentes."
           : "Consulta concluída. Confira o resultado de cada etapa.";
-        $("setup-checked-at").textContent = `Consultado às ${new Date(snapshot.checkedAt).toLocaleTimeString("pt-BR")}. Validade: 5 minutos; uma mudança exige nova consulta.`;
+        $("setup-checked-at").textContent = `Consultado às ${window.PolarisUI.formatTime(snapshot.checkedAt)}. Validade: 5 minutos; uma mudança exige nova consulta.`;
       } finally {
         clearTimeout(timer);
         button.disabled = false;

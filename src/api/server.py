@@ -20,6 +20,7 @@ from starlette.concurrency import run_in_threadpool
 import psycopg
 from . import auth
 from .auth_routes import router as auth_router
+from .display_preferences import router as display_router
 from .audit_routes import router as audit_router
 
 from ..engine.config import get_settings
@@ -78,7 +79,7 @@ async def configuration_boundary(request: Request, call_next):
     from ..engine.config import get_environment_settings
     path = request.url.path
     try:
-        if path in {'/','/index.html','/configuracao.html','/contas.html','/laboratorio.html','/auditoria.html'}:
+        if path in {'/','/index.html','/configuracao.html','/contas.html','/preferencias.html','/laboratorio.html','/auditoria.html'}:
             try:
                 request.state.user = await run_in_threadpool(auth.authenticate, request)
             except HTTPException as exc:
@@ -87,6 +88,8 @@ async def configuration_boundary(request: Request, call_next):
                 raise
             if path == '/configuracao.html':
                 auth.require_admin(request)
+            if path == '/contas.html':
+                return RedirectResponse('/preferencias.html#minha-conta', status_code=303, headers={'Cache-Control':'no-store'})
         auth_path = path.startswith('/api/v1/auth/')
         artifacts = path.startswith('/api/v1/instalacao/arquivos/') and request.method in {'GET','HEAD'}
         if auth_path and request.method not in {'GET','HEAD'}:
@@ -156,6 +159,7 @@ app.include_router(router)
 app.include_router(installation_router)
 app.include_router(setup_router)
 app.include_router(auth_router)
+app.include_router(display_router)
 app.include_router(audit_router)
 
 # Montado por último: uma montagem em "/" captura tudo o que não casou com as rotas acima.

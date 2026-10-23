@@ -204,6 +204,8 @@ def test_endpoint_detecta_migracao_pendente(cliente, conn):
 
 def test_interface_expoe_a_tela_de_diagnostico(cliente):
     pagina = cliente.get("/").text
+    assert 'src="header.js"' in pagina
+    pagina += cliente.get('/header.js').text
     assert 'id="tela-diagnostico"' in pagina
     assert 'id="btn-diagnostico"' in pagina
     assert 'id="btn-recarregar-base"' in pagina

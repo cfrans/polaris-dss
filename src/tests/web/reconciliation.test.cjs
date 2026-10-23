@@ -4,6 +4,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
 const ui = require("../../web/ui.js");
+const reconciliation = require("../../web/reconciliation.js");
 
 class Element {
   constructor(tag = "div") {
@@ -41,8 +42,8 @@ function viewer(data) {
   };
   const context = vm.createContext({
     $: get,
-    document: {createElement: tag => new Element(tag)},
-    window: {PolarisUI: ui},
+    document: {createElement: tag => new Element(tag), getElementById:get},
+    window: {PolarisUI: ui, PolarisReconciliation:reconciliation},
     api: async route => {
       assert.equal(route, "/api/v1/reconciliacao");
       return data;

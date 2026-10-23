@@ -11,117 +11,9 @@
 </head>
 <body>
 
-<div class="topbar-shell">
-<header class="topo">
-  <a id="brand-home" class="marca" href="./" aria-label="Polaris DSS — página inicial">
-    <img class="brand-mark" src="polaris-mark.svg" width="38" height="38" alt="">
-    <span class="brand-name">Polaris <span class="brand-suffix">DSS</span></span>
-    <span id="system-version" class="system-version">v—</span>
-  </a>
-  <div class="estado">
-    <div class="connection-group" aria-label="Conectividade do Polaris">
-      <button id="connection-zabbix" class="connection-indicator" data-service="Zabbix" data-state="unknown"
-              type="button" aria-label="Zabbix: aguardando verificação"><span class="status-dot" aria-hidden="true"></span>Zabbix</button>
-      <button id="connection-db" class="connection-indicator" data-service="Banco" data-state="unknown"
-              type="button" aria-label="Banco: aguardando verificação"><span class="status-dot" aria-hidden="true"></span>Banco</button>
-    </div>
-    <div id="server-widget" class="server-widget">
-      <button id="server-toggle" class="server-toggle" type="button" aria-expanded="false" aria-controls="server-panel" title="Recursos do servidor Polaris">
-        <svg class="icon" aria-hidden="true"><use href="icons.svg#server"></use></svg>
-        <span class="server-caption">Servidor</span><span id="server-summary">Sem dados</span>
-      </button>
-      <div id="server-panel" class="server-popover disclosure-shell" aria-hidden="true">
-        <div class="disclosure-clip" inert>
-          <section class="server-resources" aria-labelledby="server-title">
-            <div class="server-heading"><h2 id="server-title">Servidor Polaris</h2>
-              <button id="server-refresh" class="icon-button" type="button" aria-label="Atualizar recursos" title="Atualizar recursos"><svg class="icon" aria-hidden="true"><use href="icons.svg#refresh"></use></svg></button>
-            </div>
-            <p id="server-source" class="server-source">Métricas pelo Zabbix</p>
-            <div class="resource-row"><span>CPU em uso</span><strong id="server-cpu-value">—</strong></div>
-            <div id="server-cpu-bar" class="resource-track" role="img" aria-label="CPU em uso: sem dados"><span></span></div>
-            <small id="server-cpu-time" class="resource-time">Sem coleta disponível</small>
-            <div class="resource-row"><span>Memória em uso</span><strong id="server-memory-value">—</strong></div>
-            <div id="server-memory-bar" class="resource-track" role="img" aria-label="Memória em uso: sem dados"><span></span></div>
-            <small id="server-memory-time" class="resource-time">Sem coleta disponível</small>
-            <p id="server-message" class="server-message" role="status">Consultando métricas…</p>
-          </section>
-        </div>
-      </div>
-    </div>
-    <button id="estado-reconciliacao" class="pilula pilula-botao recon-toggle" type="button"
-            aria-expanded="false" aria-controls="reconciliation-shell">
-      <span class="status-dot" aria-hidden="true"></span><span id="reconciliation-label">Reconciliação</span>
-      <svg class="icon chevron" aria-hidden="true"><use href="icons.svg#chevron"></use></svg>
-    </button>
-    <div id="tools-menu" class="tools-menu">
-      <button id="tools-toggle" class="icon-button settings-toggle" type="button" title="Ferramentas"
-              aria-label="Ferramentas" aria-expanded="false" aria-controls="tools-panel">
-        <svg class="icon" aria-hidden="true"><use href="icons.svg#settings"></use></svg>
-      </button>
-      <div id="tools-panel" class="tools-popover disclosure-shell" aria-hidden="true">
-        <div class="disclosure-clip" inert>
-          <nav class="tools-links" aria-label="Ferramentas do Polaris">
-            <a href="auditoria.html"><svg class="icon" aria-hidden="true"><use href="icons.svg#eye"></use></svg>Auditoria</a>
-            <a href="contas.html">Minha conta</a>
-            <button type="button" data-logout>Sair da conta</button>
-            <a href="configuracao.html" data-admin><svg class="icon" aria-hidden="true"><use href="icons.svg#settings"></use></svg>Configuração inicial</a>
-            <button id="btn-diagnostico" type="button"><svg class="icon" aria-hidden="true"><use href="icons.svg#diagnostic"></use></svg>Diagnóstico</button>
-            <button id="btn-preferencias" data-admin type="button"><svg class="icon" aria-hidden="true"><use href="icons.svg#settings"></use></svg>Preferências</button>
-            <button id="btn-scripts" type="button"><svg class="icon" aria-hidden="true"><use href="icons.svg#code"></use></svg>Scripts e ciência</button>
-            <a href="laboratorio.html"><svg class="icon" aria-hidden="true"><use href="icons.svg#lab"></use></svg>Laboratório de ensaios</a>
-            <button id="btn-simular" class="oculto" type="button"><svg class="icon" aria-hidden="true"><use href="icons.svg#play"></use></svg>Simular incidente</button>
-          </nav>
-        </div>
-      </div>
-    </div>
-    <time id="header-clock" class="header-clock" aria-live="off">
-      <span id="clock-time">—:—:—</span><small id="clock-date"></small>
-    </time>
-  </div>
-</header>
-<div id="reconciliation-shell" class="disclosure-shell reconciliation-shell" aria-hidden="true">
-<div class="disclosure-clip" inert>
-<section id="tela-reconciliacao" class="recon-panel" aria-labelledby="reconciliation-title">
-
-  <div class="diag-topo">
-    <div>
-      <h2 id="reconciliation-title">Reconciliação do Zabbix</h2>
-      <p class="diag-sub">
-        Estado do processo que recupera eventos perdidos e encerra incidentes resolvidos na origem.
-        Esses encerramentos não são remediações executadas pelo Polaris.
-      </p>
-    </div>
-    <div class="diag-acoes">
-      <button id="btn-refresh-reconciliation" class="btn btn-secundario" type="button"><svg class="icon" aria-hidden="true"><use href="icons.svg#refresh"></use></svg>Atualizar</button>
-      <button id="btn-fechar-reconciliacao" class="btn btn-secundario" type="button"><svg class="icon" aria-hidden="true"><use href="icons.svg#close"></use></svg>Fechar</button>
-    </div>
-  </div>
-
-  <div id="recon-aviso" class="aviso oculto"></div>
-
-  <div class="recon-resumo">
-    <div class="recon-cartao"><span>Estado</span><strong id="recon-status">—</strong></div>
-    <div class="recon-cartao"><span>Último ciclo</span><strong id="recon-ultima">—</strong></div>
-    <div class="recon-cartao"><span>Intervalo</span><strong id="recon-intervalo">—</strong></div>
-    <div class="recon-cartao"><span>Resultado do ciclo</span><strong id="recon-resultado">—</strong></div>
-  </div>
-
-  <div class="secao">
-    <h3>Incidentes por estado</h3>
-    <ul id="recon-contagens" class="recon-contagens"></ul>
-  </div>
-
-  <details class="recon-details">
-    <summary>Ver atividade registrada <span id="recon-history-count" class="recon-count">—</span></summary>
-    <p class="nota">Até 20 atividades significativas mais recentes, da mais nova para a mais antiga.
-      Ciclos sem mudança apenas atualizam o horário do último ciclo; esta lista não é um log completo.</p>
-    <ol id="recon-historico" class="recon-log" aria-label="Atividades registradas da reconciliação" tabindex="0"></ol>
-  </details>
-
-</section>
-</div>
-</div>
-</div>
+<div data-shared-header></div>
+<script src="header.js"></script>
+<script src="display.js"></script>
 
 <div id="faixa-ciencia" class="faixa-ciencia oculto" role="status">
   <span>O Polaris executa ações privilegiadas nos hosts após sua aprovação. Confira o script e o
@@ -415,48 +307,8 @@
 
 
 
-<section id="tela-preferencias" class="tela-preferencias oculto" aria-label="Preferências">
-  <form id="preferencias-form" class="preferences-form">
-    <header class="preferences-heading">
-      <button id="pref-voltar" class="btn btn-secundario voltar-pagina" type="button"><svg class="icon" aria-hidden="true"><use href="icons.svg#back"></use></svg>Voltar</button>
-      <div><h2 id="preferencias-titulo">Preferências</h2>
-        <p>Configurações compartilhadas pelos operadores deste servidor.</p></div>
-    </header>
-    <div class="preferences-grid">
-      <section class="preferences-section">
-        <h3>Recomendações</h3>
-        <p class="nota">Escolha como o histórico de decisões pode influenciar a ordem das ações sugeridas.</p>
-        <label for="pref-modo">Influência das escolhas anteriores</label>
-        <select id="pref-modo">
-          <option value="desempate">Desempatar ações com a mesma confiança técnica (padrão)</option>
-          <option value="desconto">Aplicar desconto de preferência na confiança</option>
-          <option value="desligado">Não usar preferências de escolha</option>
-        </select>
-        <div class="preferences-fields">
-          <div><label for="pref-desconto">Desconto máximo (%)</label>
-            <input id="pref-desconto" type="number" min="0" max="25" step="1" value="10" required></div>
-          <div><label for="pref-minimo">Mínimo de escolhas</label>
-            <input id="pref-minimo" type="number" min="1" max="100" step="1" value="5" required></div>
-        </div>
-        <p class="nota">Frequência indica preferência, não eficácia. Sucesso e falha são avaliados separadamente; confiança não é probabilidade.</p>
-      </section>
-      <section class="preferences-section">
-        <h3>Histórico de incidentes</h3>
-        <p class="nota">O período define a contagem exibida no cartão e a lista que abre ao selecionar essa contagem.</p>
-        <label for="pref-periodo-ocorrencias">Período de ocorrências (dias)</label>
-        <input id="pref-periodo-ocorrencias" type="number" min="1" max="365" step="1" value="30" required>
-        <p class="nota">O mesmo host e a mesma regra compõem o filtro do histórico.</p>
-      </section>
-    </div>
-    <div class="preferences-footer">
-      <p id="pref-historico" role="status"></p>
-      <p id="pref-feedback" role="status" aria-live="polite"></p>
-      <button class="btn btn-primario" type="submit">Salvar preferências</button>
-    </div>
-  </form>
-</section>
-
 <script src="ui.js"></script>
+<script src="reconciliation.js"></script>
 <script src="server-metrics.js"></script>
 <script src="decision-history.js"></script>
 <script src="script-viewer.js"></script>

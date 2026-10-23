@@ -88,7 +88,7 @@ docker compose exec -T polaris-api python -m src.db.migrate --status
 docker compose exec polaris-api python -m src.engine.setup_vault
 ```
 
-There are eleven numbered migrations. Repeating migration after success applies nothing. Never edit
+There are twelve numbered migrations. Repeating migration after success applies nothing. Never edit
 applied migrations or erase a volume to fix a checksum/password error. API health may fail until
 the schema is current. The last command initializes the encrypted vault once and displays a strong
 administrative code **once**. Store it in a password manager; an existing vault is never overwritten.

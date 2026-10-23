@@ -1,5 +1,14 @@
 (function(root) {
   "use strict";
+  function reducedMotion() {
+    return root.PolarisDisplay?.reducedMotion() || (typeof matchMedia==='function'&&matchMedia('(prefers-reduced-motion: reduce)').matches);
+  }
+  function timeZone() {return root.PolarisDisplay?.zone()??Intl.DateTimeFormat().resolvedOptions().timeZone;}
+  function formatDate(value,options={}) {
+    if(value==null||value===''||!Number.isFinite(+new Date(value)))return '—';
+    return root.PolarisDisplay?.formatDate(value,options)??new Date(value).toLocaleString('pt-BR',options);
+  }
+  function formatTime(value) {return root.PolarisDisplay?.formatTime(value)??new Date(value).toLocaleTimeString('pt-BR');}
   function icon(name) {
     const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     svg.setAttribute("class", "icon");
@@ -41,8 +50,7 @@
     element.inert = true;
     element.setAttribute("aria-hidden", "true");
     element.classList.add("is-hidden");
-    const delay = typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches
-      ? 0 : duration;
+    const delay = reducedMotion() ? 0 : duration;
     visibilityTimers.set(element, setTimeout(() => {
       element.classList.add("oculto");
       visibilityTimers.delete(element);
@@ -59,8 +67,7 @@
     if (!dialog.open || dialog.classList.contains("is-closing")) return;
     dialog.classList.add("is-closing");
     dialog.classList.remove("is-visible");
-    const delay = typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches
-      ? 0 : 200;
+    const delay = reducedMotion() ? 0 : 200;
     setTimeout(() => { if (dialog.open) dialog.close(); dialog.classList.remove("is-closing"); }, delay);
   }
 
@@ -69,14 +76,14 @@
       nao_configurado: "não configurado", unknown: "não foi possível verificar"};
     const safeState = Object.hasOwn(labels, state) ? state : "unknown";
     element.dataset.state = safeState;
-    const time = checkedAt ? ` · verificado às ${new Date(checkedAt).toLocaleTimeString("pt-BR")}` : "";
+    const time = checkedAt ? ` · verificado às ${formatTime(checkedAt)}` : "";
     const duration = latency == null ? "" : ` · ${latency} ms`;
     const label = `${element.dataset.service}: ${labels[safeState]}${time}${duration}`;
     element.title = label;
     element.setAttribute("aria-label", label);
   }
 
-  function formatClock(date, timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone) {
+  function formatClock(date, timeZone = root.PolarisDisplay?.zone()??Intl.DateTimeFormat().resolvedOptions().timeZone) {
     const options = {timeZone};
     return {
       time: new Intl.DateTimeFormat("pt-BR", {...options, hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23"}).format(date),
@@ -86,7 +93,7 @@
     };
   }
 
-  const api = {icon, setDisclosure, setVisibility, showDialog, closeDialog, setConnection, formatClock};
+  const api = {icon, setDisclosure, setVisibility, showDialog, closeDialog, setConnection, formatClock,formatDate,formatTime,timeZone,reducedMotion};
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   root.PolarisUI = api;
   if (!root.document) return;
@@ -102,11 +109,12 @@
       document.getElementById("clock-time").textContent = value.time;
       document.getElementById("clock-date").textContent = value.date;
       clock.dateTime = now.toISOString();
-      clock.title = `Horário local do navegador · ${value.zone}`;
+      clock.title = `${root.PolarisDisplay?.get().time_zone==='utc'?'Horário UTC':'Horário local do navegador'} · ${value.zone}`;
       clock.setAttribute("aria-label", `${value.label} · ${value.zone}`);
     };
     updateClock();
     root.setInterval(() => { if (!document.hidden) updateClock(); }, 1000);
     document.addEventListener("visibilitychange", () => { if (!document.hidden) updateClock(); });
+    root.addEventListener('polaris:display-change',updateClock);
   }
 })(typeof globalThis !== "undefined" ? globalThis : this);

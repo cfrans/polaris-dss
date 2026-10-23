@@ -39,7 +39,7 @@
     }
     bar.setAttribute("aria-valuetext", value ? percentage(value.percentual) : "Sem dados recentes");
     byId(`server-${name}-time`).textContent = value
-      ? `Coleta às ${new Date(value.coletado_em).toLocaleTimeString("pt-BR")}` : "Sem coleta recente";
+      ? `Coleta às ${root.PolarisUI.formatTime(value.coletado_em)}` : "Sem coleta recente";
     return value;
   }
 
@@ -98,6 +98,7 @@
   document.addEventListener("visibilitychange", () => {
     if (!document.hidden) { render(current); if (Date.now() - checkedAt >= 30000) refresh(); }
   });
+  root.addEventListener('polaris:display-change',()=>render(current));
   refresh();
   root.setInterval(() => { if (!document.hidden) { render(current); refresh(); } }, 30000);
 })(typeof globalThis !== "undefined" ? globalThis : this);

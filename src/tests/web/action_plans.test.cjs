@@ -29,6 +29,7 @@ function setup() {
   const end = source.indexOf("function configurarAviso(", start);
   const decisions = [];
   const context = {$, estado: {}, document: {createElement: tag => new Element(tag)},
+    window:{PolarisUI:require('../../web/ui.js')},
     pct: value => `${Math.round(value * 100)}%`, configurarDecisao: inc => decisions.push(inc),
     api: () => { throw new Error("Rendering must not write to the API"); }};
   vm.createContext(context); vm.runInContext(source.slice(start, end), context);

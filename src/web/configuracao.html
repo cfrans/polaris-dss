@@ -12,15 +12,11 @@
   <script src="toast.js" defer></script>
   <script src="configuracao.js" defer></script>
 </head>
-<body class="setup-body">
+<body class="setup-body" data-secondary-header>
 <a class="setup-skip" href="#setup-content">Ir para a etapa atual</a>
-<header class="topo setup-topbar">
-  <a class="marca" href="./" aria-label="Polaris DSS — página inicial">
-    <img class="brand-mark" src="polaris-mark.svg" width="38" height="38" alt="">
-    <span class="brand-name">Polaris <span class="brand-suffix">DSS</span></span>
-  </a>
-  <a class="btn btn-secundario" href="./">Voltar ao painel</a>
-</header>
+<div data-shared-header></div>
+<script src="header.js"></script>
+<script src="display.js"></script>
 <main class="setup-page">
   <div class="setup-heading">
     <div><h1>Um caminho para começar.</h1>
@@ -143,5 +139,9 @@ docker compose ps</code></pre></div>
   <p id="setup-copy-feedback" class="setup-sr-only" role="status" aria-live="polite"></p>
   <noscript><p>Ative JavaScript para navegar pelas etapas e consultar as conexões. O guia completo pode ser baixado pelo link no início da página.</p></noscript>
 </main>
+<script src="ui.js"></script>
+<script src="reconciliation.js"></script>
+<script src="server-metrics.js"></script>
+<script src="header_page.js"></script>
 </body>
 </html>

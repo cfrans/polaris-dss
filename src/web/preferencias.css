@@ -1,0 +1,44 @@
+.settings-page { max-width:1240px; margin:2.5rem auto 4rem; padding:0 1.75rem; }
+.settings-heading { margin-bottom:2rem; }
+.settings-eyebrow { color:#87adf4; font-size:.68rem; letter-spacing:.16em; margin-bottom:.5rem; }
+.settings-heading h1 { font-size:1.9rem; letter-spacing:-.04em; margin-bottom:.4rem; }
+.settings-heading > p:last-child,.settings-section-heading p { color:var(--texto-suave); font-size:.9rem; line-height:1.6; }
+.settings-layout { display:grid; grid-template-columns:220px minmax(0,1fr); gap:2rem; align-items:start; }
+.settings-nav { display:grid; gap:.45rem; }
+.settings-nav a { display:flex; align-items:center; gap:.75rem; padding:.85rem; border:1px solid transparent; border-radius:9px; color:var(--texto-suave); text-decoration:none; font-size:.9rem; transition:background .18s,border-color .18s,color .18s; }
+.settings-nav a:hover { background:#9bbdff0a; color:var(--texto); }
+.settings-nav a[aria-current] { color:#b9d1ff; background:#4c8dff14; border-color:#4c8dff40; }
+.settings-nav small { display:block; color:var(--texto-suave); font-size:.72rem; margin-top:.3rem; }
+.settings-nav a:focus-visible { outline:2px solid var(--acento); outline-offset:3px; }
+.settings-content { min-width:0; padding:1.5rem; background:var(--fundo-painel); border:1px solid var(--borda); border-radius:12px; box-shadow:0 12px 32px #0509111f; }
+.settings-page [hidden] { display:none!important; }
+.settings-page .btn-primario { background:var(--acento); color:#08152a; border-color:var(--acento); }
+[data-settings-panel][hidden] { display:none!important; }
+[data-settings-panel]:not([hidden]) { animation:settings-reveal .18s ease-out; }
+.settings-section-heading { margin-bottom:1.3rem; }
+.settings-section-heading h2 { font-size:1.3rem; margin-bottom:.35rem; letter-spacing:-.02em; }
+.settings-page .account-grid { grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr); gap:1rem; align-items:stretch; }
+.settings-page .account-panel h3 { font-size:1rem; }
+.settings-page .account-panel p { color:var(--texto-suave); font-size:.82rem; line-height:1.6; margin-top:.7rem; }
+.identity-icon { color:#9bbdff; width:2.6rem; height:2.6rem; padding:.6rem; box-sizing:content-box; background:#4c8dff12; border:1px solid #4c8dff33; border-radius:12px; margin-bottom:1rem; }
+.identity-details { display:grid; gap:1rem; margin:1.5rem 0; }
+.identity-details dt { color:var(--texto-suave); font-size:.75rem; margin-bottom:.25rem; }
+.identity-details dd { margin:0; font-size:.9rem; overflow-wrap:anywhere; }
+.settings-page .preferences-grid { grid-template-columns:minmax(0,1.2fr) minmax(0,.8fr); align-items:stretch; }
+.display-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:1rem; align-items:stretch; }
+.display-checkbox { display:flex; align-items:flex-start; gap:.6rem; margin-top:.5rem; cursor:pointer; }
+.settings-page .display-checkbox input { width:18px; min-height:18px; height:18px; flex-shrink:0; margin-top:.15rem; accent-color:var(--acento); color-scheme:dark; }
+.display-footer { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:1rem; border-top:1px solid var(--borda); padding-top:1rem; }
+.display-footer p { font-size:.85rem; color:var(--texto-suave); }
+.display-actions { display:flex; gap:.6rem; flex-wrap:wrap; margin-left:auto; }
+.settings-page fieldset { border:0; padding:0; min-width:0; margin:0; }
+.settings-page select { white-space:normal; }
+.settings-notice { color:#bacde8; background:#89b4fb0a; border:1px solid var(--borda); border-radius:8px; padding:.8rem 1rem; font-size:.83rem; margin-bottom:1rem; line-height:1.5; }
+.settings-message:empty { display:none; }
+.settings-page .account-row { align-items:start; flex-wrap:wrap; overflow-wrap:anywhere; font-size:.83rem; }
+.settings-page .account-row span { flex:1 1 160px; }
+.settings-page .auth-form { margin-top:1rem; }
+@keyframes settings-reveal { from { opacity:0; transform:translateY(4px); } to { opacity:1; transform:translateY(0); } }
+@media(max-width:1050px) { .settings-layout { grid-template-columns:190px minmax(0,1fr); gap:1.2rem; }.settings-page .preferences-grid,.settings-page .account-grid,.display-grid { grid-template-columns:1fr; } }
+@media(max-width:680px) { .settings-page { padding:0 1rem; margin-top:1.5rem; }.settings-layout { grid-template-columns:1fr; }.settings-content { padding:1rem; }.settings-heading { margin-bottom:1.3rem; }.settings-nav { display:flex; flex-wrap:wrap; gap:.4rem; }.settings-nav a { padding:.7rem .8rem; font-size:.8rem; }.settings-nav small { display:none; }.settings-page .account-panel { padding:1.2rem; } }
+@media(prefers-reduced-motion:reduce) { [data-settings-panel]:not([hidden]) { animation:none; }.settings-nav a { transition:none; } }

@@ -178,7 +178,7 @@
       const alerts = [];
       if (String(history?.valor).toLowerCase() !== "false") alerts.push("Desligue POLARIS_CONFIDENCE_HISTORY antes das condições controladas.");
       if (String(debug?.valor).toLowerCase() !== "false") alerts.push("Confirme POLARIS_DEBUG=false.");
-      $("health").textContent = `Consultado às ${new Date().toLocaleTimeString("pt-BR")}. ` + alerts.join(" ")
+      $("health").textContent = `Consultado às ${window.PolarisUI.formatTime(new Date())}. ` + alerts.join(" ")
         + " O diagnóstico não substitui o checklist global nem a conferência humana.";
     } catch (error) {
       $("health").textContent = `Diagnóstico indisponível: ${error.message}. Execute a inspeção no servidor.`;

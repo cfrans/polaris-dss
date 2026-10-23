@@ -14,7 +14,6 @@ const estado = {
   indiceScript: 0,
   retornoDiagnostico: "inicio",
   telaAtual: "home",
-  retornoPreferencias: "home",
   cienciaGeneration: 0,
 };
 
@@ -34,6 +33,7 @@ async function api(caminho, opcoes = {}) {
 }
 
 const pct = (v) => (v == null ? "—" : `${Math.round(v * 100)}%`);
+const formatarData = value => window.PolarisUI.formatDate(value);
 
 /* ---------- home ---------- */
 
@@ -95,7 +95,7 @@ function updateHomeQueue(total, checkedAt = new Date()) {
       ? "Continue acompanhando os alertas no Zabbix. Quando houver uma sugestão para analisar, ela aparecerá aqui."
       : "Selecione um incidente na fila para conferir as evidências e a ação sugerida antes de decidir.";
   $("home-queue-time").textContent = total == null ? "Consulta indisponível"
-    : `Consultada às ${checkedAt.toLocaleTimeString("pt-BR")}`;
+    : `Consultada às ${window.PolarisUI.formatTime(checkedAt)}`;
   document.title = total > 0 ? `(${total >= 50 ? "50+" : total}) Polaris DSS` : "Polaris DSS — Suporte à Decisão";
 }
 
@@ -107,7 +107,6 @@ function showHome(event) {
   estado.telaAtual = "home";
   closeTools();
   window.PolarisUI.setVisibility($("tela-diagnostico"), false);
-  window.PolarisUI.setVisibility($("tela-preferencias"), false);
   window.PolarisUI.setVisibility($("detalhe"), false);
   window.PolarisUI.setVisibility($("placeholder"), true);
   window.PolarisUI.setVisibility(document.querySelector(".painel"), true);
@@ -258,7 +257,7 @@ function toggleScriptDescription(event) {
     descriptionAnimation = null;
   }
   descriptionExpanded = opening;
-  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches || !details.animate) {
+  if (window.PolarisUI.reducedMotion() || !details.animate) {
     details.open = opening;
     details.style.overflow = "";
     return;
@@ -404,134 +403,18 @@ async function refreshConnections() {
 }
 
 /* ---------- reconciliação ---------- */
-
-const ROTULO_RECONCILIACAO = {
-  sucesso: "operacional",
-  erro: "falha no último ciclo",
-  atrasada: "sem ciclo recente",
-  aguardando_primeiro_ciclo: "aguardando primeiro ciclo",
-  desativada: "desativada",
-};
-
-const formatarData = (valor) => valor
-  ? new Date(valor).toLocaleString("pt-BR")
-  : "—";
-
-function resumoCiclo(ciclo) {
-  if (!ciclo) return "nenhum ciclo registrado";
-  const counts = `${ciclo.recuperados} recuperado(s), ${ciclo.ja_conhecidos} conhecido(s), `
-    + `${ciclo.encerrados_na_origem} encerrado(s) na origem`;
-  return ciclo.status === "erro" ? `${ciclo.mensagem_erro || "erro sem detalhe"}\n${counts}` : counts;
-}
-
-async function obterReconciliacao() {
-  return api("/api/v1/reconciliacao");
-}
-
-async function atualizarReconciliacao() {
-  const badge = $("estado-reconciliacao");
-  try {
-    const dados = await obterReconciliacao();
-    $("reconciliation-label").textContent = `Reconciliação ${ROTULO_RECONCILIACAO[dados.status] ?? dados.status}`;
-    badge.dataset.state = dados.status === "sucesso" ? "ok" : dados.status === "erro" ? "falha" : "attention";
-    badge.title = `Reconciliação: ${ROTULO_RECONCILIACAO[dados.status] ?? dados.status}`;
-    badge.classList.toggle("ruim", dados.status === "erro" || dados.status === "atrasada");
-    badge.classList.toggle("atencao", dados.status === "aguardando_primeiro_ciclo");
-    $("home-running").textContent = dados.contagens_incidentes.executando ?? 0;
-    $("home-last-cycle").textContent = formatarData(dados.ultimo_ciclo?.ts_conclusao);
-    $("home-reconciliation").textContent = ROTULO_RECONCILIACAO[dados.status] ?? dados.status;
-    $("reconciliation-stat").dataset.state = badge.dataset.state;
-  } catch {
-    $("reconciliation-label").textContent = "Reconciliação indisponível";
-    badge.dataset.state = "unknown";
-    badge.classList.add("ruim");
-    badge.classList.remove("atencao");
-    $("home-running").textContent = "—";
-    $("home-last-cycle").textContent = "—";
-    $("home-reconciliation").textContent = "Consulta indisponível";
-    $("reconciliation-stat").dataset.state = "unknown";
+const reconciliation = window.PolarisReconciliation.create({document,ui:window.PolarisUI,api:(...args)=>api(...args),
+  onState(data,state) {
+    $("home-running").textContent=data ? (data.contagens_incidentes.executando ?? 0) : "—";
+    $("home-last-cycle").textContent=data?.ultimo_ciclo?.ts_conclusao ? window.PolarisUI.formatDate(data.ultimo_ciclo.ts_conclusao) : "—";
+    $("home-reconciliation").textContent=data ? ({sucesso:"operacional",erro:"falha no último ciclo",atrasada:"sem ciclo recente",aguardando_primeiro_ciclo:"aguardando primeiro ciclo",desativada:"desativada"}[data.status] ?? data.status) : "Consulta indisponível";
+    $("reconciliation-stat").dataset.state=state;
   }
-}
-
-async function abrirReconciliacao() {
-  const open = $("estado-reconciliacao").getAttribute("aria-expanded") !== "true";
-  window.PolarisUI.setDisclosure($("reconciliation-shell"), $("estado-reconciliacao"), open);
-  if (open) await carregarReconciliacao();
-}
-
-function fecharReconciliacao() {
-  window.PolarisUI.setDisclosure($("reconciliation-shell"), $("estado-reconciliacao"), false);
-  $("estado-reconciliacao").focus();
-}
-
-async function carregarReconciliacao() {
-  const refreshButton = $("btn-refresh-reconciliation");
-  refreshButton.disabled = true;
-  let dados;
-  try {
-    dados = await obterReconciliacao();
-  } catch (erro) {
-    const aviso = $("recon-aviso");
-    aviso.textContent = `Não foi possível consultar a reconciliação: ${erro.message}`;
-    aviso.classList.remove("oculto");
-    for (const id of ["recon-status", "recon-ultima", "recon-intervalo", "recon-resultado", "recon-history-count"]) {
-      $(id).textContent = "—";
-    }
-    $("recon-contagens").replaceChildren();
-    $("recon-historico").replaceChildren();
-    return;
-  } finally {
-    refreshButton.disabled = false;
-  }
-
-  $("recon-aviso").classList.add("oculto");
-  $("recon-status").textContent = ROTULO_RECONCILIACAO[dados.status] ?? dados.status;
-  $("recon-ultima").textContent = formatarData(dados.ultimo_ciclo?.ts_conclusao);
-  $("recon-intervalo").textContent = dados.habilitada
-    ? `${dados.intervalo_segundos} s`
-    : "desativado";
-  $("recon-resultado").textContent = resumoCiclo(dados.ultimo_ciclo);
-
-  const contagens = $("recon-contagens");
-  contagens.innerHTML = "";
-  const ordem = ["pendente", "executando", "sucesso", "falha", "timeout", "rejeitado",
-    "encerrado_na_origem", "no_match"];
-  for (const status of ordem) {
-    const total = dados.contagens_incidentes[status] ?? 0;
-    const li = document.createElement("li");
-    li.textContent = status.replaceAll("_", " ");
-    const valor = document.createElement("strong");
-    valor.textContent = total;
-    li.appendChild(valor);
-    contagens.appendChild(li);
-  }
-
-  const historico = $("recon-historico");
-  historico.replaceChildren();
-  $("recon-history-count").textContent = dados.historico.length;
-  if (!dados.historico.length) {
-    const emptyMessage = document.createElement("li");
-    emptyMessage.className = "recon-empty";
-    emptyMessage.textContent = "Nenhuma atividade significativa registrada.";
-    historico.appendChild(emptyMessage);
-    return;
-  }
-  for (const ciclo of dados.historico) {
-    const row = document.createElement("li");
-    row.className = "recon-line";
-    for (const [className, value] of [
-      ["recon-time", formatarData(ciclo.ts_conclusao)],
-      [ciclo.status === "erro" ? "recon-error" : "recon-ok", ciclo.status === "erro" ? "ERRO" : "OK"],
-      ["recon-message", resumoCiclo(ciclo)],
-    ]) {
-      const field = document.createElement("span");
-      field.className = className;
-      field.textContent = value;
-      row.appendChild(field);
-    }
-    historico.appendChild(row);
-  }
-}
+});
+async function atualizarReconciliacao() { return reconciliation.refreshBadge(); }
+async function carregarReconciliacao() { return reconciliation.load(); }
+async function abrirReconciliacao() { return reconciliation.toggle(); }
+function fecharReconciliacao() { reconciliation.close(); }
 
 /* ---------- lista ---------- */
 
@@ -566,7 +449,7 @@ async function carregarLista() {
         <span class="item-conf cor-${item.banda ?? ""}">${pct(item.confianca)}</span>
       </div>
       <div class="item-nome">${item.nome_regra ?? "Incidente sem heurística formalizada"}</div>
-      <div class="item-meta">${item.hostname ?? "—"} · ${new Date(item.ts_criacao).toLocaleTimeString("pt-BR")}</div>
+      <div class="item-meta">${item.hostname ?? "—"} · ${window.PolarisUI.formatTime(item.ts_criacao)}</div>
     `;
     li.addEventListener("click", () => abrir(item.id));
     lista.appendChild(li);
@@ -608,13 +491,13 @@ async function abrir(id) {
     ? `${inc.ocorrencias_periodo} ${inc.ocorrencias_periodo === 1 ? "ocorrência" : "ocorrências"} desta regra neste host nos últimos ${inc.periodo_ocorrencias_dias} dias`
     : "Histórico de ocorrências indisponível para este incidente";
   $("d-inicio").textContent = formatIncidentDate(inc.ts_deteccao || inc.ts_criacao);
-  $("d-inicio").title = `Fuso horário local: ${Intl.DateTimeFormat().resolvedOptions().timeZone}`;
+  $("d-inicio").title = `Fuso horário: ${window.PolarisUI.timeZone()}`;
   const conclusaoLabel = inc.status === "sucesso" || inc.status === "encerrado_na_origem"
     ? "Resolvida" : "Fluxo encerrado";
   $("d-fim").textContent = inc.ts_conclusao
     ? formatIncidentDate(inc.ts_conclusao) : "Sem registro de fim";
   $("d-fim").title = inc.ts_conclusao
-    ? `${conclusaoLabel} · fuso horário local: ${Intl.DateTimeFormat().resolvedOptions().timeZone}` : "";
+    ? `${conclusaoLabel} · fuso horário: ${window.PolarisUI.timeZone()}` : "";
 
   $("d-confianca").textContent = pct(inc.confianca);
   $("d-confianca").className = `confianca-valor cor-${inc.banda ?? ""}`;
@@ -653,13 +536,7 @@ function produtoFatores(fatores) {
 }
 
 function formatIncidentDate(value) {
-  if (!value) return "—";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "—";
-  return new Intl.DateTimeFormat("pt-BR", {
-    day: "2-digit", month: "2-digit", year: "numeric",
-    hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23",
-  }).format(date);
+  return window.PolarisUI.formatDate(value);
 }
 
 function renderHostIdentity(incident) {
@@ -773,7 +650,7 @@ function hideConfidenceTooltip() {
   confidenceTooltipTimer = setTimeout(() => {
     tooltip.hidden = true;
     tooltip.classList.remove("is-closing");
-  }, matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 140);
+  }, window.PolarisUI.reducedMotion() ? 0 : 140);
 }
 
 function renderEvidencias(ev) {
@@ -863,7 +740,7 @@ function renderActionPlan(inc) {
   }
   if (!plan) return;
   $("plano-aviso").textContent = plan.aviso;
-  $("plano-fonte").textContent = `Consultado em ${new Date(plan.coletado_em).toLocaleString("pt-BR")}. O alvo será conferido novamente antes da ação.`;
+  $("plano-fonte").textContent = `Consultado em ${window.PolarisUI.formatDate(plan.coletado_em)}. O alvo será conferido novamente antes da ação.`;
   renderPlanEvidence($("plano-evidencias"), plan.evidencias);
   const group = $("plano-opcao");
   const editable = inc.status === "pendente" && plan.opcoes.length > 0;
@@ -920,7 +797,7 @@ function renderActionPlan(inc) {
     $("plano-motivo").textContent = `${action.motivo} Confiança técnica: ${pct(action.confianca_tecnica)}; preferência: ×${action.preferencia.fator.toFixed(2)} (${action.preferencia.escolhas} escolha(s)).`;
     const target = action.alvo;
     $("plano-alvo").textContent = target.caminho
-      ? `${target.caminho} · ${formatBytes(target.bytes)} (${target.bytes.toLocaleString("pt-BR")} bytes) · proprietário ${target.proprietario} · modificado em ${new Date(target.mtime_ns / 1000000).toLocaleString("pt-BR")}`
+      ? `${target.caminho} · ${formatBytes(target.bytes)} (${target.bytes.toLocaleString("pt-BR")} bytes) · proprietário ${target.proprietario} · modificado em ${window.PolarisUI.formatDate(target.mtime_ns / 1000000)}`
       : target.pid ? `PID ${target.pid} · ${target.nome}` : `Serviço ${target.servico} · estado ${target.estado}`;
     renderExecution($("d-comando-resumo"), summarizePlannedAction(action));
     renderExecution($("d-comando"), describePlannedAction(action));
@@ -1077,7 +954,7 @@ function renderPlanEvidence(container, evidence) {
   if (evidence.arquivos) {
     line(`Volume /mnt/polaris_test · espaço livre: ${formatBytes(evidence.espaco_livre)}.`);
     for (const file of evidence.arquivos) {
-      line(`${file.caminho} · ${formatBytes(file.bytes)} · ${file.proprietario} · ${new Date(file.mtime_ns / 1000000).toLocaleString("pt-BR")} · ${file.aberto === false ? "sem descritor aberto observado" : file.aberto ? "em uso" : "uso não confirmado"}`);
+      line(`${file.caminho} · ${formatBytes(file.bytes)} · ${file.proprietario} · ${window.PolarisUI.formatDate(file.mtime_ns / 1000000)} · ${file.aberto === false ? "sem descritor aberto observado" : file.aberto ? "em uso" : "uso não confirmado"}`);
     }
     if (!evidence.completo) line("Inspeção limitada ou incompleta; ausência na lista não comprova ausência no volume.");
   }
@@ -1249,7 +1126,7 @@ async function mostrarResultado(id) {
       if (r.ts_conclusao) {
         // The card was rendered before execution; show the end time without a page reload.
         $("d-fim").textContent = formatIncidentDate(r.ts_conclusao);
-        $("d-fim").title = `${r.status === "sucesso" ? "Resolvida" : "Fluxo encerrado"} · fuso horário local: ${Intl.DateTimeFormat().resolvedOptions().timeZone}`;
+        $("d-fim").title = `${r.status === "sucesso" ? "Resolvida" : "Fluxo encerrado"} · fuso horário: ${window.PolarisUI.timeZone()}`;
       }
       const cor = r.status === "sucesso" ? "cor-alta" : r.status === "rejeitado" ? "" : "cor-baixa";
       corpo.innerHTML = `
@@ -1320,7 +1197,6 @@ function abrirDiagnostico() {
   estado.retornoDiagnostico = estado.telaAtual === "detalhe" ? "detalhe" : "inicio";
   estado.telaAtual = "diagnostico";
   window.PolarisUI.setVisibility(document.querySelector(".painel"), false);
-  window.PolarisUI.setVisibility($("tela-preferencias"), false);
   window.PolarisUI.setVisibility($("tela-diagnostico"), true);
   carregarDiagnostico();
 }
@@ -1332,51 +1208,6 @@ function fecharDiagnostico() {
   window.PolarisUI.setVisibility($("detalhe"), estado.retornoDiagnostico === "detalhe");
   window.PolarisUI.setVisibility($("placeholder"), estado.retornoDiagnostico !== "detalhe");
   if (estado.retornoDiagnostico !== "detalhe") estado.selecionado = null;
-}
-
-async function abrirPreferencias() {
-  estado.retornoPreferencias = estado.telaAtual;
-  estado.telaAtual = "preferencias";
-  closeTools();
-  window.PolarisUI.setVisibility($("tela-diagnostico"), false);
-  window.PolarisUI.setVisibility($("detalhe"), false);
-  window.PolarisUI.setVisibility($("placeholder"), false);
-  window.PolarisUI.setVisibility(document.querySelector(".painel"), false);
-  window.PolarisUI.setVisibility($("tela-preferencias"), true);
-  $("pref-feedback").textContent = "";
-  try {
-    const preferences = await api("/api/v1/preferencias");
-    $("pref-modo").value = preferences.modo_preferencia;
-    $("pref-desconto").value = Math.round(preferences.desconto_maximo * 100);
-    $("pref-minimo").value = preferences.minimo_escolhas;
-    $("pref-periodo-ocorrencias").value = preferences.periodo_ocorrencias_dias;
-    $("pref-historico").textContent = preferences.historico_habilitado
-      ? "Histórico de desempenho habilitado. Alterar as preferências exige atualizar diagnósticos pendentes."
-      : "Histórico de desempenho desativado neste servidor. As preferências são salvas, mas não afetam as recomendações.";
-  } catch (error) {
-    $("pref-historico").textContent = `Não foi possível carregar as preferências: ${error.message}`;
-  }
-}
-
-function fecharPreferencias() {
-  window.PolarisUI.setVisibility($("tela-preferencias"), false);
-  const previous = estado.retornoPreferencias;
-  estado.telaAtual = previous;
-  if (previous === "diagnostico") {
-    window.PolarisUI.setVisibility($("tela-diagnostico"), true);
-    return;
-  }
-  window.PolarisUI.setVisibility(document.querySelector(".painel"), true, 280);
-  if (previous === "detalhe" && estado.selecionado != null) {
-    window.PolarisUI.setVisibility($("placeholder"), false);
-    window.PolarisUI.setVisibility($("detalhe"), true);
-    return;
-  }
-  estado.selecionado = null;
-  window.PolarisUI.setVisibility($("detalhe"), false);
-  window.PolarisUI.setVisibility($("placeholder"), true);
-  estado.telaAtual = "home";
-  updateHomeQueue(pendingTotal, pendingCheckedAt);
 }
 
 function voltarDoDetalhe() {
@@ -1500,8 +1331,6 @@ $("estado-reconciliacao").addEventListener("click", abrirReconciliacao);
 $("btn-fechar-reconciliacao").addEventListener("click", fecharReconciliacao);
 $("btn-refresh-reconciliation").addEventListener("click", carregarReconciliacao);
 $("btn-diagnostico").addEventListener("click", abrirDiagnostico);
-$("btn-preferencias").addEventListener("click", abrirPreferencias);
-$("pref-voltar").addEventListener("click", fecharPreferencias);
 $("d-confianca-toggle").addEventListener("pointerenter", showConfidenceTooltip);
 $("d-confianca-toggle").addEventListener("pointermove", positionConfidenceTooltip);
 $("d-confianca-toggle").addEventListener("pointerleave", hideConfidenceTooltip);
@@ -1533,18 +1362,6 @@ $("modal-historico-ocorrencias").addEventListener("cancel", event => {
 $("modal-historico-ocorrencias").addEventListener("click", event => {
   if (event.target === event.currentTarget) window.PolarisUI.closeDialog(event.currentTarget);
 });
-$("preferencias-form").addEventListener("submit", async event => {
-  event.preventDefault();
-  try {
-    await api("/api/v1/preferencias", {method: "PUT", body: JSON.stringify({
-      modo_preferencia: $("pref-modo").value,
-      desconto_maximo: Number($("pref-desconto").value) / 100,
-      minimo_escolhas: Number($("pref-minimo").value),
-      periodo_ocorrencias_dias: Number($("pref-periodo-ocorrencias").value),
-    })});
-    $("pref-feedback").textContent = "Preferências salvas. Atualize o diagnóstico antes da próxima aprovação.";
-  } catch (error) { $("pref-feedback").textContent = error.message; }
-});
 $("btn-voltar-diagnostico").addEventListener("click", fecharDiagnostico);
 $("btn-voltar-detalhe").addEventListener("click", voltarDoDetalhe);
 $("btn-reverificar").addEventListener("click", carregarDiagnostico);
@@ -1561,15 +1378,24 @@ $("btn-ocultar-faixa").addEventListener("click", () => {
   atualizarFaixa();
 });
 
-carregarScripts();
-atualizarSaude();
-atualizarReconciliacao();
-carregarLista();
-loadRecentIncidents();
-renderHiddenRecords();
-refreshConnections();
-setInterval(carregarLista, INTERVALO_LISTA_MS);
-setInterval(atualizarSaude, 15000);
-setInterval(atualizarReconciliacao, 15000);
-setInterval(loadRecentIncidents, 15000);
-setInterval(refreshConnections, 60000);
+document.addEventListener('DOMContentLoaded',async()=>{
+  if(!await window.PolarisSession.ready)return;
+  carregarScripts().then(async () => {
+    const tool=new URLSearchParams(location.search).get('ferramenta');
+    if(tool==='diagnostico') abrirDiagnostico();
+    else if(tool==='preferencias') location.replace('preferencias.html#operacao');
+    else if(tool==='scripts') carregarScripts(true);
+  });
+  atualizarSaude();
+  atualizarReconciliacao();
+  carregarLista();
+  loadRecentIncidents();
+  renderHiddenRecords();
+  refreshConnections();
+  setInterval(carregarLista, INTERVALO_LISTA_MS);
+  setInterval(atualizarSaude, 15000);
+  setInterval(atualizarReconciliacao, 15000);
+  setInterval(loadRecentIncidents, 15000);
+  setInterval(refreshConnections, 60000);
+
+});

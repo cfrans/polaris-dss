@@ -24,6 +24,9 @@ def audit_filters(
     status: Literal['', 'pendente', 'executando', 'sucesso', 'falha', 'timeout',
                     'rejeitado', 'no_match', 'encerrado_na_origem'] = '',
     decisao: Literal['', 'aprovada', 'rejeitada', 'sem_decisao'] = '',
+    q: str = Query('', max_length=200),
+    ordenar: Literal['id', 'criacao', 'host', 'regra', 'decisao', 'status', 'operador'] = 'criacao',
+    direcao: Literal['asc', 'desc'] = 'desc',
 ):
     end = fim or datetime.now(timezone.utc)
     start = inicio or end - timedelta(days=30)
@@ -32,7 +35,8 @@ def audit_filters(
     if start >= end or end - start > timedelta(days=366):
         raise HTTPException(422, 'Escolha um período válido de até 366 dias.')
     return {'inicio': start.astimezone(timezone.utc), 'fim': end.astimezone(timezone.utc),
-            'host': host, 'regra': regra, 'operador': operador, 'status': status, 'decisao': decisao}
+            'host': host, 'regra': regra, 'operador': operador, 'status': status, 'decisao': decisao,
+            'q': q.strip(), 'ordenar': ordenar, 'direcao': direcao}
 
 
 def encode(data):

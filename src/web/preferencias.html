@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Preferências — Polaris DSS</title>
+  <link rel="stylesheet" href="style.css"><link rel="stylesheet" href="acesso.css">
+  <link rel="stylesheet" href="preferencias.css">
+  <script src="session.js" defer></script><script src="toast.js" defer></script>
+  <script src="preferencias.js" defer></script>
+</head>
+<body data-secondary-header>
+<div data-shared-header></div><script src="header.js"></script>
+<script src="display.js"></script>
+<main class="settings-page">
+  <header class="settings-heading">
+    <p class="settings-eyebrow">SEU ESPAÇO NO POLARIS</p>
+    <h1>Preferências</h1>
+    <p>Sua conta e os ajustes da operação, cada um em seu lugar.</p>
+  </header>
+  <div class="settings-layout">
+    <nav class="settings-nav" aria-label="Seções de preferências">
+      <a href="#minha-conta" aria-current="page"><svg class="icon" aria-hidden="true"><use href="icons.svg#user"></use></svg><span>Minha conta<small>Identidade e acesso</small></span></a>
+      <a href="#exibicao"><svg class="icon" aria-hidden="true"><use href="icons.svg#eye"></use></svg><span>Exibição<small>Conforto e navegação</small></span></a>
+      <a href="#operacao"><svg class="icon" aria-hidden="true"><use href="icons.svg#settings"></use></svg><span>Operação<small>Recomendações e histórico</small></span></a>
+      <a href="#gestao-contas" data-admin hidden><svg class="icon" aria-hidden="true"><use href="icons.svg#user"></use></svg><span>Gestão de contas<small>Acessos à instalação</small></span></a>
+    </nav>
+    <div class="settings-content">
+      <section id="minha-conta" data-settings-panel aria-labelledby="account-title">
+        <div class="settings-section-heading"><h2 id="account-title">Minha conta</h2><p>Sua identidade acompanha as decisões registradas no Polaris.</p></div>
+        <div class="account-grid">
+          <section class="account-panel identity-panel" aria-labelledby="identity-title">
+            <svg class="identity-icon icon" aria-hidden="true"><use href="icons.svg#user"></use></svg>
+            <h3 id="identity-title" data-session-name>Carregando conta…</h3>
+            <dl class="identity-details"><div><dt>Usuário</dt><dd id="account-login">—</dd></div><div><dt>Perfil</dt><dd id="account-role">—</dd></div></dl>
+            <p>O nome de usuário é permanente para preservar a identificação no histórico.</p>
+          </section>
+          <section class="account-panel" aria-labelledby="password-title">
+            <h3 id="password-title">Alterar senha</h3>
+            <form id="password-form" class="auth-form">
+              <label for="current-password">Senha atual</label><input id="current-password" type="password" required autocomplete="current-password" maxlength="128">
+              <label for="new-password">Nova frase-senha</label><input id="new-password" type="password" required minlength="15" maxlength="128" autocomplete="new-password">
+              <p>Use 15 a 128 caracteres. A alteração encerra todas as suas sessões.</p>
+              <button class="btn btn-primario" type="submit" disabled>Salvar nova senha</button>
+            </form><p id="password-message" class="settings-message" role="status"></p>
+          </section>
+        </div>
+      </section>
+      <section id="exibicao" data-settings-panel aria-labelledby="display-title" hidden>
+        <div class="settings-section-heading"><h2 id="display-title">Exibição</h2><p>Deixe o Polaris confortável para o seu dia a dia. Estas escolhas acompanham a sua conta.</p></div>
+        <form id="display-form" class="preferences-form">
+          <fieldset id="display-fields" disabled>
+            <div class="display-grid">
+              <section class="preferences-section" aria-labelledby="comfort-title">
+                <h3 id="comfort-title">Conforto visual</h3>
+                <label for="display-density">Densidade dos cartões e tabelas</label>
+                <select id="display-density"><option value="comfortable">Confortável — mais espaço para leitura</option><option value="compact">Compacta — mais conteúdo por tela</option></select>
+                <p class="nota">Ajusta os espaços dos incidentes, recentes e auditoria.</p>
+                <label for="display-motion">Animações</label>
+                <select id="display-motion"><option value="system">Seguir a preferência do sistema</option><option value="reduced">Reduzir movimentos</option></select>
+                <p class="nota">A redução de movimento do sistema é sempre respeitada.</p>
+              </section>
+              <section class="preferences-section" aria-labelledby="navigation-title">
+                <h3 id="navigation-title">Datas e listas</h3>
+                <label for="display-zone">Horário das datas na interface</label>
+                <select id="display-zone"><option value="local">Horário local deste navegador</option><option value="utc">UTC — horário universal</option></select>
+                <p class="nota">Aplica-se à interface e ao período dos filtros. Exportações, gráficos agregados e evidências preservam seus horários originais.</p>
+                <label for="display-page-size">Registros ao abrir a auditoria</label>
+                <select id="display-page-size"><option value="10">10 por página</option><option value="25">25 por página</option><option value="50">50 por página</option><option value="100">100 por página</option></select>
+                <label class="display-checkbox" for="display-remember"><input id="display-remember" type="checkbox"><span>Lembrar filtros, busca e ordenação da auditoria</span></label>
+                <p class="nota">Ao desativar e salvar, os filtros lembrados são apagados. A lista sempre abre na primeira página.</p>
+              </section>
+            </div>
+          </fieldset>
+          <div class="display-footer"><p id="display-feedback" role="status" aria-live="polite"></p><div class="display-actions"><button id="display-reset" class="btn btn-secundario" type="button" disabled>Restaurar padrões</button><button id="display-save" class="btn btn-primario" type="submit" disabled>Salvar exibição</button></div></div>
+          <button id="display-retry" class="btn btn-secundario" type="button" hidden>Tentar carregar novamente</button>
+        </form>
+      </section>
+      <section id="operacao" data-settings-panel aria-labelledby="operation-title" hidden>
+        <div class="settings-section-heading"><h2 id="operation-title">Operação</h2><p>Configurações compartilhadas pelos operadores deste servidor.</p></div>
+        <p id="preferences-access" class="settings-notice" role="status">Carregando permissões…</p>
+        <form id="preferencias-form" class="preferences-form">
+          <fieldset id="preferences-fields" disabled>
+            <div class="preferences-grid">
+              <section class="preferences-section">
+                <h3>Recomendações</h3><p class="nota">Escolha como o histórico de decisões pode influenciar a ordem das ações sugeridas.</p>
+                <label for="pref-modo">Influência das escolhas anteriores</label>
+                <select id="pref-modo"><option value="desempate">Desempatar ações com a mesma confiança técnica (padrão)</option><option value="desconto">Aplicar desconto de preferência na confiança</option><option value="desligado">Não usar preferências de escolha</option></select>
+                <div class="preferences-fields">
+                  <div><label for="pref-desconto">Desconto máximo (%)</label><input id="pref-desconto" type="number" min="0" max="25" step="1" required></div>
+                  <div><label for="pref-minimo">Mínimo de escolhas</label><input id="pref-minimo" type="number" min="1" max="100" step="1" required></div>
+                </div>
+                <p class="nota">Frequência indica preferência, não eficácia. Sucesso e falha são avaliados separadamente; confiança não é probabilidade.</p>
+              </section>
+              <section class="preferences-section">
+                <h3>Histórico de incidentes</h3><p class="nota">O período define a contagem exibida no cartão e a lista que abre ao selecionar essa contagem.</p>
+                <label for="pref-periodo-ocorrencias">Período de ocorrências (dias)</label><input id="pref-periodo-ocorrencias" type="number" min="1" max="365" step="1" required>
+                <p class="nota">O mesmo host e a mesma regra compõem o filtro do histórico.</p>
+              </section>
+            </div>
+          </fieldset>
+          <div class="preferences-footer">
+            <p id="pref-historico" role="status"></p><p id="pref-feedback" role="status" aria-live="polite"></p>
+            <button id="save-preferences" class="btn btn-primario" type="submit" data-admin hidden disabled>Salvar preferências</button>
+          </div>
+          <button id="retry-preferences" class="btn btn-secundario" type="button" hidden>Tentar carregar novamente</button>
+        </form>
+      </section>
+      <section id="gestao-contas" data-settings-panel data-admin aria-labelledby="management-title" hidden>
+        <div class="settings-section-heading"><h2 id="management-title">Gestão de contas</h2><p>Administre quem pode acessar esta instalação.</p></div>
+        <div class="account-grid">
+          <section class="account-panel" aria-labelledby="create-title"><h3 id="create-title">Criar conta</h3>
+            <form id="account-form" class="auth-form">
+              <label for="new-username">Usuário</label><input id="new-username" required minlength="3" maxlength="64" pattern="[a-z0-9][a-z0-9_.-]{2,63}" autocomplete="off">
+              <label for="new-name">Nome</label><input id="new-name" required maxlength="100">
+              <label for="new-role">Perfil</label><select id="new-role"><option value="operador">Operador — analisar e decidir</option><option value="admin">Administrador — configurar e gerenciar</option></select>
+              <label for="account-password">Frase-senha da conta</label><input id="account-password" type="password" autocomplete="new-password" required minlength="15" maxlength="128">
+              <button class="btn btn-primario" type="submit" disabled>Criar conta</button>
+            </form><p id="account-message" class="settings-message" role="status"></p>
+          </section>
+          <section class="account-panel" aria-labelledby="list-title"><h3 id="list-title">Contas da instalação</h3><p>Desativar impede novos acessos e encerra as sessões da conta. O histórico de decisões é preservado.</p><div id="account-list" class="account-list"></div><p id="list-message" class="settings-message" role="status"></p></section>
+        </div>
+      </section>
+    </div>
+  </div>
+</main>
+<script src="ui.js"></script><script src="reconciliation.js"></script>
+<script src="server-metrics.js"></script><script src="header_page.js"></script>
+</body>
+</html>

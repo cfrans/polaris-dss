@@ -111,6 +111,8 @@ def test_reconciliacao_expoe_ultimo_ciclo_contagens_e_historico(cliente, conn):
 
 def test_interface_expoe_estado_e_historico_da_reconciliacao(cliente):
     pagina = cliente.get("/").text
+    assert 'src="header.js"' in pagina
+    pagina += cliente.get('/header.js').text
     assert 'id="estado-reconciliacao"' in pagina
     assert 'id="tela-reconciliacao"' in pagina
     assert 'id="recon-historico"' in pagina

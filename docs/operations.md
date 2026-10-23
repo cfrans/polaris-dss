@@ -11,6 +11,25 @@ additional target fixtures described in their [controller guide](../experiment/s
 
 ## Configure and start
 
+The square avatar to the right of the header clock shows the signed-in user's initials.
+It opens a separate account menu with **Minha conta** (the personal section of Preferences) and
+**Sair da conta**. The tooltip and accessible label identify the account. Use Escape or click
+outside to close it; keyboard users can open it with Arrow Down and navigate its actions with Tab.
+Preferences is available to both roles, with separate sections for personal account access,
+shared operation settings and account management. Operators can read operation settings and
+change their own password. Only administrators can save shared settings or manage other accounts.
+Changing your password ends all your sessions. The legacy `/contas.html` address redirects to the
+personal section; the former home preferences shortcut opens the operation section.
+
+**Preferências → Exibição** saves personal choices to your account: comfortable/compact
+incident and audit rows, 10/25/50/100 initial audit records, optional remembered audit filters,
+search and ordering, local/UTC dates and reduced motion. The operating system's reduced-motion
+request is always respected. Save to apply, or fill the defaults and save to restore them.
+These settings are separate from operational ranking and apply across browsers after login.
+Audit filters use the selected timezone and always reopen on page one; the chosen initial page
+size applies on each visit. Turning remembered filters off clears their saved state. Aggregate
+decision charts and exports retain UTC; original evidence/output is never rewritten.
+
 From a checkout, follow [README installation](../README.md#-getting-started). Copy `.env.example`
 to `.env`, replace the database password, then initialize administrative access and use the forms
 or optional environment inputs for Zabbix/SSH. Saved connections override those inputs. Inside containers,
@@ -67,7 +86,7 @@ docker compose up -d polaris-reconciler
 docker compose ps
 ```
 
-The current schema has eleven numbered migrations. They run once with checksum verification;
+The current schema has twelve numbered migrations. They run once with checksum verification;
 never edit an applied SQL file or recreate the volume to bypass a migration problem.
 Wait for API/database health before calling endpoints. A connection reset immediately after
 recreation can occur during startup; a persistent failure needs logs/diagnostics.
@@ -164,13 +183,28 @@ checksum requires investigation; there is no automatic database downgrade.
 Open **Tools → Auditoria**, or `/auditoria.html`, with an administrator or operator session.
 Filter by creation dates, literal host/operator fragments, exact rule, current outcome/state and
 human decision. Approval and execution success are separate facts. The default UI range is the
-last 30 calendar dates in your local timezone; dates include the entire final day. A window may
-cover at most 366 days. Pages contain 25 records, ordered by creation timestamp and ID descending.
+last 30 calendar dates in your selected local/UTC timezone; dates include the entire final day.
+A window may cover at most 366 days. The default page contains 25 records, ordered by creation
+timestamp and ID descending; personal Exibição settings can change the initial size and restore
+the last successfully applied filters/search/order. Reopening starts on page one.
+
+Select 10, 25, 50 or 100 records per page and use the numbered navigation. Click a column heading
+to toggle ascending/descending order; the arrow and accessible state identify the active sort.
+Sorting applies to the entire matching set, with missing values last and ID as a stable tie-breaker.
+The free search updates while typing and matches literal, case-insensitive persisted values,
+including commands, output, explanation and displayed decision/state labels (up to 200 characters).
+Dates are searchable in their persisted UTC form and creation date as `DD/MM/YYYY`. Advanced
+filters still apply; search and sorting are also applied to complete exports, before pagination.
+
+The application header is shared with the home, account, setup and laboratory pages. Its own
+connectivity/resource checks may contact Zabbix, as on the home page; audit API queries themselves
+only read the database. The header never approves incidents or runs remediation automatically.
 
 Details show persisted commands, output, errors, timestamps, versions and explanation. Historical
 records are not reconstructed from today's rules. Opening them does not mark a card as displayed,
 approve an action, contact Zabbix/SSH or write to the incident/experiment tables. Session activity
-still updates normally. This is a live operational query, not an immutable experimental snapshot;
+still updates normally. Optional remembered filters write only the user's `preferencias_exibicao`
+row through its separate authenticated route. This is a live operational query, not an immutable experimental snapshot;
 operational completion time is distinct from independent laboratory recovery measurements.
 
 CSV/JSON exports include **all records matching the applied filters**, not just the current page.
