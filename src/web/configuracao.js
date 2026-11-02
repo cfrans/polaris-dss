@@ -1,6 +1,8 @@
 (function(root) {
   "use strict";
   const MAX_AGE = 5 * 60 * 1000;
+  const CONFIRMATIONS_KEY = "polaris.setup.confirmations.v1";
+  const CONFIRMATION_FIELDS = ["environment", "zabbix", "ssh", "delivery", "review"];
   const LABELS = {ok: "Verificado", manual: "Confirmado por você", falha: "Requer correção",
     aviso: "Requer atenção", pendente: "Conferir etapa", unknown: "Ainda não verificado"};
 
@@ -12,7 +14,7 @@
     return "unknown";
   }
 
-  function evaluate(snapshot, confirmations = {}, now = Date.now()) {
+  function evaluate(snapshot, confirmations = {}, now = Date.now(), savedAt = null) {
     const age = now - snapshot.checkedAt;
     const fresh = Number.isFinite(age) && age >= 0 && age < MAX_AGE;
     const services = fresh ? checkState(snapshot.diagnostic?.verificacoes, ["banco", "migracoes", "base"]) : "unknown";
@@ -32,8 +34,50 @@
       zabbix === "ok" ? confirmations.zabbix ? "ok" : "pendente" : zabbix,
       ssh === "ok" ? confirmations.ssh ? "ok" : "pendente" : ssh,
       reconciliation, confirmations.delivery && confirmations.review ? "manual" : "pendente"];
+    if (savedAt) {
+      for (const [stage, index] of [["zabbix", 2], ["ssh", 3]]) {
+        if (!savedAt[stage]) stages[index] = "pendente";
+      }
+    }
     return {fresh, stages, count: stages.filter(state => state === "ok" || state === "manual").length,
       checks: {services, zabbix, ssh, reconciliation}};
+  }
+
+  function readStoredConfirmations(storage, expectedRevision) {
+    try {
+      const parsed = JSON.parse(storage?.getItem(CONFIRMATIONS_KEY) || "null");
+      if (!parsed || typeof parsed !== "object") return {};
+      if (expectedRevision && parsed.revision && parsed.revision !== expectedRevision) return {};
+      const source = parsed.confirmations && typeof parsed.confirmations === "object" ? parsed.confirmations : parsed;
+      const result = {};
+      for (const field of CONFIRMATION_FIELDS) {
+        if (source[field] === true) result[field] = true;
+      }
+      return result;
+    } catch {
+      return {};
+    }
+  }
+
+  function writeStoredConfirmations(storage, revision, confirmations) {
+    try {
+      const clean = {};
+      for (const field of CONFIRMATION_FIELDS) {
+        if (confirmations[field] === true) clean[field] = true;
+      }
+      storage?.setItem(CONFIRMATIONS_KEY, JSON.stringify({revision: revision || null, confirmations: clean}));
+    } catch {
+      /* Funciona apenas em memória se o armazenamento estiver indisponível. */
+    }
+  }
+
+  function furthestStep(stages) {
+    let step = 0;
+    for (let index = 1; index <= 5; index += 1) {
+      if (canVisit(index, stages)) step = index;
+      else break;
+    }
+    return step;
   }
 
   async function readChecks(fetcher, signal) {
@@ -53,13 +97,20 @@
     const $ = id => document.getElementById(id);
     const buttons = [...document.querySelectorAll("[data-step]")];
     const panels = [...document.querySelectorAll("[data-panel]")];
-    const confirmations = {};
+    let confirmations = {};
+    let currentRevision = null;
     let snapshot = {};
     let current = 0;
     const sources = {zabbix: "saved", ssh: "saved"};
     let generatedKey = false;
     let savedAt = {};
     const receipts = {};
+
+    function syncConfirmInputs() {
+      document.querySelectorAll("[data-confirm]").forEach(input => {
+        input.checked = Boolean(confirmations[input.dataset.confirm]);
+      });
+    }
 
     function locked() {
       location.href = '/login.html?next=/configuracao.html';
@@ -95,15 +146,27 @@
       }
     }
 
-    function invalidate(stage) {
+    function clearReceipt(stage) {
       delete receipts[stage];
-      delete savedAt[stage];
       $("setup-save-" + stage).disabled = true;
       render();
     }
 
+    function invalidate(stage) {
+      delete savedAt[stage];
+      clearReceipt(stage);
+    }
+
     async function loadConfiguration(from = "saved", stage = null) {
       const values = await request("configuracao?source=" + from);
+      if (from === "saved") {
+        if (!currentRevision) {
+          confirmations = readStoredConfirmations(window.localStorage, values.revision);
+          syncConfirmInputs();
+        }
+        currentRevision = values.revision || null;
+        writeStoredConfirmations(window.localStorage, currentRevision, confirmations);
+      }
       if (!stage || stage === "zabbix") {
       sources.zabbix = from;
       $("setup-zabbix-url").value = values.zabbix.url;
@@ -199,12 +262,7 @@
     }
 
     function navigationModel() {
-      const model = evaluate(snapshot, confirmations);
-      for (const [stage, index] of [["zabbix", 2], ["ssh", 3]]) {
-        if (!savedAt[stage] || Date.now() - savedAt[stage] * 1000 >= MAX_AGE) model.stages[index] = "pendente";
-      }
-      model.count = model.stages.filter(state => state === "ok" || state === "manual").length;
-      return model;
+      return evaluate(snapshot, confirmations, Date.now(), savedAt);
     }
 
     function render() {
@@ -217,7 +275,9 @@
         button.querySelector("small").textContent = label;
         button.setAttribute("aria-label", `Etapa ${i + 1}: ${button.querySelector("span:last-child").firstChild.textContent}. ${label}`);
       });
-      $("setup-next").disabled = current === 5 || !canVisit(current + 1, model.stages);
+      const isLastStep = current === 5;
+      $("setup-next").textContent = isLastStep ? "Concluir e abrir painel" : "Continuar";
+      $("setup-next").disabled = isLastStep ? model.count < 6 : !canVisit(current + 1, model.stages);
       for (const stage of ["zabbix", "ssh"]) {
         if (receipts[stage] && Date.now() > receipts[stage].expires) {
           delete receipts[stage];
@@ -239,8 +299,8 @@
         element.textContent = messages[name][state] || "Sem verificação atual disponível. Use Verificar conexões; se a consulta falhar, confira os serviços no terminal.";
       }
       $("setup-summary").textContent = model.count === 6
-        ? "Conferência concluída nesta visita: conexões verificadas e etapas manuais confirmadas por você. A operação continua exigindo aprovação por incidente."
-        : `${model.count} de 6 etapas conferidas. Revise as pendências e confirme as etapas manuais antes de operar.`;
+        ? "Conferência concluída: conexões verificadas e etapas manuais confirmadas por você. A operação continua exigindo aprovação por incidente."
+        : `${model.count} de 6 etapas conferidas. Revise as pendências e confirme as etapas manuais antes de concluir.`;
       if (snapshot.checkedAt && !model.fresh) {
         $("setup-checked-at").textContent = "A verificação perdeu a validade. Consulte novamente para conferir o estado atual.";
       }
@@ -258,10 +318,24 @@
       });
     });
     $("setup-previous").addEventListener("click", () => show(current - 1));
-    $("setup-next").addEventListener("click", () => show(current + 1));
+    $("setup-next").addEventListener("click", () => {
+      if (current === 5) {
+        const model = navigationModel();
+        if (model.count === 6) {
+          writeStoredConfirmations(window.localStorage, currentRevision, confirmations);
+          location.href = "./";
+        }
+        return;
+      }
+      show(current + 1);
+    });
     document.querySelectorAll("[data-confirm]").forEach(input => {
       input.checked = false;
-      input.addEventListener("change", () => { confirmations[input.dataset.confirm] = input.checked; render(); });
+      input.addEventListener("change", () => {
+        confirmations[input.dataset.confirm] = input.checked;
+        writeStoredConfirmations(window.localStorage, currentRevision, confirmations);
+        render();
+      });
     });
     document.querySelectorAll("[data-copy], [data-copy-field]").forEach(button => {
       button.addEventListener("click", async () => {
@@ -292,13 +366,19 @@
       $("setup-zabbix-message").textContent = "Novo token gerado. Copie-o para o Media Type antes de salvar.";
     });
     $("setup-zabbix-form").addEventListener("submit", event => {
-      event.preventDefault(); invalidate("zabbix");
+      event.preventDefault(); clearReceipt("zabbix");
       runForm("zabbix", async target => {
         const body = {source: sources.zabbix, url: $("setup-zabbix-url").value, mode: $("setup-zabbix-mode").value, username: $("setup-zabbix-user").value};
         for (const [key,id] of [["token","setup-zabbix-token"],["password","setup-zabbix-password"],["webhook_token","setup-webhook-token"]]) if ($(id).value) body[key] = $(id).value;
-        const result = await request("zabbix/testar", body);
-        receipts.zabbix = {id: result.receipt, expires: Date.now() + result.expires_in * 1000};
-        target.textContent = result.message;
+        try {
+          const result = await request("zabbix/testar", body);
+          receipts.zabbix = {id: result.receipt, expires: Date.now() + result.expires_in * 1000};
+          if (savedAt.zabbix) await refreshChecks();
+          target.textContent = result.message;
+        } catch (error) {
+          invalidate("zabbix");
+          throw error;
+        }
       });
     });
     $("setup-generate-key").addEventListener("click", () => runForm("ssh", async target => {
@@ -314,11 +394,17 @@
       target.textContent = result.message;
     }));
     $("setup-ssh-form").addEventListener("submit", event => {
-      event.preventDefault(); invalidate("ssh");
+      event.preventDefault(); clearReceipt("ssh");
       runForm("ssh", async target => {
-        const result = await request("ssh/testar", {source: sources.ssh, host: $("setup-ssh-host").value, user: $("setup-ssh-user").value, expected_fingerprint: $("setup-ssh-fingerprint").value.trim(), generated_key: generatedKey});
-        receipts.ssh = {id: result.receipt, expires: Date.now() + result.expires_in * 1000};
-        target.textContent = result.message;
+        try {
+          const result = await request("ssh/testar", {source: sources.ssh, host: $("setup-ssh-host").value, user: $("setup-ssh-user").value, expected_fingerprint: $("setup-ssh-fingerprint").value.trim(), generated_key: generatedKey});
+          receipts.ssh = {id: result.receipt, expires: Date.now() + result.expires_in * 1000};
+          if (savedAt.ssh) await refreshChecks();
+          target.textContent = result.message;
+        } catch (error) {
+          invalidate("ssh");
+          throw error;
+        }
       });
     });
     for (const stage of ["zabbix", "ssh"]) $("setup-save-" + stage).addEventListener("click", () => runForm(stage, async target => {
@@ -347,6 +433,9 @@
         await loadConfiguration();
         $("setup-access").hidden = true;
         $("setup-workspace").hidden = false;
+        await refreshChecks();
+        const targetStep = furthestStep(navigationModel().stages);
+        if (targetStep > 0) show(targetStep, false);
       }
     }).catch(() => { $("setup-access-message").textContent = "Acesso indisponível. Confira o servidor e os volumes de configuração."; });
     $("setup-check").addEventListener("click", async () => {
@@ -362,7 +451,7 @@
     return index >= 0 && index <= 5 && stages.slice(0, index).every(state => state === "ok" || state === "manual");
   }
 
-  const api = {checkState, evaluate, readChecks, canVisit};
+  const api = {checkState, evaluate, readChecks, canVisit, readStoredConfirmations, writeStoredConfirmations, furthestStep};
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   else { root.PolarisSetup = api; initialize(); }
 })(typeof window !== "undefined" ? window : globalThis);

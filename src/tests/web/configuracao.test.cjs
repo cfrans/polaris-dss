@@ -1,6 +1,6 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const {evaluate, readChecks, canVisit} = require("../../web/configuracao.js");
+const {evaluate, readChecks, canVisit, readStoredConfirmations, writeStoredConfirmations, furthestStep} = require("../../web/configuracao.js");
 
 test("navigation blocks bypasses and edits revoke downstream access", () => {
   assert.equal(canVisit(0, ["pendente"]), true);
@@ -47,6 +47,14 @@ test("failed dependency, stale checks and future timestamps revoke completion", 
   assert.equal(evaluate(good(), allManual, now - 10000).count, 2);
 });
 
+test("saved configuration stays valid across fresh checks while unsaved edits keep stage pending", () => {
+  const saved = {zabbix: Math.floor((now - 10 * 60 * 1000) / 1000), ssh: Math.floor((now - 10 * 60 * 1000) / 1000)};
+  assert.equal(evaluate(good(), allManual, now, saved).stages[2], "ok");
+  assert.equal(evaluate(good(), allManual, now, saved).stages[3], "ok");
+  assert.equal(evaluate(good(), allManual, now, {zabbix: 0, ssh: saved.ssh}).stages[2], "pendente");
+  assert.equal(evaluate(good(), allManual, now, {zabbix: saved.zabbix, ssh: 0}).stages[3], "pendente");
+});
+
 test("reconciliation requires recent successful cycle, not only a success flag", () => {
   for (const patch of [{habilitada: false}, {operacional: false}, {ultimo_ciclo: null},
     {status: "atrasada"}, {intervalo_segundos: 0},
@@ -73,4 +81,14 @@ test("checks use GET only, handle partial failures and recover on next request",
   assert.equal(failure.diagnostic, null);
   const recovery = await readChecks(async () => ({ok: true, json: async () => ({})}));
   assert.equal(recovery.failed, 0);
+});
+
+test("stored confirmations persist for matching vault revision and resume at furthest unlocked step", () => {
+  const map = new Map();
+  const storage = {getItem: k => map.get(k) ?? null, setItem: (k, v) => map.set(k, v)};
+  writeStoredConfirmations(storage, "rev-1", {environment: true, zabbix: true, ssh: true, delivery: true, review: true, ignored: true});
+  assert.deepEqual(readStoredConfirmations(storage, "rev-1"), allManual);
+  assert.deepEqual(readStoredConfirmations(storage, "rev-2"), {});
+  assert.equal(furthestStep(["manual", "ok", "ok", "ok", "ok", "manual"]), 5);
+  assert.equal(furthestStep(["manual", "ok", "pendente", "ok", "ok", "manual"]), 2);
 });

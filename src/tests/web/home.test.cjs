@@ -275,3 +275,26 @@ test("a finished execution fills the end time without reloading the card", async
   assert.match(body.innerHTML, /sucesso/);
 });
 
+test("initial script check does not flash dialog when already acknowledged", async () => {
+  const visibilityCalls = [];
+  const {get, context} = home(async route => {
+    if (route === "/api/v1/scripts-padrao") return {versao: "v1", scripts: [{nome: "verify_service.sh", conteudo: "echo ok"}]};
+    if (route === "/api/v1/auth/ciencia") return {acknowledged: true};
+    return {};
+  });
+  const source = fs.readFileSync(path.join(__dirname, "../../web/app.js"), "utf8");
+  context.estado.cienciaGeneration = 0;
+  get("ciencia-descricao").style = {};
+  context.window.PolarisScriptViewer = {describeScript: () => ({title: "T", purpose: "P", effect: "E"}), renderScript: () => {}};
+  const origSetVisibility = context.window.PolarisUI.setVisibility;
+  context.window.PolarisUI.setVisibility = (el, visible) => {
+    if (el === get("tela-ciencia")) visibilityCalls.push(visible);
+    return origSetVisibility(el, visible);
+  };
+  vm.runInContext(source.split("/* ---------- ciência sobre a execução remota ---------- */")[1]
+    .split("/* ---------- saúde ---------- */")[0], context);
+  await context.carregarScripts(false);
+  assert.deepEqual(visibilityCalls, [false]);
+  await context.carregarScripts(true);
+  assert.Equal ? null : assert.equal(visibilityCalls.includes(true), true);
+});

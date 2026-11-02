@@ -310,7 +310,7 @@ function mostrarScript(indice) {
 
 async function carregarScripts(forcarExibicao = false) {
   const generation = ++estado.cienciaGeneration;
-  window.PolarisUI.setVisibility($("tela-ciencia"), true);
+  if (forcarExibicao) window.PolarisUI.setVisibility($("tela-ciencia"), true);
   resetScriptDescription();
   $("tela-ciencia").scrollTop = 0;
   $("btn-continuar-ciencia").disabled = true;
@@ -322,7 +322,9 @@ async function carregarScripts(forcarExibicao = false) {
     $("btn-recarregar-scripts").classList.add("oculto");
     $("btn-continuar-ciencia").disabled = false;
     const science = await api('/api/v1/auth/ciencia');
+    if (generation !== estado.cienciaGeneration) return;
     if (!forcarExibicao && science.acknowledged === true) {
+      guardarPreferencia(CHAVE_CIENCIA, estado.catalogo.versao);
       window.PolarisUI.setVisibility($("tela-ciencia"), false);
       atualizarFaixa();
     } else {
@@ -1380,11 +1382,10 @@ $("btn-ocultar-faixa").addEventListener("click", () => {
 
 document.addEventListener('DOMContentLoaded',async()=>{
   if(!await window.PolarisSession.ready)return;
-  carregarScripts().then(async () => {
-    const tool=new URLSearchParams(location.search).get('ferramenta');
+  const tool=new URLSearchParams(location.search).get('ferramenta');
+  carregarScripts(tool==='scripts').then(async () => {
     if(tool==='diagnostico') abrirDiagnostico();
     else if(tool==='preferencias') location.replace('preferencias.html#operacao');
-    else if(tool==='scripts') carregarScripts(true);
   });
   atualizarSaude();
   atualizarReconciliacao();

@@ -42,6 +42,11 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
   migrações idempotentes e downloads idênticos ao checkout; limites externos documentados.
 
 ### Modificado
+- Assistente de configuração inicial preserva conexões já salvas sem exigir novo salvamento a
+  cada 5 minutos, lembra confirmações manuais vinculadas à revisão do cofre, consulta o estado
+  atual ao reabrir e unifica a conclusão da Etapa 6 no botão principal do rodapé. Na tela
+  inicial, o modal de ciência dos scripts não pisca mais no login quando o operador já confirmou
+  a versão ativa do catálogo.
 - Subpainéis lado a lado nas Preferências acompanham a altura da maior caixa, incluindo
   identidade/senha em Minha conta. Em telas estreitas, a disposição se adapta a uma coluna.
 - Identificação da conta no cabeçalho usa avatar quadrado com iniciais, à direita do relógio.

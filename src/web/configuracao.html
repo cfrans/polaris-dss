@@ -36,7 +36,7 @@
         <button type="button" data-step="4"><span class="step-number">5</span><span>Ativar a reconciliação<small data-step-status="4">Ainda não verificado</small></span></button>
         <button type="button" data-step="5"><span class="step-number">6</span><span>Revisar a instalação<small data-step-status="5">Confirmação manual</small></span></button>
       </nav>
-      <p class="setup-local-note">Suas confirmações valem nesta visita. Ao recarregar, confira novamente.</p>
+      <p class="setup-local-note">Suas confirmações são lembradas neste navegador enquanto a configuração salva for mantida.</p>
     </aside>
     <div class="setup-main">
       <div class="setup-adminbar"><span>Conta administradora conectada</span><button id="setup-logout" type="button">Sair da conta</button></div>
@@ -130,7 +130,6 @@ docker compose ps</code></pre></div>
           <div class="setup-callout"><strong>Aprovação continua sendo por incidente.</strong><p>Concluir estas etapas não aprova ações nem inicia testes. Qualquer exercício com falha controlada deve ser conduzido separadamente pelo responsável.</p></div>
           <div id="setup-summary" class="setup-summary" role="status">Ainda há etapas a conferir. Você pode voltar a qualquer uma delas.</div>
           <p class="setup-note">As credenciais são salvas com cifra no servidor. As confirmações manuais não substituem testes e não certificam uma instalação de produção.</p>
-          <a class="setup-download" href="./">Abrir painel do Polaris</a>
         </section>
       </div>
       <footer class="setup-footer"><button id="setup-previous" class="btn btn-secundario" type="button" disabled>Anterior</button><span id="setup-position-label">Etapa 1 de 6</span><button id="setup-next" class="btn btn-primario" type="button">Continuar</button></footer>
