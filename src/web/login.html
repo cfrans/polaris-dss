@@ -1,14 +1,65 @@
 <!DOCTYPE html>
-<html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Entrar — Polaris DSS</title><link rel="icon" href="polaris-mark.svg" type="image/svg+xml"><link rel="stylesheet" href="style.css"><link rel="stylesheet" href="acesso.css"><script src="session.js" defer></script><script src="login.js" defer></script></head>
-<body class="auth-page"><main class="auth-card">
-<a class="marca auth-brand" href="./"><img src="polaris-mark.svg" width="112" height="112" alt=""><span>Polaris <span class="brand-suffix">DSS</span></span></a>
-<h1 id="login-title" data-bootstrap hidden>Crie seu primeiro acesso</h1><p id="login-lead" data-bootstrap hidden>Uma conta administradora para preparar e acompanhar sua instalação.</p>
-<form id="login-form" class="auth-form" aria-label="Acesso ao Polaris">
-<div data-bootstrap hidden><label for="bootstrap-code">Código de instalação</label><input disabled id="bootstrap-code" type="password" autocomplete="off" maxlength="128"><p>Use o código gerado no servidor para criar o primeiro administrador.</p><label for="account-name">Seu nome</label><input disabled id="account-name" maxlength="100" autocomplete="name"></div>
-<label for="username">Usuário</label><input disabled id="username" required minlength="3" maxlength="64" pattern="[a-z0-9][a-z0-9_.-]{2,63}" autocomplete="username" autocapitalize="none" spellcheck="false">
-<label for="password">Senha</label><div class="auth-password"><input disabled id="password" type="password" required maxlength="128" autocomplete="current-password"><button disabled id="password-toggle" class="auth-password-toggle" type="button" aria-label="Mostrar senha" aria-controls="password" aria-pressed="false" title="Mostrar senha"><svg class="icon" aria-hidden="true"><use href="icons.svg#eye"></use></svg></button></div>
-<p data-bootstrap hidden>Crie uma frase-senha de 15 a 128 caracteres. Guarde-a em um gerenciador de senhas.</p>
-<button disabled id="login-submit" class="btn btn-primario" type="submit">Entrar</button>
-</form><p id="login-error" class="auth-error" role="status"></p><details id="bootstrap-help" hidden><summary>Preparar o primeiro acesso</summary><p>No terminal do servidor, após iniciar Docker e aplicar as migrações:</p><pre>docker compose exec polaris-api python -m src.engine.setup_vault</pre><p>O código só cria o primeiro administrador. Não há conta ou senha padrão.</p></details>
-<footer class="auth-footer"><span id="app-version">Consultando versão…</span><a href="https://github.com/cfrans/polaris-dss" target="_blank" rel="noopener noreferrer" aria-label="Repositório do Polaris no GitHub (abre em nova aba)">GitHub <span aria-hidden="true">↗</span></a></footer>
-</main></body></html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Entrar — Polaris DSS</title>
+  <link rel="icon" href="polaris-mark.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="acesso.css">
+  <script src="session.js" defer></script>
+  <script src="toast.js" defer></script>
+  <script src="copy.js" defer></script>
+  <script src="login.js" defer></script>
+</head>
+<body class="auth-page">
+<main id="auth-card" class="auth-card">
+  <a class="marca auth-brand" href="./"><img src="polaris-mark.svg" width="112" height="112" alt=""><span>Polaris <span class="brand-suffix">DSS</span></span></a>
+  <h1 id="login-title" data-bootstrap hidden>Crie seu primeiro acesso</h1>
+  <p id="login-lead" data-bootstrap hidden>Uma conta administradora para preparar e acompanhar sua instalação.</p>
+
+  <section id="network-blocked" class="auth-network" aria-labelledby="network-blocked-title" hidden>
+    <h1 id="network-blocked-title">Acesse por um túnel seguro</h1>
+    <p>Este endereço usa HTTP fora do computador local. Para que sua senha não trafegue sem criptografia, abra o Polaris por HTTPS ou por um túnel SSH até o servidor.</p>
+    <ol class="auth-steps">
+      <li>No seu computador, abra o túnel e mantenha o terminal aberto. Troque <code>usuario</code> pela sua conta no servidor.
+        <div class="command-block"><div><span>No seu computador</span><button type="button" data-copy="tunnel-command" data-copy-message="Comando copiado." aria-label="Copiar comando do túnel" title="Copiar"><svg class="icon" aria-hidden="true"><use href="icons.svg#copy"></use></svg></button></div><pre><code id="tunnel-command">ssh -N -L 8000:localhost:8000 usuario@servidor</code></pre></div></li>
+      <li>Depois, entre por <a id="tunnel-link" href="http://localhost:8000/login.html">http://localhost:8000/login.html</a>.</li>
+    </ol>
+    <p class="auth-note">Em um laboratório isolado, o administrador pode ligar o pareamento por HTTP no servidor. <a href="https://github.com/cfrans/polaris-dss/blob/main/docs/access.md#network-access" target="_blank" rel="noopener noreferrer">Entenda as opções de acesso <span aria-hidden="true">↗</span></a></p>
+  </section>
+
+  <form id="pairing-form" class="auth-form auth-network" aria-labelledby="pairing-title" hidden>
+    <h1 id="pairing-title">Pareie este navegador</h1>
+    <p>O servidor aceita acesso por HTTP na rede somente para navegadores pareados. Gere um código no terminal do servidor e informe-o abaixo.</p>
+    <div class="command-block"><div><span>No servidor Polaris</span><button type="button" data-copy="pairing-command" data-copy-message="Comando copiado." aria-label="Copiar comando de pareamento" title="Copiar"><svg class="icon" aria-hidden="true"><use href="icons.svg#copy"></use></svg></button></div><pre><code id="pairing-command">docker compose exec polaris-api python -m src.engine.pairing</code></pre></div>
+    <label for="pairing-code">Código de pareamento</label>
+    <input disabled id="pairing-code" class="auth-code-input" required maxlength="16" autocomplete="one-time-code" autocapitalize="characters" spellcheck="false" placeholder="ABCD-EFGH">
+    <p id="pairing-validity" class="auth-note">O código vale uma vez e por poucos minutos.</p>
+    <button disabled id="pairing-submit" class="btn btn-primario" type="submit">Parear navegador</button>
+    <p class="auth-warning"><strong>HTTP não cifra a conexão.</strong> Senhas e sessão continuam visíveis na rede. Use o pareamento só em laboratório isolado. <a href="https://github.com/cfrans/polaris-dss/blob/main/docs/access.md#network-access" target="_blank" rel="noopener noreferrer">Saiba mais <span aria-hidden="true">↗</span></a></p>
+  </form>
+
+  <form id="login-form" class="auth-form" aria-label="Acesso ao Polaris">
+    <p id="paired-note" class="auth-warning" hidden><strong>Navegador pareado por HTTP.</strong> A conexão não é cifrada; use apenas no laboratório isolado.</p>
+    <div class="auth-fields">
+      <div class="auth-field" data-bootstrap hidden><label for="bootstrap-code">Código de instalação</label><input disabled id="bootstrap-code" type="password" autocomplete="off" maxlength="128"><small>Exibido uma vez no terminal do servidor.</small></div>
+      <div class="auth-field" data-bootstrap hidden><label for="account-name">Seu nome</label><input disabled id="account-name" maxlength="100" autocomplete="name"></div>
+      <div class="auth-field"><label for="username">Usuário</label><input disabled id="username" required minlength="3" maxlength="64" pattern="[a-z0-9][a-z0-9_.-]{2,63}" autocomplete="username" autocapitalize="none" spellcheck="false"><small data-bootstrap hidden>Minúsculas, números, ponto, hífen ou sublinhado.</small></div>
+      <div class="auth-field"><label for="password">Senha</label><div class="auth-password"><input disabled id="password" type="password" required maxlength="128" autocomplete="current-password"><button disabled id="password-toggle" class="auth-password-toggle" type="button" aria-label="Mostrar senha" aria-controls="password" aria-pressed="false" title="Mostrar senha"><svg class="icon" aria-hidden="true"><use href="icons.svg#eye"></use></svg></button></div><small data-bootstrap hidden>Frase-senha de 15 a 128 caracteres. Guarde-a em um gerenciador de senhas.</small></div>
+    </div>
+    <button disabled id="login-submit" class="btn btn-primario" type="submit">Entrar</button>
+  </form>
+  <p id="login-error" class="auth-error" role="status"></p>
+
+  <details id="bootstrap-help" class="auth-help" hidden>
+    <summary>Onde encontro o código de instalação?</summary>
+    <p>No terminal do servidor, depois de iniciar o Docker e aplicar as migrações. O código aparece uma única vez, junto com o endereço para continuar pelo navegador.</p>
+    <div class="command-block"><div><span>No servidor Polaris</span><button type="button" data-copy="bootstrap-command" data-copy-message="Comando copiado." aria-label="Copiar comando do código de instalação" title="Copiar"><svg class="icon" aria-hidden="true"><use href="icons.svg#copy"></use></svg></button></div><pre><code id="bootstrap-command">docker compose exec polaris-api python -m src.engine.setup_vault</code></pre></div>
+    <p>O código só cria o primeiro administrador. Não há conta ou senha padrão. Perdeu o código? Gere outro acrescentando <code>--rotate-access</code>.</p>
+  </details>
+
+  <footer class="auth-footer"><span id="app-version">Consultando versão…</span><a href="https://github.com/cfrans/polaris-dss" target="_blank" rel="noopener noreferrer" aria-label="Repositório do Polaris no GitHub (abre em nova aba)">GitHub <span aria-hidden="true">↗</span></a></footer>
+</main>
+</body>
+</html>

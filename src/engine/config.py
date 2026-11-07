@@ -37,6 +37,10 @@ class Settings(BaseSettings):
 
     api_host: str = "0.0.0.0"
     api_port: int = 8000
+    # Porta publicada no host; usada só para montar endereços exibidos ao operador.
+    polaris_api_port: int = 8000
+    # Pareamento de navegador por HTTP na rede local. Desligado: HTTP só no loopback.
+    polaris_pareamento_http: bool = False
 
     polaris_webhook_token: str = ""
     polaris_debug: bool = False

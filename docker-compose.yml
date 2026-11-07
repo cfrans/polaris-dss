@@ -86,6 +86,12 @@ services:
       POLARIS_SETUP_DIR: ${POLARIS_SETUP_DIR:-/var/lib/polaris/setup}
       POLARIS_SETUP_KEY_FILE: ${POLARIS_SETUP_KEY_FILE:-/var/lib/polaris/key/master.key}
 
+      # Acesso pela rede. Desligado, HTTP só no loopback (túnel SSH); ligado, cada navegador
+      # precisa de um código de pareamento gerado no servidor. HTTP continua sem criptografia.
+      POLARIS_PAREAMENTO_HTTP: ${POLARIS_PAREAMENTO_HTTP:-false}
+      # Porta publicada abaixo, repetida só para montar os links exibidos no terminal.
+      POLARIS_API_PORT: ${POLARIS_API_PORT:-8000}
+
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
     ports:
       - "${POLARIS_API_PORT:-8000}:8000"

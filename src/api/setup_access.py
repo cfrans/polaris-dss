@@ -24,8 +24,15 @@ def vault_for_request():
 
 
 def secure_transport(request: Request):
-    if request.url.scheme != "https" and request.url.hostname not in {"localhost", "127.0.0.1", "::1"}:
-        raise HTTPException(403, "Abra o assistente por HTTPS; HTTP é permitido apenas no endereço local.")
+    """HTTPS or loopback always pass; plain HTTP on the network needs an explicit paired browser."""
+    from ..engine import pairing
+    if pairing.is_local(request):
+        return
+    if get_environment_settings().polaris_pareamento_http:
+        if pairing.is_paired(request.cookies.get(pairing.COOKIE, "")):
+            return
+        raise HTTPException(403, "Pareie este navegador com o código gerado no servidor antes de continuar.")
+    raise HTTPException(403, "Abra o Polaris por HTTPS ou por um túnel SSH; HTTP é aceito apenas no endereço local.")
 
 
 def check_origin(request: Request):

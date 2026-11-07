@@ -8,6 +8,24 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 ## [Não lançado]
 
 ### Adicionado
+- Acesso pela rede sem túnel manual, opcional e restrito a laboratório isolado:
+  `POLARIS_PAREAMENTO_HTTP=true` faz o navegador que abre o Polaris por HTTP em outro endereço
+  pedir um código de pareamento gerado no terminal do servidor (`python -m src.engine.pairing`).
+  O código tem oito caracteres sem ambiguidade, vale uma vez por dez minutos e divide o limite
+  de tentativas do login; o navegador recebe um token próprio HttpOnly/SameSite por sete dias e
+  ainda precisa de login. Somente hashes ficam no banco (migração nova 013, `pareamentos`);
+  `--revoke` revoga todos. Desligado por padrão: HTTP fora do loopback continua recusado e a tela
+  de login mostra o túnel SSH pronto, com o endereço em uso, e o link para a documentação.
+  Páginas abertas sem transporte aceito levam ao login em vez de exibir erro em JSON. O
+  pareamento não cifra a conexão; a documentação de acesso registra esse limite.
+- `setup_vault` informa como continuar pelo navegador após o código de instalação: endereço
+  local, comando do túnel SSH ou, com pareamento ligado, o endereço na rede e um código de
+  pareamento (`--address` e `--ssh-user` completam os links). Primeiro acesso em duas colunas,
+  com o comando do código em bloco copiável; o primeiro administrador segue direto para o
+  assistente. Botões de cópia funcionam também por HTTP pareado, onde o navegador não oferece a
+  área de transferência. `.env.example` deixa vazias as conexões que o assistente preenche.
+  Validação: testes de pareamento com PostgreSQL real e fluxo de túnel, pareamento e primeiro
+  acesso conferido em Chromium num container; entre duas máquinas reais **[NÃO VERIFICADO]**.
 - Preferências pessoais de Exibição: densidade confortável/compacta, tamanho inicial da
   auditoria, lembrança opcional de filtros/busca/ordenação, horário local/UTC e redução de
   movimento. Configuração salva por conta em PostgreSQL, separada dos ajustes operacionais.

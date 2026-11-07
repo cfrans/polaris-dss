@@ -5,6 +5,8 @@ import psycopg
 from fastapi import APIRouter, HTTPException, Request, Response
 from pydantic import BaseModel, Field, SecretStr
 from ..db.connection import conectar
+from ..engine import pairing
+from ..engine.config import get_environment_settings
 from ..engine.script_catalog import load_catalog
 from . import auth
 from .setup_access import vault_for_request
@@ -29,6 +31,9 @@ class PasswordInput(BaseModel):
 class AcknowledgementInput(BaseModel):
     version: str = Field(pattern=r'^[a-f0-9]{64}$')
 
+class PairingInput(BaseModel):
+    code: SecretStr = Field(max_length=32)
+
 
 def public_user(user):
     return {k: user[k] for k in ('id','login','nome','perfil')}
@@ -44,6 +49,27 @@ def session_status(request: Request):
     with conectar() as conn:
         exists = conn.execute('SELECT 1 FROM usuarios LIMIT 1').fetchone() is not None
     return {'authenticated': False, 'bootstrap_required': not exists}
+
+@router.get('/pareamento')
+def pairing_status(request: Request):
+    enabled = get_environment_settings().polaris_pareamento_http
+    return {'enabled': enabled, 'state': pairing.transport_state(request, enabled),
+            'code_minutes': pairing.CODE_MINUTES, 'pairing_days': pairing.PAIRING_DAYS}
+
+@router.post('/pareamento')
+def pair_browser(request: Request, body: PairingInput, response: Response):
+    if pairing.is_local(request):
+        return {'paired': True, 'state': 'secure'}
+    if not get_environment_settings().polaris_pareamento_http:
+        raise HTTPException(403, 'Pareamento por HTTP desativado neste servidor. Use HTTPS ou um túnel SSH.')
+    with conectar() as conn:
+        auth.rate_limit(conn)
+        token = pairing.redeem(conn, body.code.get_secret_value(), request.client.host if request.client else '')
+    if token is None:
+        raise HTTPException(401, 'Código de pareamento inválido, vencido ou já usado. Gere um novo no servidor.')
+    response.set_cookie(pairing.COOKIE, token, httponly=True, secure=False, samesite='strict', path='/',
+                        max_age=pairing.PAIRING_DAYS * 86400)
+    return {'paired': True, 'state': 'paired'}
 
 @router.post('/bootstrap', status_code=201)
 def bootstrap(body: BootstrapInput):

@@ -308,6 +308,9 @@ SELECT cenario,
 | 008 | `alinhamento_kpis` | `1adfa9d5a3b16d33bc20c72e3a59e97592e01415db87f09020a3fea821ad2a0a` |
 | 009 | `preferencias_operacionais` | `a578c4cfc799319e90b67a1bcfa6ffc486f6d09f968025efe136881500fea3b1` |
 | 010 | `periodo_ocorrencias` | `93f21a37141dd99b3d06ae3b5cd756c15360207c25c41e66eb32ef97ac2e6f8b` |
+| 011 | `identidade_operadores` | `6afab8875eacb64651fa7108f055ed9d9366c89cd9fcda6942d35216f5af80eb` |
+| 012 | `preferencias_exibicao` | `fb5ecc90dac97f68de2b032e597abd58a9f1b5a185bef1cff1fbb6382b3e93e9` |
+| 013 | `pareamento_navegadores` | `007c554ba70a3e85abdf149b0baf614b639cbe96fc68ea8288ceef87cec29d0f` |
 
 The optional `audit_log.experiment_run_id` and `evento_ingestao.incidente_id` are physical
 foreign keys. A round can have multiple incident rows at schema level; the controlled CLI
@@ -389,3 +392,24 @@ the interface cannot submit a different account ID. Settings and filter updates 
 and disabling remembered filters clears their JSONB state. This table does not reference or
 update audit/experiment rows and does not participate in KPI views. Earlier migration files and
 the preserved experiment diagrams remain unchanged.
+
+## Laboratory browser pairing
+
+Migration 013 adds `pareamentos`, used only when `POLARIS_PAREAMENTO_HTTP=true` (see
+[network access](access.md#network-access)). It has no foreign keys and is not read by audit,
+experiment or KPI code.
+
+| Column | SQL type | Nullable | Constraint/default |
+|:--|:--|:--|:--|
+| id | bigserial | No | Primary key |
+| codigo_hash | char(64) | No | Unique SHA-256 of the normalized one-time code |
+| ts_criacao | timestamptz | No | now() |
+| ts_expiracao_codigo | timestamptz | No | Code deadline (ten minutes after creation) |
+| token_hash | char(64) | Yes | Unique SHA-256 of the browser token, set when the code is redeemed |
+| ts_pareamento | timestamptz | Yes | Redemption time; null exactly when `token_hash` is null |
+| ts_expiracao | timestamptz | Yes | Pairing deadline (seven days); null exactly when `token_hash` is null |
+| origem | varchar(64) | Yes | Client address seen by the API at redemption |
+
+A code is consumed by one atomic update and cannot be redeemed twice. Expired codes and pairings
+are deleted when a new code is issued; `python -m src.engine.pairing --revoke` deletes every row.
+No plaintext code or token is stored.

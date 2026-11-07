@@ -23,3 +23,32 @@
 @media(prefers-reduced-motion:reduce) { .polaris-toast { transition:none; transform:none; } }
 
 [data-admin][hidden] { display:none!important; }
+
+/* Primeiro acesso: cartão mais largo e campos em duas colunas. */
+.auth-card { transition:width .2s ease; }
+.auth-card.is-wide { width:min(100%,720px); }
+.auth-card [hidden] { display:none!important; }
+.auth-fields { display:grid; gap:.9rem; }
+.auth-card.is-wide .auth-fields { grid-template-columns:repeat(2,minmax(0,1fr)); gap:1rem 1.2rem; }
+.auth-field { display:grid; gap:.4rem; align-content:start; min-width:0; }
+.auth-field small { color:var(--texto-suave); font-size:.76rem; line-height:1.45; }
+.auth-card a:not(.marca) { color:#a8caff; }
+.auth-card a:not(.marca):hover { color:var(--texto); }
+.auth-card code { font-family:"Cascadia Code",Consolas,monospace; font-size:.9em; }
+.auth-card .command-block { margin:.8rem 0; }
+.auth-card .command-block pre { white-space:pre-wrap; overflow-wrap:anywhere; }
+
+/* Acesso pela rede: túnel SSH ou pareamento por HTTP. */
+.auth-network h1 { font-size:1.45rem; text-align:center; margin-bottom:.7rem; }
+.auth-network > p { text-align:left; }
+.auth-steps { display:grid; gap:.7rem; margin:1rem 0; padding-left:1.15rem; color:var(--texto-suave); font-size:.88rem; line-height:1.6; }
+.auth-note { font-size:.8rem!important; }
+.auth-warning { margin:0; padding:.7rem .85rem; border:1px solid #f0b42940; border-left:3px solid var(--media); border-radius:0 7px 7px 0; background:rgb(240 180 41 / 7%); color:#f3dfae!important; font-size:.8rem!important; line-height:1.55!important; }
+.auth-warning strong { color:#f6d48a; }
+.auth-code-input { text-align:center; text-transform:uppercase; letter-spacing:.22em; font-family:"Cascadia Code",Consolas,monospace; font-size:1.15rem; }
+.auth-help { margin-top:1rem; font-size:.85rem; color:var(--texto-suave); }
+.auth-help summary { color:#c7d5e9; }
+.auth-help summary:focus-visible { outline:2px solid var(--acento); outline-offset:3px; }
+.auth-help p { margin-top:.6rem; }
+@media(max-width:680px) { .auth-card.is-wide .auth-fields { grid-template-columns:1fr; } }
+@media(prefers-reduced-motion:reduce) { .auth-card { transition:none; } }

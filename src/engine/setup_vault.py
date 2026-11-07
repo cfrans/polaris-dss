@@ -141,8 +141,11 @@ def main():
     from .config import get_environment_settings
     parser = argparse.ArgumentParser(description="Inicializa o cofre ou troca seu código de instalação local.")
     parser.add_argument("--rotate-access", action="store_true", help="troca o código de instalação, sem alterar contas ou configurações")
+    parser.add_argument("--address", default="", help="IP ou nome do servidor visto pelos outros computadores, para montar os links")
+    parser.add_argument("--ssh-user", default="", help="usuário SSH do servidor, usado no comando do túnel")
     args = parser.parse_args()
-    vault = configured_vault(get_environment_settings())
+    settings = get_environment_settings()
+    vault = configured_vault(settings)
     if vault is None:
         raise SystemExit("Habilite os volumes de configuração e chave antes de inicializar.")
     try:
@@ -155,6 +158,16 @@ def main():
         raise SystemExit(str(exc)) from None
     print("Guarde este código de instalação em um gerenciador de senhas. Ele não será exibido novamente.")
     print(code)
+    print()
+    from . import pairing
+    pairing_code = ""
+    if settings.polaris_pareamento_http:
+        try:
+            pairing_code = pairing.issue_code()
+        except Exception:
+            print("Não foi possível gerar o código de pareamento. Confira o banco e as migrações.")
+    print("\n".join(pairing.access_instructions(settings.polaris_api_port, settings.polaris_pareamento_http,
+                                                args.address, args.ssh_user, pairing_code)))
 
 
 if __name__ == "__main__":

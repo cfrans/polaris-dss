@@ -86,7 +86,7 @@ docker compose up -d polaris-reconciler
 docker compose ps
 ```
 
-The current schema has twelve numbered migrations. They run once with checksum verification;
+The current schema has thirteen numbered migrations. They run once with checksum verification;
 never edit an applied SQL file or recreate the volume to bypass a migration problem.
 Wait for API/database health before calling endpoints. A connection reset immediately after
 recreation can occur during startup; a persistent failure needs logs/diagnostics.

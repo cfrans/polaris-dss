@@ -83,7 +83,8 @@ async def configuration_boundary(request: Request, call_next):
             try:
                 request.state.user = await run_in_threadpool(auth.authenticate, request)
             except HTTPException as exc:
-                if exc.status_code == 401:
+                # 403 here comes only from the transport rule; the login page explains tunnel/pairing.
+                if exc.status_code in {401, 403}:
                     return RedirectResponse('/login.html?next='+path, status_code=303, headers={'Cache-Control':'no-store'})
                 raise
             if path == '/configuracao.html':
@@ -93,7 +94,9 @@ async def configuration_boundary(request: Request, call_next):
         auth_path = path.startswith('/api/v1/auth/')
         artifacts = path.startswith('/api/v1/instalacao/arquivos/') and request.method in {'GET','HEAD'}
         if auth_path and request.method not in {'GET','HEAD'}:
-            auth.secure_transport(request)
+            # Redeeming a pairing code is the one write accepted before the transport is trusted.
+            if path != '/api/v1/auth/pareamento':
+                auth.secure_transport(request)
             check_origin(request)
             if request.headers.get('x-polaris-auth') != '1':
                 raise HTTPException(403, 'Cabeçalho de proteção ausente.')

@@ -93,3 +93,7 @@ hashes, account password hashes and per-user script acknowledgement reside in Po
 never substitutes for a persisted human decision. The service SSH privilege remains broad.
 Default Compose publishes API/database ports on all host interfaces; use an isolated network,
 trusted TLS and protected credentials. No MFA/SSO or production certification is claimed.
+Credential entry over plain HTTP is accepted on loopback (for example through an SSH tunnel).
+The opt-in laboratory pairing (`POLARIS_PAREAMENTO_HTTP`) lets a browser that redeemed a one-time
+server code use HTTP on the network; it authorizes that browser but does not encrypt traffic, so
+it is limited to isolated laboratory networks. See [network access](access.md#network-access).

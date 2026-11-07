@@ -150,7 +150,7 @@ cd polaris-dss
 
 # Bootstrap the database and ports (monitoring/SSH can be configured in the browser)
 cp .env.example .env
-# Replace the example database password; clear unused example monitoring credentials
+# Replace the example database password; monitoring and SSH stay empty for the browser
 
 # Build and start the audit database + API + HITL interface
 docker compose up -d --build polaris-db polaris-api
@@ -158,10 +158,11 @@ docker compose up -d --build polaris-db polaris-api
 # Apply the database schema
 docker compose exec polaris-api python -m src.db.migrate
 
-# Initialize once; store the displayed installation code in a password manager
-docker compose exec polaris-api python -m src.engine.setup_vault
+# Initialize once; store the displayed installation code in a password manager.
+# It also prints how to reach the browser: local URL, SSH tunnel or laboratory pairing code.
+docker compose exec polaris-api python -m src.engine.setup_vault --address "$(hostname -I | cut -d' ' -f1)"
 
-# Open http://localhost:8000/configuracao.html and test/save Zabbix and SSH connections
+# Create the first administrator at /login.html; the wizard then tests/saves Zabbix and SSH
 # Start the separate reconciler after the schema is current
 docker compose up -d polaris-reconciler
 ```
@@ -171,7 +172,8 @@ forms, target preparation and optional environment import. The assistant generat
 service key, exposes only its public half and requires independently confirmed SSH host identity.
 Configuration is encrypted in persistent volumes with the master key separate. Unlock its
 individual account in the same browser before operational access; see [accounts and roles](docs/access.md). Remote credential entry
-requires HTTPS; local loopback HTTP is supported. The installation code creates only the first administrator; normal access uses individual login.
+requires HTTPS or an SSH tunnel; local loopback HTTP is supported, and an isolated laboratory may
+opt into [HTTP browser pairing](docs/access.md#network-access). The installation code creates only the first administrator; normal access uses individual login.
 Existing file-based SSH installations use the optional [`compose.ssh-env.yml`](compose.ssh-env.yml)
 with every Compose command; see [`secrets/README.md`](secrets/README.md).
 
