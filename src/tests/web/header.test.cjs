@@ -15,7 +15,10 @@ test('home and audit mount the same shell and shared scrolling/clock implementat
 });
 test('preferences stays in tools while account actions move to the avatar after the clock',()=>{
   const menu=markup.split('<nav class="tools-links"')[1].split('</nav>')[0];
-  assert.match(menu,/<a href="preferencias.html"><svg[^]+?icons.svg#settings[^]+?Preferências/);
+  assert.match(menu,/<a href="preferencias.html"><svg[^>]*><use href="icons.svg#sliders"><\/use><\/svg>Preferências/);
+  // Each tools entry has its own icon: none repeats inside the menu.
+  const icons=[...menu.matchAll(/icons\.svg#([\w-]+)/g)].map(match=>match[1]);
+  assert.equal(new Set(icons).size,icons.length);
   assert.doesNotMatch(menu,/contas.html|btn-preferencias/);
   assert.doesNotMatch(menu,/data-logout|Minha conta/);
   const account=markup.split('<nav class="tools-links" aria-label="Sua conta">')[1].split('</nav>')[0];

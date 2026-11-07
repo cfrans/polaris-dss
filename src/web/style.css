@@ -15,17 +15,20 @@
   --media: #f0b429;
   --baixa: #f2645a;
   --raio: 10px;
+  /* Largura comum das páginas secundárias: assistente, auditoria, preferências e laboratório. */
+  --largura-pagina: 1240px;
+  color-scheme: dark;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 /* Controles nativos recebem a mesma linguagem visual em todas as telas. */
 input, select, textarea, button { font: inherit; }
-input[type="number"], input[type="text"], select, textarea {
+input[type="number"], input[type="text"], input[type="password"], input:not([type]), select, textarea {
   color: var(--texto); background-color: var(--fundo-cartao); border: 1px solid var(--borda);
   border-radius: 7px; accent-color: var(--acento); color-scheme: dark;
 }
-input[type="number"], input[type="text"], select, textarea { padding: 0.58rem 0.7rem; }
+input[type="number"], input[type="text"], input[type="password"], input:not([type]), select, textarea { padding: 0.58rem 0.7rem; }
 input[type="number"], select { min-height: 42px; }
 select {
   appearance: none; padding-right: 2.25rem; color-scheme: dark;
@@ -33,9 +36,12 @@ select {
   background-repeat: no-repeat; background-position: right .7rem center; background-size: 1rem;
 }
 select option { color: var(--texto); background: var(--fundo-painel); }
-input[type="number"]:focus-visible, input[type="text"]:focus-visible, select:focus-visible,
+input[type="number"]:focus-visible, input[type="text"]:focus-visible, input[type="password"]:focus-visible,
+input:not([type]):focus-visible, select:focus-visible,
 textarea:focus-visible { outline: 2px solid var(--acento); outline-offset: 2px; border-color: var(--acento); }
-input[type="number"]:disabled, select:disabled, textarea:disabled { opacity: 0.58; }
+input[type="number"]:disabled, input[type="text"]:disabled, input[type="password"]:disabled, input:not([type]):disabled,
+select:disabled, textarea:disabled { opacity: 0.58; }
+input::placeholder, textarea::placeholder { color: #7d8aa0; }
 
 body {
   position: relative; isolation: isolate;
@@ -192,7 +198,6 @@ button:disabled, input:disabled, [aria-disabled="true"] { cursor: not-allowed; }
 .recon-panel .secao h3 { text-transform: none; letter-spacing: 0; }
 .recon-panel .recon-cartao span { text-transform: none; letter-spacing: 0; }
 .recon-panel .recon-details { margin-top: 1rem; }
-.lab-title { font-size: 1.5rem; margin-bottom: 0.4rem; }
 
 .estado { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
 
@@ -497,7 +502,7 @@ button:disabled, input:disabled, [aria-disabled="true"] { cursor: not-allowed; }
 .estrela-grande { font-size: 3rem; color: var(--borda); }
 
 .detalhe {
-  background: var(--fundo-panel, var(--fundo-painel));
+  background: var(--fundo-painel);
   border: 1px solid var(--borda);
   border-radius: var(--raio);
   padding: 0.85rem 1rem 0.75rem;
@@ -674,6 +679,9 @@ button:disabled, input:disabled, [aria-disabled="true"] { cursor: not-allowed; }
 .btn-rejeitar { background: transparent; color: var(--texto-suave); border-color: var(--borda); }
 .btn-secundario { background: var(--fundo-cartao); color: var(--texto); border-color: var(--borda);
                   font-size: 0.85rem; padding: 0.4rem 0.9rem; }
+/* Ação principal de cada tela; antes só Auditoria e Preferências a estilizavam localmente. */
+.btn-primario { background: var(--acento); color: #08152a; border-color: var(--acento); }
+.btn-secundario:hover:not(:disabled) { border-color: #4c8dff80; filter: none; background: #24314a; }
 
 .confirmacao { margin-bottom: 0.85rem; padding: .8rem 1rem; border: 1px solid var(--baixa); border-left-width: 4px;
   border-radius: 7px; background: rgb(242 100 90 / 9%); color: var(--texto); font-size: 0.92rem; }
@@ -745,18 +753,14 @@ button:disabled, input:disabled, [aria-disabled="true"] { cursor: not-allowed; }
   border-radius: 4px; padding: 0.15rem 0.5rem; text-align: center; white-space: nowrap;
 }
 .diag-item > span:nth-child(2) { grid-column: 1 / -1; display: grid; align-content: start; gap: .18rem; min-width: 0; }
-.diag-latencia { justify-self: end; color: var(--texto-suave); font-size: .72rem; font-variant-numeric: tabular-nums; }
-.diag-nome { font-size: .88rem; font-weight: 650; line-height: 1.35; }
-.diag-detalhe { color: var(--texto-suave); font-size: .78rem; line-height: 1.4; overflow-wrap: anywhere; }
+.diag-latencia { justify-self: end; color: var(--texto-suave); font-size: .8rem; font-variant-numeric: tabular-nums; }
+.diag-nome { display: block; margin-bottom: .15rem; font-size: .88rem; font-weight: 600; line-height: 1.35; }
+.diag-detalhe { color: var(--texto-suave); font-size: .88rem; line-height: 1.4; overflow-wrap: anywhere; }
 .est-ok .diag-estado              { background: var(--alta);  color: #062a1c; }
 .est-aviso .diag-estado           { background: var(--media); color: #2e2103; }
 .est-falha .diag-estado           { background: var(--baixa); color: #2e0a07; }
 .est-nao_configurado .diag-estado { background: transparent; color: var(--texto-suave);
                                     border: 1px solid var(--borda); }
-
-.diag-nome { font-weight: 600; display: block; margin-bottom: 0.15rem; }
-.diag-detalhe { color: var(--texto-suave); font-size: 0.88rem; }
-.diag-latencia { color: var(--texto-suave); font-size: 0.8rem; font-variant-numeric: tabular-nums; }
 
 .diag-config { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
 .diag-config th {
@@ -848,6 +852,27 @@ button:disabled, input:disabled, [aria-disabled="true"] { cursor: not-allowed; }
   .detalhe-topo .ocorrencia-tempos { grid-column: 2; grid-row: 2; justify-self: start; }
   .detalhe-topo .confianca { grid-column: 3; grid-row: 1; }
 }
+
+/* ---------- cabeçalho comum das páginas secundárias ---------- */
+
+.page-heading { margin-bottom: 2rem; }
+.page-eyebrow { margin-bottom: .45rem; color: #87adf4; font-size: .7rem; font-weight: 600; letter-spacing: .16em; text-transform: uppercase; }
+.page-heading h1 { font-size: clamp(1.6rem, 2.4vw, 2rem); font-weight: 650; letter-spacing: -.035em; line-height: 1.2; }
+.page-heading h1 + p { max-width: 72ch; margin-top: .5rem; color: var(--texto-suave); font-size: .92rem; line-height: 1.6; }
+@media (max-width: 680px) { .page-heading { margin-bottom: 1.4rem; } }
+
+/* ---------- blocos de comando copiáveis (login, assistente e laboratório) ---------- */
+
+.command-block { margin: 1.1rem 0; border: 1px solid var(--borda); border-radius: 8px; overflow: hidden; background: var(--fundo); }
+.command-block > div { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .3rem .45rem .3rem .85rem; font-size: .74rem; color: var(--texto-suave); border-bottom: 1px solid #2b364877; }
+.command-block button { display: inline-grid; place-items: center; min-width: 34px; min-height: 34px; padding: 0; background: transparent; border: 0; border-radius: 6px; color: #a8caff; }
+.command-block button:hover { background: rgb(76 141 255 / 12%); color: var(--texto); }
+.command-block button:focus-visible { outline: 2px solid var(--acento); outline-offset: 1px; }
+.command-block button.is-copied { color: var(--alta); }
+.command-block pre { margin: 0; padding: .85rem .95rem; overflow-x: auto; font-size: .8rem; line-height: 1.75; white-space: pre; color: #dfe7f3; }
+.command-block code { font-family: "Cascadia Code", Consolas, "SFMono-Regular", monospace; overflow-wrap: normal; }
+.command-block.is-wrapping pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+.command-block.is-tall pre { max-height: 22rem; overflow: auto; }
 
 /* Progress while the approved action runs: the decision request waits for the executor. */
 .indicador-giro { display: inline-block; width: 1em; height: 1em; margin-right: .5em; vertical-align: -.15em;

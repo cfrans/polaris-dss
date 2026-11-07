@@ -52,10 +52,10 @@
         <div class="disclosure-clip" inert>
           <nav class="tools-links" aria-label="Ferramentas do Polaris">
             <a href="./"><svg class="icon" aria-hidden="true"><use href="icons.svg#home"></use></svg>Painel de incidentes</a>
-            <a href="auditoria.html"><svg class="icon" aria-hidden="true"><use href="icons.svg#eye"></use></svg>Auditoria</a>
-            <a href="configuracao.html" data-admin hidden><svg class="icon" aria-hidden="true"><use href="icons.svg#settings"></use></svg>Configuração inicial</a>
+            <a href="auditoria.html"><svg class="icon" aria-hidden="true"><use href="icons.svg#audit"></use></svg>Auditoria</a>
+            <a href="configuracao.html" data-admin hidden><svg class="icon" aria-hidden="true"><use href="icons.svg#route"></use></svg>Configuração inicial</a>
             <button id="btn-diagnostico" type="button"><svg class="icon" aria-hidden="true"><use href="icons.svg#diagnostic"></use></svg>Diagnóstico</button>
-            <a href="preferencias.html"><svg class="icon" aria-hidden="true"><use href="icons.svg#settings"></use></svg>Preferências</a>
+            <a href="preferencias.html"><svg class="icon" aria-hidden="true"><use href="icons.svg#sliders"></use></svg>Preferências</a>
             <button id="btn-scripts" type="button"><svg class="icon" aria-hidden="true"><use href="icons.svg#code"></use></svg>Scripts e ciência</button>
             <a href="laboratorio.html"><svg class="icon" aria-hidden="true"><use href="icons.svg#lab"></use></svg>Laboratório de ensaios</a>
             <button id="btn-simular" class="oculto" type="button"><svg class="icon" aria-hidden="true"><use href="icons.svg#play"></use></svg>Simular incidente</button>

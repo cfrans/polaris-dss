@@ -42,6 +42,16 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
   migrações idempotentes e downloads idênticos ao checkout; limites externos documentados.
 
 ### Modificado
+- Base visual comum às telas: o botão principal (`btn-primario`) passa a ter estilo global, em
+  vez de aparecer com o fundo claro padrão do navegador no login e no assistente; campos de senha
+  e sem tipo recebem o mesmo estilo dos demais; controles nativos usam o esquema escuro em todas
+  as páginas. Bloco de comando copiável compartilhado (`command-block`) para login, assistente e
+  laboratório. Assistente, Auditoria, Preferências e Laboratório usam o mesmo cabeçalho (rótulo,
+  título e descrição) e a mesma largura de página. O menu Ferramentas deixa de repetir ícones
+  (Auditoria, Configuração inicial e Preferências ganham ícones próprios), assim como Gestão de
+  contas nas Preferências. Laboratório alinha campos, abas e blocos de comando ao restante. Regras
+  CSS duplicadas do diagnóstico consolidadas sem alterar a aparência. Conferido por capturas
+  em Chromium (desktop e celular) com banco descartável; 80 testes JavaScript aprovados.
 - Assistente de configuração inicial preserva conexões já salvas sem exigir novo salvamento a
   cada 5 minutos, lembra confirmações manuais vinculadas à revisão do cofre, consulta o estado
   atual ao reabrir e unifica a conclusão da Etapa 6 no botão principal do rodapé. Na tela
