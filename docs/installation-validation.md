@@ -75,3 +75,26 @@ and versioned script acknowledgement without automatic approval. Business regres
 an authenticated identity double; the security modules explicitly use the actual session layer.
 Login and setup must still be accepted together by the administrator in a fresh external
 installation, as deferred. No experiment/laboratory deployment or additional measurements occurred.
+
+## Clean virtual machines — 2 November 2026
+
+The author installed the guided-setup version from scratch on three Hyper-V virtual machines
+(Polaris, Zabbix 7.0 LTS and an Ubuntu 24.04 target), following this guide, configured every
+wizard step and received a real `nginx` stop from Zabbix as a Polaris incident. The usability
+notes of that run motivated the changes below.
+
+## Network access and wizard follow-up — 6 November 2026
+
+Automated: 680 Python tests with migrations 001–013 on a disposable PostgreSQL 16 and 80 JavaScript
+tests, in Linux containers. They cover pairing disabled by default, single-use and expired codes,
+expired and revoked pairings, the vault revision returned by every wizard write, the `/zabbix`
+endpoint fallback, the server-indicator host check and the copyable command builders.
+
+Rendered locally with Chromium in a container against a disposable database: the tunnel page,
+the pairing form and a paired login over a non-loopback HTTP address; the two-column first
+administrator form, its redirect to the wizard and every wizard step at desktop and phone widths.
+
+Not yet verified outside these containers: pairing and the tunnel command between two real
+machines; the `/zabbix` fallback, the Trigger action values and `action.create` JSON against a
+real Zabbix 7.0; the agent 2 commands on a real Ubuntu 24.04 server. The next clean-installation
+run by the author is the acceptance for these items.

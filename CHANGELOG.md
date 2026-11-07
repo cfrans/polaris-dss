@@ -113,6 +113,28 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 - API identifica o desenvolvimento posterior à coleta como 1.1.0-dev; a tag e os dados da
   v1.0.3-experimento permanecem preservados. Fórmula de confiança e base de regras inalteradas;
   a nova migração 011 pertence somente ao controle de acesso posterior à coleta.
+- Assistente de configuração com as melhorias anotadas no teste em máquinas limpas: a Etapa 2
+  passa a só atestar banco, esquema e base, com os comandos recolhidos para quando algo falhar;
+  o endereço do Zabbix aceita apenas o IP ou host e o teste procura a API na raiz e em
+  `/zabbix`, mostrando o endpoint que respondeu; a integração no Zabbix traz links da
+  documentação oficial, o endereço do webhook para o Media Type e os valores da Trigger action
+  prontos para copiar, mais uma requisição `action.create` com marcadores de ID que o Polaris não
+  executa (exige credencial de escrita, que fica com o administrador). A Etapa 4 mostra, em
+  blocos copiáveis, os comandos do alvo com o usuário de serviço e a chave pública informados,
+  substituindo valores inválidos por marcadores, e o comando da impressão digital. Testes e
+  salvamentos exibem ponto de cor verde, amarelo ou vermelho junto do texto. A Etapa 5 pode
+  configurar o indicador "Servidor" do cabeçalho: o nome do host é conferido no Zabbix antes de
+  ir para o cofre, com os comandos do agente 2 montados a partir do Zabbix salvo. A consulta das
+  conexões é renovada sozinha antes de vencer com a página aberta, e as confirmações manuais
+  ficam guardadas por conta. Validação: 680 testes Python e 80 JavaScript aprovados em Linux;
+  valores contra um Zabbix 7.0 real e comandos do agente em Ubuntu real **[NÃO VERIFICADO]**.
+
+### Corrigido
+- Confirmações manuais do assistente eram descartadas ao reabrir depois de salvar o intervalo da
+  reconciliação ou gerar a chave SSH: essas gravações trocavam a revisão do cofre sem avisar a
+  página, que guardava as confirmações sob a revisão antiga. As respostas passam a devolver a
+  nova revisão, e a página regrava as confirmações sob ela.
+- Teste do modal de ciência continha uma asserção que só passava por acaso.
 
 ## [1.0.3-experimento] — 2026-10-18
 

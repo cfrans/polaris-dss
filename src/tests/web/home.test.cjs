@@ -296,5 +296,5 @@ test("initial script check does not flash dialog when already acknowledged", asy
   await context.carregarScripts(false);
   assert.deepEqual(visibilityCalls, [false]);
   await context.carregarScripts(true);
-  assert.Equal ? null : assert.equal(visibilityCalls.includes(true), true);
+  assert.equal(visibilityCalls.includes(true), true);
 });

@@ -52,6 +52,10 @@ class PollingInput(BaseModel):
     interval: int = Field(ge=0, le=3600)
 
 
+class ServerHostInput(BaseModel):
+    host: str = Field(default="", max_length=128, pattern=r"^[A-Za-z0-9 ._-]*$")
+
+
 def public_state(source="saved"):
     env = get_environment_settings()
     data = vault_for_request().read()
@@ -73,7 +77,8 @@ def public_state(source="saved"):
                 "draft_key": bool(data.get("draft_ssh_private_key")),
                 "public_key": data.get("draft_ssh_public_key", data.get("ssh_public_key", ""))},
         "polling_interval": settings.polaris_polling_segundos,
-        "validated": {stage: value.get("at", 0) for stage, value in data.get("validation", {}).items()}}
+        "server_host": settings.polaris_zabbix_host,
+        "validated":{stage: value.get("at", 0) for stage, value in data.get("validation", {}).items()}}
 
 
 @router.get("/acesso")
@@ -138,8 +143,14 @@ def check_zabbix(body: ZabbixInput, session=Depends(authorize)):
         parsed = urlsplit(url)
         if parsed.scheme not in {"http", "https"} or not parsed.hostname or parsed.username or parsed.password or parsed.query or parsed.fragment:
             raise ValueError()
-        if not parsed.path.endswith("/api_jsonrpc.php"):
-            url += "/api_jsonrpc.php"
+        # Package installs (Apache/Nginx) serve the frontend under /zabbix; containers serve it at
+        # the root. A bare address tries both, in this order, and keeps the one that answers.
+        if parsed.path.endswith("/api_jsonrpc.php"):
+            candidates = [url]
+        elif parsed.path.endswith("/zabbix"):
+            candidates = [url + "/api_jsonrpc.php"]
+        else:
+            candidates = [url + "/api_jsonrpc.php", url + "/zabbix/api_jsonrpc.php"]
         def secret(value, fallback):
             return value.get_secret_value() if value is not None else fallback
         token = secret(body.token, base.zabbix_token) if body.mode == "token" else ""
@@ -149,8 +160,15 @@ def check_zabbix(body: ZabbixInput, session=Depends(authorize)):
             raise ValueError()
         if max(map(len, (token, password, webhook))) > 8192:
             raise ValueError()
-        client = ZabbixClient(url=url, usuario=body.username, senha=password, token=token, timeout=4)
-        version = client.versao()
+        version = ""
+        for candidate_url in candidates:
+            client = ZabbixClient(url=candidate_url, usuario=body.username, senha=password, token=token, timeout=4)
+            try:
+                version = client.versao()
+            except Exception:
+                continue
+            url = candidate_url
+            break
         if not version.startswith("7.0."):
             raise ValueError()
         client.check_access()
@@ -159,18 +177,18 @@ def check_zabbix(body: ZabbixInput, session=Depends(authorize)):
     candidate = {"settings": {"zabbix_url": url, "zabbix_user": body.username,
                                "zabbix_password": password, "zabbix_token": token,
                                "polaris_webhook_token": webhook}}
-    return {**remember_proof(session, "zabbix", candidate, data["revision"]),
-            "message": "Consulta autenticada aceita. Você já pode salvar esta configuração."}
+    return {**remember_proof(session, "zabbix", candidate, data["revision"]), "url": url,
+            "message": f"Consulta autenticada aceita em {url}. Você já pode salvar esta configuração."}
 
 
 @router.post("/ssh/chave")
 def create_ssh_key(session=Depends(authorize)):
     private, public = generate_key()
-    vault_for_request().update(lambda data: data.update(draft_ssh_private_key=private,
-                                                        draft_ssh_public_key=public))
+    saved = vault_for_request().update(lambda data: data.update(draft_ssh_private_key=private,
+                                                                draft_ssh_public_key=public))
     with LOCK:
         session["proofs"].pop("ssh", None)
-    return {"public_key": public}
+    return {"public_key": public, "revision": saved["revision"]}
 
 
 @router.post("/ssh/identidade")
@@ -261,8 +279,46 @@ def configure_polling(body: PollingInput, session=Depends(authorize)):
             data = vault.read()
             if not data.get("validation", {}).get("zabbix"):
                 raise HTTPException(409, "Teste e salve o Zabbix antes de ativar a reconciliação.")
-            vault.update(lambda saved: saved["settings"].update(polaris_polling_segundos=body.interval),
-                         revision=data["revision"])
+            saved = vault.update(lambda current: current["settings"].update(polaris_polling_segundos=body.interval),
+                                 revision=data["revision"])
     except VaultError as exc:
         raise HTTPException(409, str(exc)) from None
-    return {"saved": True, "message": "Intervalo salvo. O processo de reconciliação aplica a alteração no próximo ciclo."}
+    return {"saved": True, "revision": saved["revision"],
+            "message": "Intervalo salvo. O processo de reconciliação aplica a alteração no próximo ciclo."}
+
+
+@router.post("/servidor")
+def configure_server_host(body: ServerHostInput, session=Depends(authorize)):
+    """Save the Zabbix host that monitors the Polaris server; display only, no remediation effect."""
+    from ..engine.server_metrics import get_server_metrics
+    vault = vault_for_request()
+    name = body.host.strip()
+    data = vault.read()
+    if name:
+        if not data.get("validation", {}).get("zabbix"):
+            raise HTTPException(409, "Teste e salve o Zabbix antes de indicar o host do servidor.")
+        settings = get_settings()
+        try:
+            client = ZabbixClient(url=settings.zabbix_url, usuario=settings.zabbix_user,
+                                  senha=settings.zabbix_password, token=settings.zabbix_token, timeout=4)
+            hosts = client._chamar("host.get", {"output": ["hostid", "host", "status"],
+                                                "filter": {"host": [name]}, "limit": 2}) or []
+        except Exception:
+            raise HTTPException(422, "Não foi possível consultar o Zabbix. Confira a conexão salva na Etapa 3.") from None
+        if len(hosts) != 1 or hosts[0].get("host") != name:
+            raise HTTPException(422, "Host não encontrado no Zabbix. Use o nome técnico (Host name), não o nome visível.")
+        if str(hosts[0].get("status")) != "0":
+            raise HTTPException(422, "O host existe, mas está desativado no Zabbix.")
+    try:
+        with operation_guard(vault, exclusive=True):
+            saved = vault.update(lambda current: current["settings"].update(polaris_zabbix_host=name),
+                                 revision=data["revision"])
+    except VaultError as exc:
+        raise HTTPException(409, str(exc)) from None
+    if not name:
+        return {"saved": True, "revision": saved["revision"], "state": "nao_configurado",
+                "message": "Indicador do servidor desligado."}
+    metrics = get_server_metrics()
+    message = ("Host salvo. CPU e memória já chegam pelo Zabbix." if metrics["estado"] == "ok" else
+               "Host salvo. Aguardando coleta recente de CPU e memória pelo agente do Zabbix.")
+    return {"saved": True, "revision": saved["revision"], "state": metrics["estado"], "message": message}

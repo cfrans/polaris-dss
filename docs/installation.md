@@ -53,14 +53,15 @@ Copy-Item .env.example .env
 
 Edit `.env` locally to replace the database password and select free published ports. The database
 must exist before the assistant can operate; it cannot change its own database credentials.
-Clear example Zabbix credentials if you will use the forms. Keep private values outside Git,
-screenshots and support messages. Zabbix, webhook, target and polling values below are optional
-environment inputs; tested values saved by the assistant take precedence.
+The example leaves Zabbix, webhook and target values empty because the assistant fills them in.
+Keep private values outside Git, screenshots and support messages. Zabbix, webhook, target and
+polling values below are optional environment inputs; tested values saved by the assistant take
+precedence.
 
 | Variable | What to set |
 |:--|:--|
 | `DB_PASSWORD` | A unique database password; changing this variable does not rotate a password in an existing PostgreSQL volume |
-| `ZABBIX_URL` | Full API address, for example `https://monitor.example/api_jsonrpc.php` |
+| `ZABBIX_URL` | Full API address, for example `https://monitor.example/api_jsonrpc.php`; package installs use `/zabbix/api_jsonrpc.php` |
 | `ZABBIX_TOKEN` | API token for a dedicated Zabbix account with access to the monitored host group |
 | `ZABBIX_USER` / `ZABBIX_PASSWORD` | Alternative to a token; clear the example values when using a token |
 | `POLARIS_WEBHOOK_TOKEN` | A distinct random secret, also configured in the Zabbix Media Type |
@@ -70,6 +71,8 @@ environment inputs; tested values saved by the assistant take precedence.
 | `POLARIS_POLLING_SEGUNDOS` | Reconciliation interval, normally 30; zero disables the loop |
 | `POLARIS_DEBUG` | Keep `false`; setup does not require alert injection |
 | `POLARIS_API_PORT` / `POLARIS_DB_PORT` | Free host ports, normally 8000/5432 |
+| `POLARIS_ZABBIX_HOST` | Optional Zabbix host name of the Polaris server itself, for the header resource indicator |
+| `POLARIS_PAREAMENTO_HTTP` | Keep `false` (SSH tunnel or HTTPS). `true` allows HTTP pairing on an isolated laboratory network; see [network access](access.md#network-access) |
 
 Do not use `localhost` to reach another machine from inside a container. For an existing Zabbix,
 use its reachable address. For the optional profile, use `http://zabbix-web:8080/api_jsonrpc.php`.
@@ -85,17 +88,23 @@ docker compose config --quiet
 docker compose up -d --build polaris-db polaris-api
 docker compose exec -T polaris-api python -m src.db.migrate
 docker compose exec -T polaris-api python -m src.db.migrate --status
-docker compose exec polaris-api python -m src.engine.setup_vault
+docker compose exec polaris-api python -m src.engine.setup_vault --address "$(hostname -I | cut -d' ' -f1)" --ssh-user "$USER"
 ```
 
-There are twelve numbered migrations. Repeating migration after success applies nothing. Never edit
+There are thirteen numbered migrations. Repeating migration after success applies nothing. Never edit
 applied migrations or erase a volume to fix a checksum/password error. API health may fail until
 the schema is current. The last command initializes the encrypted vault once and displays a strong
 administrative code **once**. Store it in a password manager; an existing vault is never overwritten.
+`--address` and `--ssh-user` are optional: the container cannot discover the server address, so
+they only complete the links printed after the code (`hostname -I` is Linux; elsewhere type the IP).
 
-Open `http://localhost:8000/login.html` (adjust the published port). Create the first administrator
-with the installation code, then sign in with your account. Administrators can open the wizard. HTTP credential entry is accepted only on loopback; access through another address requires
-HTTPS with a trusted TLS terminator. The session uses an HttpOnly/SameSite cookie and expires
+The command then prints how to continue in the browser. On the server itself, open
+`http://localhost:8000/login.html` (adjust the published port). From another computer, it prints a
+ready SSH tunnel command, or, when `POLARIS_PAREAMENTO_HTTP=true`, the network address and a
+one-time pairing code; see [network access](access.md#network-access) before choosing pairing.
+Create the first administrator with the installation code; the browser then opens the wizard.
+HTTP credential entry is accepted only on loopback or from a browser paired in the laboratory;
+any other network access requires HTTPS with a trusted TLS terminator. The session uses an HttpOnly/SameSite cookie and expires
 after 15 idle minutes or eight hours. Sessions are persisted in PostgreSQL. Sign in before using the operational API. Decisions use the session identity. The installation
 code cannot bypass account login; neither login nor script acknowledgement replaces incident approval.
 
@@ -110,7 +119,10 @@ target, but later steps stay blocked. This is a partial installation, not end-to
 
 ## 4. Configure connections in the browser
 
-In the Zabbix step, enter its URL and either an API token or dedicated username/password. Generate
+The second step only confirms that database, schema and knowledge base answered; it needs no action
+when the page is open. In the Zabbix step, enter its address (an IP or host is enough: the test tries
+`/api_jsonrpc.php` and `/zabbix/api_jsonrpc.php` and keeps the endpoint that answers) and either an
+API token or dedicated username/password. Generate
 or enter a separate reception token (at least 24 characters). Copy a new reception token into the
 Zabbix Media Type before saving: saved secrets are never returned by the API. **Testar conexão**
 checks Zabbix 7.0 and an authenticated host query. **Salvar conexão testada** becomes available
@@ -124,7 +136,9 @@ Test and save to copy the effective connection into the encrypted vault. Existin
 are not retroactively encrypted: remove migrated values yourself only after verifying operation.
 
 For SSH, enter the target IP/account and generate a dedicated key. Only its public half is shown;
-the private half is encrypted on the server. Authorize the public line on the target as below.
+the private half is encrypted on the server. The wizard shows the target commands below with the
+typed service account and the generated public line already filled in (invalid account names or
+keys are replaced by placeholders, never pasted into the command). Authorize the public line on the target as below.
 Use **Consultar identidade pela rede**, then independently obtain the fingerprint directly on
 the target. Enter that trusted fingerprint; the application never automatically trusts a scanned
 key. **Testar acesso SSH** verifies the pin, authenticates and executes only `true`. Save after
@@ -135,7 +149,7 @@ when the database cannot establish that no such incident exists. API operations 
 cycles share a process lock with setup writes. Resolve incidents through their normal workflow;
 do not change rows to bypass the guard. If another operation/configuration intervenes, test again.
 
-### Target preparation and optional environment key
+## 5. Prepare the SSH target and the optional environment key
 
 For a real target, an administrator creates a dedicated account on that Ubuntu target:
 
@@ -222,13 +236,20 @@ access must be checked in Zabbix too.
    Type. Use custom expression `(A and B) or (C and D)`: A = tag name `polaris`; B = tag
    `polaris` value `enabled`; C = template **Linux by Zabbix agent**; D = event name contains
    `Linux: High CPU utilization`. These correspond to the bundled templates, not arbitrary alerts.
+   If Zabbix labels the conditions with other letters, keep the same combination. The wizard lists
+   each value with a copy button and also shows an `action.create` JSON request with placeholders
+   for the template, Media Type and user IDs. Polaris never sends that request: it needs a Zabbix
+   credential with write permission, which stays with the administrator. Zabbix configuration
+   import covers templates and Media Types, not actions.
 5. Review the host templates, enabled items/triggers and latest values. Do not duplicate CPU
    triggers. The shorter CPU trigger used in the original controlled laboratory is a separate
    experiment configuration; this installer does not change trigger windows or thresholds.
 
 The assistant downloads the **installed** template, Media Type and example configuration.
 It cannot verify all manual Zabbix steps. Checking a confirmation records only your acknowledgement
-for this visit; it is not a server audit record and is reset when you reload the page.
+in this browser, for your account, while the saved configuration revision stays the same; it is not
+a server audit record. Saving a connection, key or interval from the wizard keeps your
+confirmations; a change made elsewhere (another administrator, `--rotate-access`) resets them.
 
 R001 can discover filesystem events, but its bundled cleanup policy is restricted to
 `/mnt/polaris_test`. Do not create or fill this volume during normal installation. A Zabbix host
@@ -252,7 +273,14 @@ require recreating **both** API and reconciler from the same image:
 docker compose up -d --build polaris-api polaris-reconciler
 ```
 
-Run the assistant check again. A recent successful reconciliation cycle verifies polling,
+Optionally, the same step configures the **Servidor** indicator in the header. Install Zabbix agent 2
+on the Polaris server (the wizard shows the commands with the saved Zabbix address), create a host
+in Zabbix with the **Linux by Zabbix agent** template and enter its technical host name. The wizard
+checks that the host exists and is enabled before saving it in the vault. This is display only and
+does not affect incidents or remediation.
+
+Run the assistant check again; with the page open it is renewed automatically every five minutes.
+A recent successful reconciliation cycle verifies polling,
 not delivery of webhook notifications. A configured token does not prove successful delivery
 either. Final acceptance requires an administrator to check the Zabbix action log and match a
 known, authorized event to its Polaris incident. This guide does not inject incidents or approve

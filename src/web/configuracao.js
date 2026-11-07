@@ -1,10 +1,15 @@
 (function(root) {
   "use strict";
   const MAX_AGE = 5 * 60 * 1000;
+  const AUTO_REFRESH_MARGIN = 15 * 1000;
   const CONFIRMATIONS_KEY = "polaris.setup.confirmations.v1";
   const CONFIRMATION_FIELDS = ["environment", "zabbix", "ssh", "delivery", "review"];
   const LABELS = {ok: "Verificado", manual: "Confirmado por você", falha: "Requer correção",
     aviso: "Requer atenção", pendente: "Conferir etapa", unknown: "Ainda não verificado"};
+  const SERVICE_USER = /^[a-z_][a-z0-9_-]{0,31}$/;
+  const PUBLIC_KEY = /^(ssh-ed25519|ssh-rsa|ecdsa-sha2-nistp(256|384|521)) [A-Za-z0-9+/=]+( [^'\n\r]*)?$/;
+  const AGENT_HOST = /^[A-Za-z0-9._-]{1,128}$/;
+  const ZABBIX_RELEASE = "zabbix-release_latest_7.0+ubuntu24.04_all.deb";
 
   function checkState(checks, ids) {
     const states = ids.map(id => (Array.isArray(checks) ? checks : []).find(item => item?.id === id)?.estado);
@@ -43,9 +48,14 @@
       checks: {services, zabbix, ssh, reconciliation}};
   }
 
-  function readStoredConfirmations(storage, expectedRevision) {
+  /* Manual confirmations belong to one account in one browser and to one vault revision. */
+  function confirmationsKey(user) {
+    return user ? `${CONFIRMATIONS_KEY}:${user}` : CONFIRMATIONS_KEY;
+  }
+
+  function readStoredConfirmations(storage, expectedRevision, user = "") {
     try {
-      const parsed = JSON.parse(storage?.getItem(CONFIRMATIONS_KEY) || "null");
+      const parsed = JSON.parse(storage?.getItem(confirmationsKey(user)) || "null");
       if (!parsed || typeof parsed !== "object") return {};
       if (expectedRevision && parsed.revision && parsed.revision !== expectedRevision) return {};
       const source = parsed.confirmations && typeof parsed.confirmations === "object" ? parsed.confirmations : parsed;
@@ -59,13 +69,13 @@
     }
   }
 
-  function writeStoredConfirmations(storage, revision, confirmations) {
+  function writeStoredConfirmations(storage, revision, confirmations, user = "") {
     try {
       const clean = {};
       for (const field of CONFIRMATION_FIELDS) {
         if (confirmations[field] === true) clean[field] = true;
       }
-      storage?.setItem(CONFIRMATIONS_KEY, JSON.stringify({revision: revision || null, confirmations: clean}));
+      storage?.setItem(confirmationsKey(user), JSON.stringify({revision: revision || null, confirmations: clean}));
     } catch {
       /* Funciona apenas em memória se o armazenamento estiver indisponível. */
     }
@@ -78,6 +88,77 @@
       else break;
     }
     return step;
+  }
+
+  /* Copyable commands. Values typed in the page only enter them after strict validation,
+     so a pasted command never carries quotes or shell syntax from a form field. */
+  function targetCommands(user, publicKey) {
+    const account = SERVICE_USER.test(user || "") ? user : "<usuario>";
+    const key = PUBLIC_KEY.test((publicKey || "").trim()) ? publicKey.trim() : "<cole aqui a chave pública gerada acima>";
+    const home = `/home/${account}/.ssh`;
+    return [
+      `sudo adduser --disabled-password --gecos '' ${account}`,
+      `sudo install -d -m 0700 -o ${account} -g ${account} ${home}`,
+      `echo '${key}' | sudo tee -a ${home}/authorized_keys > /dev/null`,
+      `sudo chown ${account}:${account} ${home}/authorized_keys`,
+      `sudo chmod 0600 ${home}/authorized_keys`,
+      `echo '${account} ALL=(root) NOPASSWD: /usr/bin/timeout' | sudo tee /etc/sudoers.d/${account} > /dev/null`,
+      `sudo chmod 0440 /etc/sudoers.d/${account}`,
+      `sudo visudo -cf /etc/sudoers.d/${account}`,
+    ].join("\n");
+  }
+
+  function hostFromUrl(url) {
+    try {
+      const host = new URL(url).hostname;
+      return /^[A-Za-z0-9.:[\]-]+$/.test(host) ? host.replace(/^\[|\]$/g, "") : "";
+    } catch {
+      return "";
+    }
+  }
+
+  function agentCommands(zabbixUrl, hostName) {
+    const server = hostFromUrl(zabbixUrl) || "<IP-do-Zabbix>";
+    const name = AGENT_HOST.test(hostName || "") ? hostName : "<nome-do-host>";
+    return [
+      `wget https://repo.zabbix.com/zabbix/7.0/ubuntu/pool/main/z/zabbix-release/${ZABBIX_RELEASE}`,
+      `sudo dpkg -i ${ZABBIX_RELEASE}`,
+      "sudo apt update",
+      "sudo apt install -y zabbix-agent2",
+      `sudo sed -i -e 's/^Server=.*/Server=${server}/' -e 's/^ServerActive=.*/ServerActive=${server}/' -e 's/^Hostname=.*/Hostname=${name}/' /etc/zabbix/zabbix_agent2.conf`,
+      "sudo systemctl enable --now zabbix-agent2",
+      "sudo systemctl restart zabbix-agent2",
+    ].join("\n");
+  }
+
+  function webhookUrl(location) {
+    const local = ["localhost", "127.0.0.1", "[::1]", "::1"].includes(location.hostname);
+    const port = location.port ? `:${location.port}` : "";
+    return local ? `http://IP-do-servidor-Polaris${port}/webhook/zabbix`
+      : `${location.protocol}//${location.hostname}${port}/webhook/zabbix`;
+  }
+
+  /* Zabbix 7.0 action.create: condition types 25 tag name, 26 tag value (value2 = tag),
+     13 host template (value = templateid), 3 event name; evaltype 3 = custom expression. */
+  function actionPayload() {
+    return {jsonrpc: "2.0", method: "action.create", id: 1, params: {
+      name: "Polaris DSS — encaminhar eventos", eventsource: 0, status: 0,
+      filter: {evaltype: 3, formula: "(A and B) or (C and D)", conditions: [
+        {conditiontype: 25, operator: 0, value: "polaris", formulaid: "A"},
+        {conditiontype: 26, operator: 0, value2: "polaris", value: "enabled", formulaid: "B"},
+        {conditiontype: 13, operator: 0, value: "<templateid de Linux by Zabbix agent>", formulaid: "C"},
+        {conditiontype: 3, operator: 2, value: "Linux: High CPU utilization", formulaid: "D"}]},
+      operations: [{operationtype: 0,
+        opmessage: {default_msg: 1, mediatypeid: "<mediatypeid de Polaris DSS>"},
+        opmessage_usr: [{userid: "<userid do destinatário>"}]}]}};
+  }
+
+  function actionCurl(zabbixUrl) {
+    const url = hostFromUrl(zabbixUrl) ? zabbixUrl : "<URL-da-API-do-Zabbix>";
+    return ["export ZABBIX_ADMIN_TOKEN='<token de API com permissão de escrita>'",
+      "curl -s -X POST -H 'Content-Type: application/json-rpc' \\",
+      "  -H \"Authorization: Bearer $ZABBIX_ADMIN_TOKEN\" \\",
+      `  --data @polaris-action.json ${url}`].join("\n");
   }
 
   async function readChecks(fetcher, signal) {
@@ -99,8 +180,11 @@
     const panels = [...document.querySelectorAll("[data-panel]")];
     let confirmations = {};
     let currentRevision = null;
+    let currentUser = "";
     let snapshot = {};
     let current = 0;
+    let refreshing = false;
+    let savedZabbixUrl = "";
     const sources = {zabbix: "saved", ssh: "saved"};
     let generatedKey = false;
     let savedAt = {};
@@ -110,6 +194,23 @@
       document.querySelectorAll("[data-confirm]").forEach(input => {
         input.checked = Boolean(confirmations[input.dataset.confirm]);
       });
+    }
+
+    function storeConfirmations() {
+      writeStoredConfirmations(window.localStorage, currentRevision, confirmations, currentUser);
+    }
+
+    /* Every vault write returns its new revision; keeping it avoids discarding confirmations
+       on the next visit (the polling interval and draft keys also change the revision). */
+    function adoptRevision(revision) {
+      if (!revision) return;
+      currentRevision = revision;
+      storeConfirmations();
+    }
+
+    function setStatus(element, state, text) {
+      element.dataset.state = state;
+      if (text !== undefined) element.textContent = text;
     }
 
     function locked() {
@@ -157,35 +258,43 @@
       clearReceipt(stage);
     }
 
+    function updateCommands() {
+      $("target-command").textContent = targetCommands($("setup-ssh-user").value.trim(), $("setup-public-key").textContent);
+      $("agent-command").textContent = agentCommands(savedZabbixUrl, $("setup-server-host").value.trim());
+      $("action-curl").textContent = actionCurl(savedZabbixUrl);
+    }
+
     async function loadConfiguration(from = "saved", stage = null) {
       const values = await request("configuracao?source=" + from);
       if (from === "saved") {
         if (!currentRevision) {
-          confirmations = readStoredConfirmations(window.localStorage, values.revision);
+          confirmations = readStoredConfirmations(window.localStorage, values.revision, currentUser);
           syncConfirmInputs();
         }
         currentRevision = values.revision || null;
-        writeStoredConfirmations(window.localStorage, currentRevision, confirmations);
+        storeConfirmations();
+        savedZabbixUrl = values.zabbix.url || "";
+        $("setup-server-host").value = values.server_host || "";
       }
       if (!stage || stage === "zabbix") {
-      sources.zabbix = from;
-      $("setup-zabbix-url").value = values.zabbix.url;
-      $("setup-zabbix-mode").value = values.zabbix.mode;
-      $("setup-zabbix-user").value = values.zabbix.username;
-      for (const [id, available] of [["setup-zabbix-token", values.zabbix.token_available], ["setup-zabbix-password", values.zabbix.password_available], ["setup-webhook-token", values.zabbix.webhook_available]]) {
-        $(id).value = "";
-        $(id).placeholder = available ? "Disponível no servidor; mantenha vazio para reutilizar" : "Informe um novo valor";
-      }
+        sources.zabbix = from;
+        $("setup-zabbix-url").value = values.zabbix.url;
+        $("setup-zabbix-mode").value = values.zabbix.mode;
+        $("setup-zabbix-user").value = values.zabbix.username;
+        for (const [id, available] of [["setup-zabbix-token", values.zabbix.token_available], ["setup-zabbix-password", values.zabbix.password_available], ["setup-webhook-token", values.zabbix.webhook_available]]) {
+          $(id).value = "";
+          $(id).placeholder = available ? "Disponível no servidor; mantenha vazio para reutilizar" : "Informe um novo valor";
+        }
       }
       if (!stage || stage === "ssh") {
-      sources.ssh = from;
-      $("setup-ssh-host").value = values.ssh.host;
-      $("setup-ssh-user").value = values.ssh.user;
-      generatedKey = from !== "environment" && values.ssh.draft_key;
-      $("setup-public-key").textContent = values.ssh.public_key || "Chave configurada no ambiente, ou ainda não gerada. A chave privada nunca é devolvida.";
+        sources.ssh = from;
+        $("setup-ssh-host").value = values.ssh.host;
+        $("setup-ssh-user").value = values.ssh.user;
+        generatedKey = from !== "environment" && values.ssh.draft_key;
+        $("setup-public-key").textContent = values.ssh.public_key || "Chave configurada no ambiente, ou ainda não gerada. A chave privada nunca é devolvida.";
       }
       $("setup-polling-interval").value = values.polling_interval ?? 30;
-      if (from === "saved") savedAt = values.validated;
+      if (from === "saved") savedAt = values.validated || {};
       else if (stage) delete savedAt[stage];
       else savedAt = {};
       delete receipts.zabbix;
@@ -193,6 +302,7 @@
       $("setup-save-zabbix").disabled = true;
       $("setup-save-ssh").disabled = true;
       updateMode();
+      updateCommands();
       render();
     }
 
@@ -203,6 +313,8 @@
     }
 
     async function refreshChecks() {
+      if (refreshing) return;
+      refreshing = true;
       const button = $("setup-check");
       button.disabled = true;
       $("setup-content").setAttribute("aria-busy", "true");
@@ -217,28 +329,35 @@
         $("setup-feedback").textContent = snapshot.failed
           ? "Parte das consultas não respondeu. Os resultados indisponíveis permanecem pendentes."
           : "Consulta concluída. Confira o resultado de cada etapa.";
-        $("setup-checked-at").textContent = `Consultado às ${window.PolarisUI.formatTime(snapshot.checkedAt)}. Validade: 5 minutos; uma mudança exige nova consulta.`;
+        $("setup-checked-at").textContent = `Consultado às ${window.PolarisUI.formatTime(snapshot.checkedAt)}. Validade de 5 minutos, renovada automaticamente com a página aberta.`;
       } finally {
         clearTimeout(timer);
+        refreshing = false;
         button.disabled = false;
         $("setup-content").setAttribute("aria-busy", "false");
       }
     }
 
-    async function runForm(stage, task) {
-      const target = $("setup-" + stage + "-message");
-      target.textContent = "Verificando…";
-      const form = $("setup-" + stage + "-form");
-      const controls = [...form.querySelectorAll("button, input, select, textarea")];
-      controls.forEach(button => { button.disabled = true; });
-      try { await task(target); }
-      catch (error) { target.textContent = error.message; }
-      finally {
-        controls.forEach(button => { button.disabled = false; });
-        if (stage !== "polling") $("setup-save-" + stage).disabled = !receipts[stage] || Date.now() > receipts[stage].expires;
-      }
+    function refreshIfStale() {
+      if (!snapshot.checkedAt || refreshing || document.hidden || $("setup-workspace").hidden) return;
+      if (Date.now() - snapshot.checkedAt >= MAX_AGE - AUTO_REFRESH_MARGIN) refreshChecks();
     }
 
+    async function runForm(stage, task) {
+      const target = $("setup-" + stage + "-message");
+      setStatus(target, "busy", "Verificando…");
+      const form = $("setup-" + stage + "-form");
+      const controls = [...form.querySelectorAll("button, input, select, textarea")];
+      controls.forEach(control => { control.disabled = true; });
+      try {
+        await task(target);
+        if (target.dataset.state === "busy") target.dataset.state = "ok";
+      } catch (error) { setStatus(target, "falha", error.message); }
+      finally {
+        controls.forEach(control => { control.disabled = false; });
+        if (stage === "zabbix" || stage === "ssh") $("setup-save-" + stage).disabled = !receipts[stage] || Date.now() > receipts[stage].expires;
+      }
+    }
 
     function show(index, focus = true) {
       const model = navigationModel();
@@ -298,6 +417,7 @@
         element.dataset.state = state;
         element.textContent = messages[name][state] || "Sem verificação atual disponível. Use Verificar conexões; se a consulta falhar, confira os serviços no terminal.";
       }
+      $("setup-summary").dataset.state = model.count === 6 ? "ok" : "pendente";
       $("setup-summary").textContent = model.count === 6
         ? "Conferência concluída: conexões verificadas e etapas manuais confirmadas por você. A operação continua exigindo aprovação por incidente."
         : `${model.count} de 6 etapas conferidas. Revise as pendências e confirme as etapas manuais antes de concluir.`;
@@ -322,7 +442,7 @@
       if (current === 5) {
         const model = navigationModel();
         if (model.count === 6) {
-          writeStoredConfirmations(window.localStorage, currentRevision, confirmations);
+          storeConfirmations();
           location.href = "./";
         }
         return;
@@ -333,37 +453,30 @@
       input.checked = false;
       input.addEventListener("change", () => {
         confirmations[input.dataset.confirm] = input.checked;
-        writeStoredConfirmations(window.localStorage, currentRevision, confirmations);
+        storeConfirmations();
         render();
       });
     });
-    document.querySelectorAll("[data-copy], [data-copy-field]").forEach(button => {
-      button.addEventListener("click", async () => {
-        const value = button.dataset.copyField ? $(button.dataset.copyField).value : $(button.dataset.copy).textContent;
-        try {
-          if (!value) throw new Error("Nenhum novo valor disponível para copiar.");
-          await navigator.clipboard.writeText(value);
-          $("setup-copy-feedback").textContent = "Copiado para a área de transferência.";
-          window.PolarisToast(button.dataset.copyField ? 'Token copiado.' : button.dataset.copy === 'setup-public-key' ? 'Chave pública copiada.' : 'Comando copiado.');
-          button.title = "Copiado";
-        } catch { $("setup-copy-feedback").textContent = "Selecione o novo valor ou o comando e copie manualmente."; window.PolarisToast('Não foi possível copiar. Selecione e copie manualmente.'); }
-        setTimeout(() => { button.title = "Copiar"; }, 2200);
-      });
-    });
-    $("setup-logout").addEventListener("click", async () => {
-      await window.PolarisSession.logout();
-    });
+    window.PolarisCopy.bind(document);
+    $("webhook-url").textContent = webhookUrl(location);
+    $("action-json").textContent = JSON.stringify(actionPayload(), null, 2);
+    updateCommands();
     document.querySelectorAll("[data-load-env]").forEach(button => button.addEventListener("click", async () => {
       try { await loadConfiguration("environment", button.closest("form").id.includes("ssh") ? "ssh" : "zabbix"); $("setup-feedback").textContent = "Campos do ambiente carregados. Segredos permanecem no servidor; teste e salve para usar esta configuração."; }
       catch (error) { $("setup-feedback").textContent = error.message; }
     }));
-    for (const stage of ["zabbix", "ssh"]) $("setup-" + stage + "-form").addEventListener("input", () => { invalidate(stage); updateMode(); });
+    for (const stage of ["zabbix", "ssh"]) $("setup-" + stage + "-form").addEventListener("input", event => {
+      invalidate(stage);
+      updateMode();
+      if (stage === "ssh" && event.target.id === "setup-ssh-user") updateCommands();
+    });
+    $("setup-server-host").addEventListener("input", updateCommands);
     $("setup-zabbix-mode").addEventListener("change", () => { invalidate("zabbix"); updateMode(); });
     $("setup-generate-token").addEventListener("click", () => {
       const bytes = crypto.getRandomValues(new Uint8Array(32));
       $("setup-webhook-token").value = [...bytes].map(value => value.toString(16).padStart(2, "0")).join("");
       invalidate("zabbix");
-      $("setup-zabbix-message").textContent = "Novo token gerado. Copie-o para o Media Type antes de salvar.";
+      setStatus($("setup-zabbix-message"), "aviso", "Novo token gerado. Copie-o para o Media Type antes de salvar.");
     });
     $("setup-zabbix-form").addEventListener("submit", event => {
       event.preventDefault(); clearReceipt("zabbix");
@@ -373,8 +486,10 @@
         try {
           const result = await request("zabbix/testar", body);
           receipts.zabbix = {id: result.receipt, expires: Date.now() + result.expires_in * 1000};
+          // The server reports the endpoint that answered (root or /zabbix); show it as saved.
+          if (result.url) $("setup-zabbix-url").value = result.url;
           if (savedAt.zabbix) await refreshChecks();
-          target.textContent = result.message;
+          setStatus(target, "ok", result.message);
         } catch (error) {
           invalidate("zabbix");
           throw error;
@@ -384,14 +499,16 @@
     $("setup-generate-key").addEventListener("click", () => runForm("ssh", async target => {
       invalidate("ssh");
       const result = await request("ssh/chave", {});
+      adoptRevision(result.revision);
       $("setup-public-key").textContent = result.public_key;
       generatedKey = true;
-      target.textContent = "Chave dedicada gerada. Autorize a chave pública no alvo antes de testar.";
+      updateCommands();
+      setStatus(target, "ok", "Chave dedicada gerada. Autorize a chave pública no alvo antes de testar.");
     }));
     $("setup-inspect-host").addEventListener("click", () => runForm("ssh", async target => {
       const result = await request("ssh/identidade", {host: $("setup-ssh-host").value});
       $("setup-observed-fingerprint").textContent = "Observada pela rede: " + result.observed_fingerprint;
-      target.textContent = result.message;
+      setStatus(target, "aviso", result.message);
     }));
     $("setup-ssh-form").addEventListener("submit", event => {
       event.preventDefault(); clearReceipt("ssh");
@@ -400,7 +517,7 @@
           const result = await request("ssh/testar", {source: sources.ssh, host: $("setup-ssh-host").value, user: $("setup-ssh-user").value, expected_fingerprint: $("setup-ssh-fingerprint").value.trim(), generated_key: generatedKey});
           receipts.ssh = {id: result.receipt, expires: Date.now() + result.expires_in * 1000};
           if (savedAt.ssh) await refreshChecks();
-          target.textContent = result.message;
+          setStatus(target, "ok", result.message);
         } catch (error) {
           invalidate("ssh");
           throw error;
@@ -414,22 +531,32 @@
       const result = await request(stage + "/salvar", {receipt: receipt.id});
       await loadConfiguration();
       await refreshChecks();
-      target.textContent = result.message;
+      setStatus(target, "ok", result.message);
     }));
     $("setup-polling-form").addEventListener("submit", event => {
       event.preventDefault();
       runForm("polling", async target => {
         const result = await request("reconciliacao", {interval: Number($("setup-polling-interval").value)});
+        adoptRevision(result.revision);
         await refreshChecks();
-        target.textContent = result.message;
+        setStatus(target, "ok", result.message);
+      });
+    });
+    $("setup-server-form").addEventListener("submit", event => {
+      event.preventDefault();
+      runForm("server", async target => {
+        const result = await request("servidor", {host: $("setup-server-host").value.trim()});
+        adoptRevision(result.revision);
+        setStatus(target, result.state === "ok" || result.state === "nao_configurado" ? "ok" : "aviso", result.message);
       });
     });
     request("acesso").then(async status => {
       if (!status.secure_transport) {
-        $("setup-access-message").textContent = "Use HTTPS ou o endereço local para acessar o assistente.";
-
+        $("setup-access-message").textContent = "Abra o assistente por HTTPS, pelo túnel SSH ou por um navegador pareado.";
       }
       if (status.authenticated) {
+        const user = await window.PolarisSession.ready;
+        currentUser = user?.login || "";
         await loadConfiguration();
         $("setup-access").hidden = true;
         $("setup-workspace").hidden = false;
@@ -441,8 +568,8 @@
     $("setup-check").addEventListener("click", async () => {
       if (!$("setup-check").disabled) await refreshChecks();
     });
-    setInterval(render, 15000);
-    document.addEventListener("visibilitychange", () => { if (!document.hidden) render(); });
+    setInterval(() => { render(); refreshIfStale(); }, 15000);
+    document.addEventListener("visibilitychange", () => { if (!document.hidden) { render(); refreshIfStale(); } });
     show(0, false);
     render();
   }
@@ -451,7 +578,8 @@
     return index >= 0 && index <= 5 && stages.slice(0, index).every(state => state === "ok" || state === "manual");
   }
 
-  const api = {checkState, evaluate, readChecks, canVisit, readStoredConfirmations, writeStoredConfirmations, furthestStep};
+  const api = {checkState, evaluate, readChecks, canVisit, readStoredConfirmations, writeStoredConfirmations,
+    furthestStep, confirmationsKey, targetCommands, agentCommands, webhookUrl, actionPayload, actionCurl};
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   else { root.PolarisSetup = api; initialize(); }
 })(typeof window !== "undefined" ? window : globalThis);

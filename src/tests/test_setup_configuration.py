@@ -24,6 +24,7 @@ def setup_client(tmp_path, monkeypatch, conn):
     setup_access.SESSIONS.clear()
     setup_access.ATTEMPTS.clear()
     monkeypatch.setattr("src.api.setup_configuration.ensure_idle", lambda: None)
+    monkeypatch.setenv("POLARIS_PAREAMENTO_HTTP", "false")
     import secrets
     from src.api.auth import password_hash
     password = secrets.token_urlsafe(24)
@@ -242,6 +243,65 @@ def test_polling_can_pause_or_resume_but_never_accepts_unsafe_short_interval(set
     assert response.status_code == status
     if status == 200:
         assert get_settings().polaris_polling_segundos == interval
+
+
+def test_vault_writes_return_the_new_revision_for_the_wizard(setup_client):
+    client, vault, _ = setup_client
+    vault.update(lambda data: data.update(validation={"zabbix": {"at": time.time()}}))
+    polling = client.post("/api/v1/instalacao/reconciliacao", json={"interval": 30}, headers=HEADERS)
+    assert polling.status_code == 200 and polling.json()["revision"] == vault.read()["revision"]
+    key = client.post("/api/v1/instalacao/ssh/chave", headers=HEADERS)
+    assert key.status_code == 200 and key.json()["revision"] == vault.read()["revision"]
+    assert client.get("/api/v1/instalacao/configuracao").json()["revision"] == vault.read()["revision"]
+
+
+def test_bare_zabbix_address_finds_the_package_path(setup_client, monkeypatch):
+    client, _, _ = setup_client
+    tried = []
+    class Zabbix:
+        def __init__(self, **kwargs): self.url = kwargs["url"]; tried.append(self.url)
+        def versao(self):
+            if self.url != "http://172.30.57.17/zabbix/api_jsonrpc.php":
+                raise ValueError("404")
+            return "7.0.21"
+        def check_access(self): pass
+    monkeypatch.setattr("src.api.setup_configuration.ZabbixClient", Zabbix)
+    body = {"url": "172.30.57.17", "mode": "token", "token": "api-secret", "webhook_token": "x" * 32}
+    response = client.post("/api/v1/instalacao/zabbix/testar", json=body, headers=HEADERS)
+    assert response.status_code == 200
+    assert response.json()["url"] == "http://172.30.57.17/zabbix/api_jsonrpc.php"
+    assert tried == ["http://172.30.57.17/api_jsonrpc.php", "http://172.30.57.17/zabbix/api_jsonrpc.php"]
+    client.post("/api/v1/instalacao/zabbix/salvar", json={"receipt": response.json()["receipt"]}, headers=HEADERS)
+    assert get_settings().zabbix_url == "http://172.30.57.17/zabbix/api_jsonrpc.php"
+    tried.clear()
+    explicit = dict(body, url="http://172.30.57.17/zabbix")
+    assert client.post("/api/v1/instalacao/zabbix/testar", json=explicit, headers=HEADERS).status_code == 200
+    assert tried == ["http://172.30.57.17/zabbix/api_jsonrpc.php"]
+    tried.clear()
+    missing = dict(body, url="http://192.0.2.99/monitor")
+    assert client.post("/api/v1/instalacao/zabbix/testar", json=missing, headers=HEADERS).status_code == 422
+
+
+def test_server_indicator_host_is_checked_in_zabbix_before_saving(setup_client, monkeypatch):
+    client, vault, _ = setup_client
+    hosts = []
+    class Zabbix:
+        def __init__(self, **kwargs): pass
+        def _chamar(self, method, params): return hosts
+    monkeypatch.setattr("src.api.setup_configuration.ZabbixClient", Zabbix)
+    monkeypatch.setattr("src.engine.server_metrics.get_server_metrics", lambda: {"estado": "sem_dados"})
+    assert client.post("/api/v1/instalacao/servidor", json={"host": "polaris-server"}, headers=HEADERS).status_code == 409
+    vault.update(lambda data: data.update(validation={"zabbix": {"at": time.time()}}))
+    assert client.post("/api/v1/instalacao/servidor", json={"host": "polaris-server"}, headers=HEADERS).status_code == 422
+    assert client.post("/api/v1/instalacao/servidor", json={"host": "bad;name"}, headers=HEADERS).status_code == 422
+    hosts.append({"hostid": "10", "host": "polaris-server", "status": "0"})
+    saved = client.post("/api/v1/instalacao/servidor", json={"host": "polaris-server"}, headers=HEADERS)
+    assert saved.status_code == 200 and saved.json()["state"] == "sem_dados"
+    assert saved.json()["revision"] == vault.read()["revision"]
+    assert get_settings().polaris_zabbix_host == "polaris-server"
+    assert client.get("/api/v1/instalacao/configuracao").json()["server_host"] == "polaris-server"
+    cleared = client.post("/api/v1/instalacao/servidor", json={"host": ""}, headers=HEADERS)
+    assert cleared.status_code == 200 and get_settings().polaris_zabbix_host == ""
 
 
 def test_ssh_test_times_out_when_peer_never_reports_exit_status(monkeypatch):
