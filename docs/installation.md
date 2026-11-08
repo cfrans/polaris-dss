@@ -278,6 +278,7 @@ docker compose up -d --build polaris-api polaris-reconciler
 
 Optionally, the same step configures the **Servidor** indicator in the header. Install Zabbix agent 2
 on the Polaris server (the wizard shows the commands with the saved Zabbix address), create a host
+with the displayed agent name (`polaris-server` when the name field is empty or invalid)
 in Zabbix with the **Linux by Zabbix agent** template and enter its technical host name. The wizard
 checks that the host exists and is enabled before saving it in the vault. When the exact name is not
 found, the message names the technical host name behind a matching visible name, a case mismatch or
@@ -296,7 +297,9 @@ The last wizard step asks for three things: a delivery seen in **Reports → Act
 incident in Polaris; the account's acknowledgement of the default scripts, read in a dialog on the same
 page (it is stored for the account and is not asked again on the dashboard while the scripts do not
 change); and a review of the actual target identity, sudo scope, network access and backup procedure.
-The reconciliation step follows the first cycle automatically; the interval only needs saving to change
+The reconciliation step keeps reading cycles every 10 seconds in steps 5 and 6, including after
+success and when returning to the browser tab; a failed read blocks completion until recovery.
+The interval only needs saving to change
 it. The original experiment results apply only to
 the frozen version; no new performance result is claimed by this installation feature.
 

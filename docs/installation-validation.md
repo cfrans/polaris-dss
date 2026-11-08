@@ -126,3 +126,18 @@ as operational. Notes from this run and their handling:
 Automated after these changes: 689 Python tests and 81 JavaScript tests in Linux containers;
 the changed screens were rendered with Chromium in a container. A new run on the virtual machines
 is the acceptance for the items above.
+
+## Third installation run — 8 November 2026
+
+The author reported that monitoring the Polaris server now works after correcting the Zabbix
+API user's permissions. The final wizard step and its account-bound script acknowledgement
+were completed. Two remaining defects were reported: an empty host-name field produced an
+invalid literal placeholder in the agent configuration; and the reconciliation step lost its
+verified state during final review, requiring the interval to be saved again.
+
+The command now uses `polaris-server` for an empty or invalid name and displays the effective
+name before the code. Reconciliation reads continue every 10 seconds during steps 5 and 6,
+including after success; failed reads block completion and the next successful read recovers it.
+Automated JavaScript regressions cover four minutes of final review, read failure/recovery,
+returning to the tab and safe agent names. The author closed installation rounds; these last
+fixes have automated validation, without a fourth full installation run on the virtual machines.

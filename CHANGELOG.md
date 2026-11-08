@@ -147,6 +147,12 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
   valores contra um Zabbix 7.0 real e comandos do agente em Ubuntu real **[NÃO VERIFICADO]**.
 
 ### Corrigido
+- Comandos do agente Zabbix na Etapa 5 usam `polaris-server` quando não há nome válido
+  informado e avisam o nome antes do código, evitando gravar um `Hostname` com `<...>`.
+- Etapas 5 e 6 continuam consultando a reconciliação a cada 10 segundos após o primeiro
+  sucesso; o ciclo em cache não expira enquanto um processo saudável continua respondendo.
+  Consulta indisponível bloqueia a conclusão e a próxima consulta pode recuperá-la sem
+  salvar o intervalo novamente. O retorno à aba também dispara a consulta.
 - Confirmações manuais do assistente eram descartadas ao reabrir depois de salvar o intervalo da
   reconciliação ou gerar a chave SSH: essas gravações trocavam a revisão do cofre sem avisar a
   página, que guardava as confirmações sob a revisão antiga. As respostas passam a devolver a

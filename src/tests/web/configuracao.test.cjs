@@ -126,7 +126,12 @@ test("agent commands use the saved Zabbix host and a validated host name", () =>
   const commands = agentCommands("http://172.30.57.17/zabbix/api_jsonrpc.php", "polaris-server");
   assert.match(commands, /Server=172\.30\.57\.17\//);
   assert.match(commands, /Hostname=polaris-server\//);
-  assert.match(agentCommands("", "nome com espaço; x"), /Server=<IP-do-Zabbix>.*Hostname=<nome-do-host>/s);
+  assert.match(agentCommands("", "nome com espaço; x"), /Server=<IP-do-Zabbix>.*Hostname=polaris-server/s);
+  for (const name of [undefined, "", "<nome-da-vm>", "x'; touch /tmp/owned"]) {
+    assert.match(agentCommands("http://10.0.0.2/zabbix", name), /Hostname=polaris-server\//);
+    assert.doesNotMatch(agentCommands("http://10.0.0.2/zabbix", name), /Hostname=<|touch/);
+  }
+  assert.match(agentCommands("http://10.0.0.2/zabbix", "vm-polaris"), /Hostname=vm-polaris\//);
 });
 
 test("webhook URL and Trigger action payload match the bundled integration", () => {

@@ -175,7 +175,7 @@ docker compose ps</code></pre></div>
             <p id="setup-server-message" class="setup-status" role="status"></p>
           </form>
           <details><summary>Instalar o agente no servidor Polaris (Ubuntu 24.04)</summary>
-            <p>No servidor Polaris, com uma conta administradora. O comando usa o Zabbix salvo na Etapa 3 e o nome informado acima.</p>
+            <p>No servidor Polaris, com uma conta administradora. O comando usa o Zabbix salvo na Etapa 3 e configura o agente com <code>Hostname=<span id="agent-host-name">polaris-server</span></code>. Sem um nome válido informado acima, usa <code>polaris-server</code>. Esse é o nome do agente e do cadastro no Zabbix; o nome do sistema operacional não é alterado.</p>
             <div class="command-block"><div><span>No servidor Polaris</span><button type="button" data-copy="agent-command" data-copy-message="Comandos copiados." aria-label="Copiar comandos do agente" title="Copiar"><svg class="icon" aria-hidden="true"><use href="icons.svg#copy"></use></svg></button></div><pre><code id="agent-command"></code></pre></div>
             <p>Depois, no Zabbix, crie o host com esse mesmo nome, uma interface de agente com o IP do servidor Polaris e o template <em>Linux by Zabbix agent</em>. A primeira coleta leva alguns minutos.</p>
             <a class="setup-help-link" href="https://www.zabbix.com/download?zabbix=7.0&amp;os_distribution=ubuntu&amp;os_version=24.04&amp;components=agent_2" target="_blank" rel="noopener noreferrer">Instruções oficiais do agente 2 <span aria-hidden="true">↗</span></a>

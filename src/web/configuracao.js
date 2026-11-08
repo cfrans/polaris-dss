@@ -9,6 +9,7 @@
   const SERVICE_USER = /^[a-z_][a-z0-9_-]{0,31}$/;
   const PUBLIC_KEY = /^(ssh-ed25519|ssh-rsa|ecdsa-sha2-nistp(256|384|521)) [A-Za-z0-9+/=]+( [^'\n\r]*)?$/;
   const AGENT_HOST = /^[A-Za-z0-9._-]{1,128}$/;
+  const DEFAULT_AGENT_HOST = "polaris-server";
   const ZABBIX_RELEASE = "zabbix-release_latest_7.0+ubuntu24.04_all.deb";
 
   function checkState(checks, ids) {
@@ -120,7 +121,7 @@
 
   function agentCommands(zabbixUrl, hostName) {
     const server = hostFromUrl(zabbixUrl) || "<IP-do-Zabbix>";
-    const name = AGENT_HOST.test(hostName || "") ? hostName : "<nome-do-host>";
+    const name = AGENT_HOST.test(hostName || "") ? hostName : DEFAULT_AGENT_HOST;
     return [
       `wget https://repo.zabbix.com/zabbix/7.0/ubuntu/pool/main/z/zabbix-release/${ZABBIX_RELEASE}`,
       `sudo dpkg -i ${ZABBIX_RELEASE}`,
@@ -186,6 +187,7 @@
     let snapshot = {};
     let current = 0;
     let refreshing = false;
+    let followingReconciliation = false;
     let savedZabbixUrl = "";
     const sources = {zabbix: "saved", ssh: "saved"};
     let generatedKey = false;
@@ -263,6 +265,8 @@
     function updateCommands() {
       $("target-command").textContent = targetCommands($("setup-ssh-user").value.trim(), $("setup-public-key").textContent);
       $("agent-command").textContent = agentCommands(savedZabbixUrl, $("setup-server-host").value.trim());
+      const host = $("setup-server-host").value.trim();
+      $("agent-host-name").textContent = AGENT_HOST.test(host) ? host : DEFAULT_AGENT_HOST;
       $("action-curl").textContent = actionCurl(savedZabbixUrl);
     }
 
@@ -316,18 +320,24 @@
           : "Em vigor: consultas pausadas. Informe um intervalo e salve para ativar.";
     }
 
-    /* A first cycle can finish after the page loaded; follow it instead of asking for a new save. */
+    /* Keep polling after success too: a cached cycle ages before the other checks expire. */
     async function followReconciliation() {
-      if (refreshing || document.hidden || $("setup-workspace").hidden || current < 4 || !snapshot.checkedAt) return;
-      if (navigationModel().checks.reconciliation === "ok") return;
+      if (refreshing || followingReconciliation || document.hidden || $("setup-workspace").hidden || current < 4 || !snapshot.checkedAt) return;
+      followingReconciliation = true;
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 10000);
       try {
-        const response = await fetch("api/v1/reconciliacao", {method: "GET", cache: "no-store"});
-        if (!response.ok) return;
+        const response = await fetch("api/v1/reconciliacao", {method: "GET", cache: "no-store", signal: controller.signal});
+        if (!response.ok) throw new Error("Consulta indisponível");
         snapshot.reconciliation = await response.json();
         if (Date.now() - snapshot.checkedAt >= MAX_AGE - AUTO_REFRESH_MARGIN) await refreshChecks();
         else render();
       } catch {
-        /* Próxima tentativa no intervalo seguinte. */
+        snapshot.reconciliation = null;
+        render();
+      } finally {
+        clearTimeout(timer);
+        followingReconciliation = false;
       }
     }
 
@@ -667,7 +677,7 @@
     document.querySelectorAll("[data-science-close]").forEach(button => button.addEventListener("click", () => $("setup-science").close()));
     setInterval(() => { render(); refreshIfStale(); }, 15000);
     setInterval(followReconciliation, 10000);
-    document.addEventListener("visibilitychange", () => { if (!document.hidden) { render(); refreshIfStale(); } });
+    document.addEventListener("visibilitychange", () => { if (!document.hidden) { render(); refreshIfStale(); followReconciliation(); } });
     show(0, false);
     render();
   }
