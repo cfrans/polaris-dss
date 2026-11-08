@@ -230,10 +230,13 @@ access must be checked in Zabbix too.
    example `polaris_url` with the URL reachable **from the Zabbix server**, ending in
    `/webhook/zabbix`; set `polaris_token` to the local `POLARIS_WEBHOOK_TOKEN`. Do not change
    the Media Type's event macros to literal values. No secrets belong in the versioned YAML.
-3. Add this media to the chosen Zabbix notification user, with an active period/severities
-   covering the events. Verify that the user has permission to receive the relevant events.
-4. Create an enabled **Trigger action** with a send-message operation to that user and Media
-   Type. Use custom expression `(A and B) or (C and D)`: A = tag name `polaris`; B = tag
+3. Add this media to the chosen Zabbix notification user (**Users → Users → Media → Add**):
+   *Type* `Polaris DSS`; *Send to* any identifier, for example `polaris` (Zabbix requires the field,
+   the webhook ignores it); *When active* `1-7,00:00-24:00`; all severities; enabled. Confirm with
+   **Add** and save the user with **Update**. Verify that the user has permission to receive the
+   relevant events.
+4. Create an enabled **Trigger action** with a *Send message* operation: *Send to users* that user
+   and *Send to media type* `Polaris DSS`. Use custom expression `(A and B) or (C and D)`: A = tag name `polaris`; B = tag
    `polaris` value `enabled`; C = template **Linux by Zabbix agent**; D = event name contains
    `Linux: High CPU utilization`. These correspond to the bundled templates, not arbitrary alerts.
    If Zabbix labels the conditions with other letters, keep the same combination. The wizard lists
@@ -276,8 +279,11 @@ docker compose up -d --build polaris-api polaris-reconciler
 Optionally, the same step configures the **Servidor** indicator in the header. Install Zabbix agent 2
 on the Polaris server (the wizard shows the commands with the saved Zabbix address), create a host
 in Zabbix with the **Linux by Zabbix agent** template and enter its technical host name. The wizard
-checks that the host exists and is enabled before saving it in the vault. This is display only and
-does not affect incidents or remediation.
+checks that the host exists and is enabled before saving it in the vault. When the exact name is not
+found, the message names the technical host name behind a matching visible name, a case mismatch or
+similar hosts readable by the Polaris API user; if none is readable, check that user's read permission
+on the host group. After installation, the same setting is under **Preferências → Servidor Polaris**
+(administrators). This is display only and does not affect incidents or remediation.
 
 Run the assistant check again; with the page open it is renewed automatically every five minutes.
 A recent successful reconciliation cycle verifies polling,
@@ -286,8 +292,12 @@ either. Final acceptance requires an administrator to check the Zabbix action lo
 known, authorized event to its Polaris incident. This guide does not inject incidents or approve
 remediation. Any controlled end-to-end exercise is a separate, explicitly operated procedure.
 
-Review **Scripts e ciência**, actual target identity, sudo scope, network access and backup
-procedure before approving any real incident. The original experiment results apply only to
+The last wizard step asks for three things: a delivery seen in **Reports → Action log** with its
+incident in Polaris; the account's acknowledgement of the default scripts, read in a dialog on the same
+page (it is stored for the account and is not asked again on the dashboard while the scripts do not
+change); and a review of the actual target identity, sudo scope, network access and backup procedure.
+The reconciliation step follows the first cycle automatically; the interval only needs saving to change
+it. The original experiment results apply only to
 the frozen version; no new performance result is claimed by this installation feature.
 
 ## Troubleshooting and updates

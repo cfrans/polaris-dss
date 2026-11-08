@@ -20,13 +20,15 @@
 
   function showSection() {
     const requested=location.hash.slice(1);
-    const allowed=['minha-conta','exibicao','operacao',...(user?.perfil==='admin'?['gestao-contas']:[])];
+    const allowed=['minha-conta','exibicao','operacao','sobre',...(user?.perfil==='admin'?['servidor','gestao-contas']:[])];
     const selected=allowed.includes(requested)?requested:'minha-conta';
     document.querySelectorAll('[data-settings-panel]').forEach(panel=>{panel.hidden=panel.id!==selected;});
     document.querySelectorAll('.settings-nav a').forEach(link=>{
       if(link.getAttribute('href')==='#'+selected) link.setAttribute('aria-current','page');
       else link.removeAttribute('aria-current');
     });
+    // Sections behave as tabs: the hash selects one, it does not scroll the page under the header.
+    window.scrollTo?.(0,0);
   }
 
   async function loadPreferences() {
@@ -77,6 +79,62 @@
         $('account-list').appendChild(row);
       }
     } catch(error) { $('list-message').textContent=error.message; }
+  }
+
+  /* Changelog text is shown as text; only `code` and **bold** markers become elements. */
+  function inlineText(target,text) {
+    for(const part of text.split(/(`[^`]+`|\*\*[^*]+\*\*)/)) {
+      if(!part) continue;
+      if(part.startsWith('`')&&part.endsWith('`')) { const el=document.createElement('code'); el.textContent=part.slice(1,-1); target.appendChild(el); }
+      else if(part.startsWith('**')&&part.endsWith('**')) { const el=document.createElement('strong'); el.textContent=part.slice(2,-2); target.appendChild(el); }
+      else target.appendChild(document.createTextNode(part));
+    }
+  }
+
+  async function loadAbout() {
+    try {
+      const response=await fetch('/api/v1/sobre',{cache:'no-store'});
+      if(!response.ok) throw new Error('consulta indisponível.');
+      const data=await response.json();
+      $('about-version').textContent='v'+data.version;
+      $('about-kb').textContent=data.knowledge_base?'v'+data.knowledge_base:'indisponível';
+      $('about-experiment').textContent=data.experiment_version;
+      $('about-license').textContent=data.license;
+      const groups=data.notes?.groups||[];
+      $('about-notes-status').textContent=groups.length
+        ? (data.notes.title.startsWith('[Não lançado]')?'Mudanças em desenvolvimento desde a versão avaliada no experimento.':data.notes.title)
+        : 'Notas desta versão indisponíveis nesta instalação. Consulte o histórico completo.';
+      const container=$('about-notes'); container.replaceChildren();
+      groups.forEach((group,index)=>{
+        const details=document.createElement('details'); details.open=index===0;
+        const summary=document.createElement('summary'); summary.textContent=`${group.name} (${group.items.length})`;
+        const list=document.createElement('ul');
+        for(const item of group.items) { const li=document.createElement('li'); inlineText(li,item); list.appendChild(li); }
+        details.append(summary,list); container.appendChild(details);
+      });
+    } catch(error) { $('about-notes-status').textContent='Não foi possível consultar: '+error.message; }
+  }
+
+  async function setup(path,body) {
+    const response=await fetch('/api/v1/instalacao/'+path,{method:body===undefined?'GET':'POST',cache:'no-store',
+      headers:{'Content-Type':'application/json','X-Polaris-Setup':'1'},...(body===undefined?{}:{body:JSON.stringify(body)})});
+    const data=await response.json().catch(()=>({}));
+    if(response.status===401) { location.href='/login.html?next=/preferencias.html%23servidor'; throw new Error('Entre novamente.'); }
+    if(!response.ok) throw new Error(data.mensagem||'Não foi possível concluir.');
+    return data;
+  }
+
+  async function loadServer() {
+    const form=$('server-form'), button=form.querySelector('button');
+    $('server-message').textContent='Consultando o host salvo e a coleta pelo Zabbix…';
+    try {
+      const data=await setup('servidor');
+      $('server-host').value=data.host||'';
+      button.disabled=!data.zabbix_saved;
+      $('server-message').textContent=!data.zabbix_saved?'Conecte o Zabbix na configuração inicial antes de indicar o host.'
+        :data.host?(data.state==='ok'?'CPU e memória chegam pelo Zabbix.':data.detail||'Aguardando coleta recente pelo agente do Zabbix.')
+        :'Indicador desligado.';
+    } catch(error) { $('server-message').textContent=error.message; }
   }
 
   document.addEventListener('DOMContentLoaded',async()=>{
@@ -161,7 +219,16 @@
       finally { $('save-preferences').disabled=false; $('preferences-fields').disabled=false; }
     });
 
+    void loadAbout();
     if(user.perfil==='admin') {
+      $('server-form').addEventListener('submit',async event=>{
+        event.preventDefault(); const button=$('server-form').querySelector('button'); button.disabled=true;
+        $('server-message').textContent='Verificando no Zabbix…';
+        try { const result=await setup('servidor',{host:$('server-host').value.trim()}); $('server-message').textContent=result.message; PolarisToast('Servidor atualizado.'); }
+        catch(error) { $('server-message').textContent=error.message; }
+        finally { button.disabled=false; }
+      });
+      void loadServer();
       const accountForm=$('account-form');
       accountForm.querySelector('button').disabled=false;
       accountForm.addEventListener('submit',async event=>{

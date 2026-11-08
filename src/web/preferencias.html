@@ -22,7 +22,9 @@
       <a href="#minha-conta" aria-current="page"><svg class="icon" aria-hidden="true"><use href="icons.svg#user"></use></svg><span>Minha conta<small>Identidade e acesso</small></span></a>
       <a href="#exibicao"><svg class="icon" aria-hidden="true"><use href="icons.svg#eye"></use></svg><span>Exibição<small>Conforto e navegação</small></span></a>
       <a href="#operacao"><svg class="icon" aria-hidden="true"><use href="icons.svg#sliders"></use></svg><span>Operação<small>Recomendações e histórico</small></span></a>
+      <a href="#servidor" data-admin hidden><svg class="icon" aria-hidden="true"><use href="icons.svg#server"></use></svg><span>Servidor Polaris<small>Monitoramento pelo Zabbix</small></span></a>
       <a href="#gestao-contas" data-admin hidden><svg class="icon" aria-hidden="true"><use href="icons.svg#users"></use></svg><span>Gestão de contas<small>Acessos à instalação</small></span></a>
+      <a href="#sobre"><svg class="icon" aria-hidden="true"><use href="icons.svg#info"></use></svg><span>Sobre o Polaris<small>Versão e novidades</small></span></a>
     </nav>
     <div class="settings-content">
       <section id="minha-conta" data-settings-panel aria-labelledby="account-title">
@@ -105,6 +107,26 @@
           <button id="retry-preferences" class="btn btn-secundario" type="button" hidden>Tentar carregar novamente</button>
         </form>
       </section>
+      <section id="servidor" data-settings-panel data-admin aria-labelledby="server-title" hidden>
+        <div class="settings-section-heading"><h2 id="server-title">Servidor Polaris</h2><p>O indicador <em>Servidor</em> do cabeçalho mostra CPU e memória do servidor Polaris lidas pelo Zabbix. Não afeta incidentes nem remediação.</p></div>
+        <div class="account-grid">
+          <section class="account-panel" aria-labelledby="server-host-title">
+            <h3 id="server-host-title">Host monitorado</h3>
+            <form id="server-form" class="auth-form" autocomplete="off">
+              <label for="server-host">Nome técnico do host no Zabbix (<em>Host name</em>)</label>
+              <input id="server-host" type="text" maxlength="128" placeholder="polaris-server" autocapitalize="none" spellcheck="false" pattern="[A-Za-z0-9 ._\-]*">
+              <p>Deixe em branco e salve para desligar o indicador. O nome é conferido no Zabbix antes de salvar.</p>
+              <button class="btn btn-primario" type="submit" disabled>Verificar e salvar</button>
+            </form><p id="server-message" class="settings-message" role="status"></p>
+          </section>
+          <section class="account-panel" aria-labelledby="server-help-title">
+            <h3 id="server-help-title">Antes de salvar</h3>
+            <p>Instale o agente do Zabbix no servidor Polaris e cadastre o host com o template <em>Linux by Zabbix agent</em>. Use o nome técnico, que aparece em <em>Data collection → Hosts</em>, na coluna <em>Name</em> ao editar o host, campo <em>Host name</em>.</p>
+            <p>O usuário da API configurado no Polaris precisa de permissão de leitura no grupo desse host.</p>
+            <p><a class="settings-link" href="configuracao.html">O comando de instalação do agente está na Etapa 5 da configuração inicial <span aria-hidden="true">↗</span></a></p>
+          </section>
+        </div>
+      </section>
       <section id="gestao-contas" data-settings-panel data-admin aria-labelledby="management-title" hidden>
         <div class="settings-section-heading"><h2 id="management-title">Gestão de contas</h2><p>Administre quem pode acessar esta instalação.</p></div>
         <div class="account-grid">
@@ -119,6 +141,21 @@
           </section>
           <section class="account-panel" aria-labelledby="list-title"><h3 id="list-title">Contas da instalação</h3><p>Desativar impede novos acessos e encerra as sessões da conta. O histórico de decisões é preservado.</p><div id="account-list" class="account-list"></div><p id="list-message" class="settings-message" role="status"></p></section>
         </div>
+      </section>
+      <section id="sobre" data-settings-panel aria-labelledby="about-title" hidden>
+        <div class="settings-section-heading about-heading"><img src="polaris-mark.svg" alt="" width="56" height="56"><div><h2 id="about-title">Polaris DSS</h2><p>Sistema semiautomático de suporte à decisão para remediação de incidentes, com aprovação humana obrigatória.</p></div></div>
+        <dl class="about-facts">
+          <div><dt>Versão</dt><dd id="about-version">—</dd></div>
+          <div><dt>Base de conhecimento</dt><dd id="about-kb">—</dd></div>
+          <div><dt>Versão avaliada no experimento</dt><dd id="about-experiment">—</dd></div>
+          <div><dt>Licença</dt><dd id="about-license">—</dd></div>
+        </dl>
+        <div class="about-links"><a id="about-repository" class="btn btn-secundario" href="https://github.com/cfrans/polaris-dss" target="_blank" rel="noopener noreferrer">Código no GitHub <span aria-hidden="true">↗</span></a><a id="about-docs" class="btn btn-secundario" href="https://github.com/cfrans/polaris-dss/tree/main/docs" target="_blank" rel="noopener noreferrer">Documentação <span aria-hidden="true">↗</span></a><a id="about-changelog" class="btn btn-secundario" href="https://github.com/cfrans/polaris-dss/blob/main/CHANGELOG.md" target="_blank" rel="noopener noreferrer">Histórico completo <span aria-hidden="true">↗</span></a></div>
+        <section class="about-notes" aria-labelledby="about-notes-title">
+          <h3 id="about-notes-title">Novidades desta versão</h3>
+          <p id="about-notes-status" class="settings-message" role="status">Carregando…</p>
+          <div id="about-notes"></div>
+        </section>
       </section>
     </div>
   </div>

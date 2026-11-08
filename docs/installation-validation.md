@@ -94,7 +94,35 @@ Rendered locally with Chromium in a container against a disposable database: the
 the pairing form and a paired login over a non-loopback HTTP address; the two-column first
 administrator form, its redirect to the wizard and every wizard step at desktop and phone widths.
 
-Not yet verified outside these containers: pairing and the tunnel command between two real
+Not yet verified outside these containers at that date: pairing and the tunnel command between two real
 machines; the `/zabbix` fallback, the Trigger action values and `action.create` JSON against a
 real Zabbix 7.0; the agent 2 commands on a real Ubuntu 24.04 server. The next clean-installation
 run by the author is the acceptance for these items.
+
+## Second clean-installation run — 7 November 2026
+
+The author repeated the installation on the three Hyper-V virtual machines with the 6 November
+version, using HTTP pairing from another machine on the laboratory network. Pairing, first
+administrator, the six wizard steps, the `/zabbix` endpoint fallback, the SSH key and target identity
+and the reconciliation reached a verified state; the header showed Zabbix, database and reconciliation
+as operational. Notes from this run and their handling:
+
+- Step 3 lacked the *Send to* field of the recipient media, did not make the `polaris_token`
+  paste visible enough and named the action operation *Send only to* instead of *Send to media
+  type*: all three are now spelled out.
+- Step 5 did not find the server host typed by the author, with the generic "host not found"
+  message. The cause was not established; the message now distinguishes visible name, letter case,
+  similar hosts and missing read permission. **[NÃO VERIFICADO]** against the author's Zabbix.
+- Step 6 left unclear where the delivery check is made and what the script review meant, and the
+  dashboard asked for the script acknowledgement right after the wizard. Step 6 now explains the
+  Action log and records the acknowledgement in a dialog.
+- The reconciliation step stayed pending until the interval was saved again; it now follows the
+  first cycle by itself.
+- The diagnostic table showed expected empty values (user/password with token access, optional
+  host) as "não definido"; it now explains them and shows each value's origin.
+- An administrator setting for the server host outside the wizard and an About section with
+  version, links and release notes were added to **Preferências**.
+
+Automated after these changes: 689 Python tests and 81 JavaScript tests in Linux containers;
+the changed screens were rendered with Chromium in a container. A new run on the virtual machines
+is the acceptance for the items above.

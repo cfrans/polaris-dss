@@ -22,6 +22,7 @@ from . import auth
 from .auth_routes import router as auth_router
 from .display_preferences import router as display_router
 from .audit_routes import router as audit_router
+from .about_routes import router as about_router
 
 from ..engine.config import get_settings
 from ..engine.confidence import load_config
@@ -164,6 +165,7 @@ app.include_router(setup_router)
 app.include_router(auth_router)
 app.include_router(display_router)
 app.include_router(audit_router)
+app.include_router(about_router)
 
 # Montado por último: uma montagem em "/" captura tudo o que não casou com as rotas acima.
 app.mount("/", FreshStaticFiles(directory=WEB, html=True), name="web")

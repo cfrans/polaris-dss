@@ -774,6 +774,7 @@ button:disabled, input:disabled, [aria-disabled="true"] { cursor: not-allowed; }
 }
 .diag-config .vazio-valor { color: var(--texto-suave); font-style: italic; }
 .diag-config .mascarado { color: var(--media); }
+.diag-config .diag-origem { color: var(--texto-suave); font-size: 0.8rem; white-space: nowrap; }
 
 /* ---------- reconciliação ---------- */
 

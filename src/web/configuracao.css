@@ -126,8 +126,22 @@
 .setup-footer { display: flex; align-items: center; justify-content: space-between; gap: .7rem; border-top: 1px solid var(--borda); padding: 1rem 1.5rem; }
 .setup-footer span { color: var(--texto-suave); font-size: .8rem; }
 .setup-body :focus-visible { outline: 2px solid #8bb8ff; outline-offset: 4px; }
+.setup-token-paste { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-top: .75rem; padding: .85rem 1rem; border: 1px solid #e5c78066; border-left: 3px solid #e5c780; border-radius: 0 8px 8px 0; background: #e5c7800d; color: #dfe7f3; }
+.setup-token-paste p { margin-top: .3rem; color: var(--texto-suave); font-size: .8rem; }
+.setup-token-paste .btn { flex-shrink: 0; }
+.setup-review > p { color: #bdc9dc; font-size: .88rem; margin-top: .6rem; }
+.setup-review > p.setup-note { color: var(--texto-suave); font-size: .8rem; }
+.setup-review .setup-substep:first-child { margin-top: 0; padding-top: 0; border-top: 0; }
+.setup-review .setup-substep { margin-top: 1.5rem; }
+.setup-science-row { display: flex; flex-wrap: wrap; align-items: center; gap: .6rem 1rem; margin-top: .8rem; }
+.setup-science-dialog { width: min(960px, calc(100vw - 32px)); max-height: calc(100vh - 32px); margin: auto; padding: 0; border: 0; background: transparent; color: var(--texto); }
+.setup-science-dialog::backdrop { background: rgba(6, 10, 17, 0.9); }
+.setup-science-dialog .ciencia-cartao { width: 100%; }
+.setup-science-heading { display: flex; align-items: start; justify-content: space-between; gap: 1rem; }
+.setup-science-dialog .ciencia-acoes { justify-content: flex-end; }
+.setup-science-dialog .setup-status[hidden] { display: none; }
 
-@media (max-width: 950px) { .setup-workspace { grid-template-columns: 220px minmax(0, 1fr); gap: 1rem; } .setup-content { padding: 1.5rem; } .setup-checkbar { flex-direction: column; align-items: start; } .setup-requirements div, .setup-values div { grid-template-columns: 1fr; gap: .3rem; } }
+@media (max-width: 950px) { .setup-workspace { grid-template-columns: 220px minmax(0, 1fr); gap: 1rem; } .setup-content { padding: 1.5rem; } .setup-checkbar { flex-direction: column; align-items: start; } .setup-requirements div, .setup-values div { grid-template-columns: 1fr; gap: .3rem; } .setup-token-paste { flex-direction: column; align-items: start; } }
 @media (max-width: 680px) {
   .setup-page { padding: 1.5rem 1rem 2rem; }
   .setup-heading { display: block; }

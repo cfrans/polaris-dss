@@ -8,6 +8,12 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 ## [Não lançado]
 
 ### Adicionado
+- Seção **Sobre o Polaris** em Preferências (também no menu de ferramentas): versão, base de
+  conhecimento, versão avaliada no experimento, licença, links para código, documentação e
+  histórico, e as notas desta versão lidas do `CHANGELOG.md`, que passa a entrar na imagem
+  (`GET /api/v1/sobre`, autenticado).
+- Seção **Servidor Polaris** em Preferências para administradores: o host do indicador de CPU e
+  memória pode ser consultado e alterado fora do assistente (`GET /api/v1/instalacao/servidor`).
 - Acesso pela rede sem túnel manual, opcional e restrito a laboratório isolado:
   `POLARIS_PAREAMENTO_HTTP=true` faz o navegador que abre o Polaris por HTTP em outro endereço
   pedir um código de pareamento gerado no terminal do servidor (`python -m src.engine.pairing`).
@@ -60,6 +66,17 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
   migrações idempotentes e downloads idênticos ao checkout; limites externos documentados.
 
 ### Modificado
+- Assistente, a partir da segunda instalação limpa em VMs (07/Nov): a Etapa 3 detalha a mídia do
+  destinatário (*Send to*, período, severidades e o *Update* do usuário), destaca o `polaris_token`
+  com botão de cópia e usa *Send to media type* na operação da ação. A Etapa 5 mostra o intervalo
+  em vigor e acompanha sozinha o primeiro ciclo da reconciliação, sem exigir novo salvamento. A
+  Etapa 6 explica onde conferir a entrega (*Reports → Action log*) e registra a ciência dos scripts
+  num diálogo na própria página; a conclusão exige a ciência da conta, e o painel não volta a
+  pedi-la. Ao não encontrar o host do servidor, a mensagem aponta nome visível, diferença de
+  maiúsculas, hosts parecidos ou falta de permissão de leitura (consultas somente `host.get`).
+- Diagnóstico: a configuração em vigor informa a origem de cada valor (assistente, `.env` ou
+  padrão) e explica vazios esperados, como usuário e senha do Zabbix com acesso por token, host do
+  servidor opcional e chave SSH guardada no cofre.
 - Base visual comum às telas: o botão principal (`btn-primario`) passa a ter estilo global, em
   vez de aparecer com o fundo claro padrão do navegador no login e no assistente; campos de senha
   e sem tipo recebem o mesmo estilo dos demais; controles nativos usam o esquema escuro em todas

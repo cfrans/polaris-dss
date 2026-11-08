@@ -208,3 +208,10 @@ def test_decision_uses_server_identity_and_science_does_not_approve(access,appro
     record=conn.execute('SELECT * FROM audit_log WHERE id=%s',(incident,)).fetchone()
     assert record['operador']=='admin-test'
     assert record['decisao_humana'] is approved
+
+
+def test_about_requires_a_signed_in_account(access):
+    client,conn,code,password=access
+    assert client.get('/api/v1/sobre').status_code==401
+    bootstrap(access)
+    assert client.get('/api/v1/sobre').json()['version']

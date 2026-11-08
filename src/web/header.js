@@ -58,6 +58,7 @@
             <a href="preferencias.html"><svg class="icon" aria-hidden="true"><use href="icons.svg#sliders"></use></svg>Preferências</a>
             <button id="btn-scripts" type="button"><svg class="icon" aria-hidden="true"><use href="icons.svg#code"></use></svg>Scripts e ciência</button>
             <a href="laboratorio.html"><svg class="icon" aria-hidden="true"><use href="icons.svg#lab"></use></svg>Laboratório de ensaios</a>
+            <a href="preferencias.html#sobre"><svg class="icon" aria-hidden="true"><use href="icons.svg#info"></use></svg>Sobre o Polaris</a>
             <button id="btn-simular" class="oculto" type="button"><svg class="icon" aria-hidden="true"><use href="icons.svg#play"></use></svg>Simular incidente</button>
           </nav>
         </div>

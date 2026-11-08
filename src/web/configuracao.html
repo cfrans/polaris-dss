@@ -11,6 +11,7 @@
   <script src="session.js" defer></script>
   <script src="toast.js" defer></script>
   <script src="copy.js" defer></script>
+  <script src="script-viewer.js" defer></script>
   <script src="configuracao.js" defer></script>
 </head>
 <body class="setup-body" data-secondary-header>
@@ -91,10 +92,19 @@ docker compose exec -T polaris-api python -m src.db.migrate --status</code></pre
           <ol class="setup-guide">
             <li><strong>Template.</strong> Em <em>Data collection → Templates → Import</em>, importe o template complementar e vincule-o, junto ao <em>Linux by Zabbix agent</em>, aos hosts pretendidos.
               <div class="setup-links"><a class="setup-download" href="api/v1/instalacao/arquivos/template" download>Baixar template Linux</a><a class="setup-help-link" href="https://www.zabbix.com/documentation/7.0/en/manual/xml_export_import/templates" target="_blank" rel="noopener noreferrer">Como importar templates <span aria-hidden="true">↗</span></a></div></li>
-            <li><strong>Media Type.</strong> Em <em>Alerts → Media types → Import</em>, importe o arquivo. Em <code>polaris_url</code>, use o endereço do Polaris visto pelo servidor Zabbix; em <code>polaris_token</code>, o token de recepção acima.
-              <div class="command-block"><div><span>polaris_url</span><button type="button" data-copy="webhook-url" data-copy-message="Endereço copiado." aria-label="Copiar endereço do webhook" title="Copiar"><svg class="icon" aria-hidden="true"><use href="icons.svg#copy"></use></svg></button></div><pre><code id="webhook-url">http://IP-do-servidor-Polaris:8000/webhook/zabbix</code></pre></div>
+            <li><strong>Media Type.</strong> Em <em>Alerts → Media types → Import</em>, importe o arquivo. Depois abra o Media Type <em>Polaris DSS</em> e, em <em>Parameters</em>, preencha os dois valores abaixo.
+              <div class="command-block"><div><span>polaris_url — endereço do Polaris visto pelo servidor Zabbix</span><button type="button" data-copy="webhook-url" data-copy-message="Endereço copiado." aria-label="Copiar endereço do webhook" title="Copiar"><svg class="icon" aria-hidden="true"><use href="icons.svg#copy"></use></svg></button></div><pre><code id="webhook-url">http://IP-do-servidor-Polaris:8000/webhook/zabbix</code></pre></div>
+              <div class="setup-token-paste"><div><strong>polaris_token</strong> — cole o mesmo valor do campo <em>Token para receber eventos</em>, acima.<p>Se você gerou um token agora, copie-o antes de salvar a conexão: depois ele fica mascarado. Se manteve o token salvo, o Media Type continua com o valor anterior.</p></div><button class="btn btn-secundario" type="button" data-copy-field="setup-webhook-token" data-copy-message="Token copiado. Cole em polaris_token." aria-label="Copiar o token de recepção para colar em polaris_token"><svg class="icon" aria-hidden="true"><use href="icons.svg#copy"></use></svg>Copiar token</button></div>
               <div class="setup-links"><a class="setup-download" href="api/v1/instalacao/arquivos/media-type" download>Baixar Media Type</a><a class="setup-help-link" href="https://www.zabbix.com/documentation/7.0/en/manual/xml_export_import/media" target="_blank" rel="noopener noreferrer">Como importar Media Types <span aria-hidden="true">↗</span></a></div></li>
-            <li><strong>Destinatário.</strong> Em <em>Users → Users</em>, abra o usuário que receberá os eventos e adicione a mídia <em>Polaris DSS</em> na aba <em>Media</em>, com período e severidades que cubram os eventos.</li>
+            <li><strong>Destinatário.</strong> Em <em>Users → Users</em>, abra o usuário que receberá os eventos (pode ser o próprio administrador) e, na aba <em>Media</em>, clique em <em>Add</em>:
+              <dl class="setup-values">
+                <div><dt><em>Type</em></dt><dd><span><em>Polaris DSS</em></span></dd></div>
+                <div><dt><em>Send to</em> · obrigatório no Zabbix, ignorado pelo Polaris</dt><dd><code id="media-send-to">polaris</code><button type="button" class="icon-button" data-copy="media-send-to" data-copy-message="Valor copiado." aria-label="Copiar valor de Send to" title="Copiar"><svg class="icon" aria-hidden="true"><use href="icons.svg#copy"></use></svg></button></dd></div>
+                <div><dt><em>When active</em></dt><dd><code id="media-when">1-7,00:00-24:00</code><button type="button" class="icon-button" data-copy="media-when" data-copy-message="Valor copiado." aria-label="Copiar período" title="Copiar"><svg class="icon" aria-hidden="true"><use href="icons.svg#copy"></use></svg></button></dd></div>
+                <div><dt><em>Use if severity</em></dt><dd><span>todas marcadas</span></dd></div>
+                <div><dt><em>Enabled</em></dt><dd><span>marcado</span></dd></div>
+              </dl>
+              <p class="setup-note">Confirme com <em>Add</em> e salve o usuário com <em>Update</em>; sem o <em>Update</em>, a mídia não é gravada.</p></li>
             <li><strong>Trigger action.</strong> Crie a ação que envia os eventos ao Polaris. Os valores estão prontos para copiar abaixo.
               <details class="setup-action-guide"><summary>Valores da Trigger action</summary>
                 <p>Em <em>Alerts → Actions → Trigger actions → Create action</em>, preencha:</p>
@@ -105,7 +115,7 @@ docker compose exec -T polaris-api python -m src.db.migrate --status</code></pre
                   <div><dt>Condição <em>Template</em> · equals</dt><dd><code id="action-template">Linux by Zabbix agent</code><button type="button" class="icon-button" data-copy="action-template" data-copy-message="Valor copiado." aria-label="Copiar nome do template" title="Copiar"><svg class="icon" aria-hidden="true"><use href="icons.svg#copy"></use></svg></button></dd></div>
                   <div><dt>Condição <em>Event name</em> · contains</dt><dd><code id="action-event">Linux: High CPU utilization</code><button type="button" class="icon-button" data-copy="action-event" data-copy-message="Valor copiado." aria-label="Copiar nome do evento" title="Copiar"><svg class="icon" aria-hidden="true"><use href="icons.svg#copy"></use></svg></button></dd></div>
                   <div><dt>Type of calculation · Custom expression</dt><dd><code id="action-formula">(A and B) or (C and D)</code><button type="button" class="icon-button" data-copy="action-formula" data-copy-message="Expressão copiada." aria-label="Copiar expressão" title="Copiar"><svg class="icon" aria-hidden="true"><use href="icons.svg#copy"></use></svg></button></dd></div>
-                  <div><dt>Operations · Send message</dt><dd><span>Send to users: o destinatário do passo anterior · Send only to: <em>Polaris DSS</em></span></dd></div>
+                  <div><dt>Operations · <em>Send message</em></dt><dd><span><em>Send to users</em>: o destinatário do passo anterior · <em>Send to media type</em>: <em>Polaris DSS</em></span></dd></div>
                 </dl>
                 <p class="setup-note">A expressão combina (tag name <strong>e</strong> tag value) <strong>ou</strong> (template <strong>e</strong> event name). Se o Zabbix mostrar outras letras ao lado das condições, use as letras exibidas por ele mantendo essa combinação.</p>
                 <details class="setup-api-alternative"><summary>Prefere criar pela API do Zabbix?</summary>
@@ -153,7 +163,7 @@ docker compose exec -T polaris-api python -m src.db.migrate --status</code></pre
           <p class="setup-lead">O processo separado consulta o Zabbix e recupera eventos que não chegaram pela notificação.</p>
           <div class="command-block"><div><span>No servidor Polaris</span><button type="button" data-copy="reconcile-command" data-copy-message="Comando copiado." aria-label="Copiar comando" title="Copiar"><svg class="icon" aria-hidden="true"><use href="icons.svg#copy"></use></svg></button></div><pre><code id="reconcile-command">docker compose up -d polaris-reconciler
 docker compose ps</code></pre></div>
-          <form id="setup-polling-form" class="setup-form"><label for="setup-polling-interval">Consultar eventos a cada (segundos)</label><div class="setup-inline"><input id="setup-polling-interval" type="number" value="30" min="0" max="3600" required><button class="btn btn-primario" type="submit">Salvar intervalo</button></div><p class="setup-note">Use 5 a 3600 segundos para ativar ou zero para pausar as consultas. A etapa só avança após um ciclo ativo verificado.</p><p id="setup-polling-message" class="setup-status" role="status">O processo separado precisa estar em execução no servidor.</p></form>
+          <form id="setup-polling-form" class="setup-form"><label for="setup-polling-interval">Consultar eventos a cada (segundos)</label><div class="setup-inline"><input id="setup-polling-interval" type="number" value="30" min="0" max="3600" required><button class="btn btn-primario" type="submit">Salvar intervalo</button></div><p id="setup-polling-current" class="setup-note"></p><p class="setup-note">Use 5 a 3600 segundos para ativar ou zero para pausar as consultas. A etapa avança sozinha quando um ciclo recente da reconciliação for concluído; não é preciso salvar de novo.</p><p id="setup-polling-message" class="setup-status" role="status">O processo separado precisa estar em execução no servidor.</p></form>
           <div class="setup-result" data-result="reconciliation" role="status">Nenhum ciclo de reconciliação conferido nesta visita.</div>
           <p class="setup-note">Conexões salvas pelo assistente são lidas pelos dois processos, sem recriar containers. Alterações no arquivo <code>.env</code> ainda exigem <code>docker compose up -d --build polaris-api polaris-reconciler</code>.</p>
           <h3 class="setup-subtitle">Monitorar o próprio servidor <span class="setup-optional">opcional</span></h3>
@@ -161,7 +171,7 @@ docker compose ps</code></pre></div>
           <form id="setup-server-form" class="setup-form" autocomplete="off">
             <label for="setup-server-host">Nome técnico do host no Zabbix (<em>Host name</em>)</label>
             <div class="setup-inline"><input id="setup-server-host" type="text" maxlength="128" placeholder="polaris-server" autocapitalize="none" spellcheck="false"><button class="btn btn-primario" type="submit">Verificar e salvar</button></div>
-            <p class="setup-note">Deixe em branco e salve para desligar o indicador. Não afeta incidentes nem remediação.</p>
+            <p class="setup-note">Deixe em branco e salve para desligar o indicador. Não afeta incidentes nem remediação. Depois da instalação, o host também pode ser alterado em <a class="setup-help-link" href="preferencias.html#servidor">Preferências → Servidor Polaris</a>.</p>
             <p id="setup-server-message" class="setup-status" role="status"></p>
           </form>
           <details><summary>Instalar o agente no servidor Polaris (Ubuntu 24.04)</summary>
@@ -174,8 +184,18 @@ docker compose ps</code></pre></div>
         <section data-panel="5" aria-labelledby="step-title-5">
           <p class="setup-position">Etapa 6 de 6</p><h2 id="step-title-5" tabindex="-1">Revise antes de operar</h2>
           <p class="setup-lead">As conexões são parte do caminho. A entrega do evento e os limites de acesso também precisam da sua conferência.</p>
-          <label class="setup-confirm"><input type="checkbox" data-confirm="delivery"><span>Conferi no registro da Action um evento autorizado e seu incidente correspondente no Polaris.</span></label>
-          <label class="setup-confirm"><input type="checkbox" data-confirm="review"><span>Revisei Scripts e ciência, o alvo, as permissões, o acesso de rede e o procedimento de backup.</span></label>
+          <div class="setup-review">
+            <h3 class="setup-substep"><span>1</span>Veja um evento chegar</h3>
+            <p>No Zabbix, em <em>Reports → Action log</em>, cada envio da ação <em>Polaris DSS — encaminhar eventos</em> aparece com o destinatário, o Media Type <em>Polaris DSS</em> e o status <em>Sent</em> (ou <em>Failed</em>, com o motivo). O mesmo evento deve aparecer no painel do Polaris, em <em>Registros recentes</em>.</p>
+            <p class="setup-note">Ainda sem alerta? Em um alvo de teste, pare o nginx com <code>sudo systemctl stop nginx</code>, aguarde o incidente e inicie-o de novo.</p>
+            <div class="setup-links"><a class="setup-help-link" href="./" target="_blank" rel="noopener">Abrir o painel em outra aba <span aria-hidden="true">↗</span></a><a class="setup-help-link" href="https://www.zabbix.com/documentation/7.0/en/manual/web_interface/frontend_sections/reports/action_log" target="_blank" rel="noopener noreferrer">Como ler o Action log <span aria-hidden="true">↗</span></a></div>
+            <label class="setup-confirm"><input type="checkbox" data-confirm="delivery"><span>Vi o envio no Action log e o incidente correspondente no Polaris.</span></label>
+            <h3 class="setup-substep"><span>2</span>Conheça os scripts</h3>
+            <p>Após cada aprovação, o Polaris envia por SSH um script padrão ao alvo. Leia o conteúdo e registre sua ciência: ela fica na sua conta e não volta a ser pedida no painel enquanto os scripts não mudarem.</p>
+            <div class="setup-science-row"><button id="setup-science-open" class="btn btn-secundario" type="button"><svg class="icon" aria-hidden="true"><use href="icons.svg#code"></use></svg>Ler os scripts e registrar ciência</button><p id="setup-science-status" class="setup-status" role="status">Consultando sua ciência…</p></div>
+            <h3 class="setup-substep"><span>3</span>Confira os limites</h3>
+            <label class="setup-confirm"><input type="checkbox" data-confirm="review"><span>Revisei o alvo, as permissões da conta de serviço, o acesso de rede e o procedimento de backup.</span></label>
+          </div>
           <div class="setup-callout"><strong>Aprovação continua sendo por incidente.</strong><p>Concluir estas etapas não aprova ações nem inicia testes. Qualquer exercício com falha controlada deve ser conduzido separadamente pelo responsável.</p></div>
           <div id="setup-summary" class="setup-summary" role="status">Ainda há etapas a conferir. Você pode voltar a qualquer uma delas.</div>
           <p class="setup-note">As credenciais são salvas com cifra no servidor. As confirmações manuais não substituem testes e não certificam uma instalação de produção.</p>
@@ -184,6 +204,17 @@ docker compose ps</code></pre></div>
       <footer class="setup-footer"><button id="setup-previous" class="btn btn-secundario" type="button" disabled>Anterior</button><span id="setup-position-label">Etapa 1 de 6</span><button id="setup-next" class="btn btn-primario" type="button">Continuar</button></footer>
     </div>
   </div>
+  <dialog id="setup-science" class="setup-science-dialog" aria-labelledby="science-title">
+    <div class="ciencia-cartao">
+      <div class="setup-science-heading"><h2 id="science-title">Conheça os scripts padrão do Polaris</h2><button class="icon-button" type="button" data-science-close aria-label="Fechar sem registrar" title="Fechar"><svg class="icon" aria-hidden="true"><use href="icons.svg#close"></use></svg></button></div>
+      <p>Após sua aprovação em um incidente, o Polaris pode enviar um destes scripts por SSH para execução no alvo. As ações de remediação podem usar privilégios de administrador. Esta ciência é registrada na sua conta para a versão atual dos scripts e não aprova incidentes.</p>
+      <div class="ciencia-navegacao"><button id="science-previous" class="btn btn-secundario" type="button" aria-label="Script anterior">←</button><strong id="science-name">Carregando scripts…</strong><span id="science-count" class="ciencia-contador"></span><button id="science-next" class="btn btn-secundario" type="button" aria-label="Próximo script">→</button></div>
+      <p id="science-purpose" class="setup-note"></p>
+      <pre id="science-code" class="ciencia-codigo" tabindex="0" aria-label="Código integral do script"></pre>
+      <p id="science-error" class="setup-status" data-state="falha" role="alert" hidden></p>
+      <div class="ciencia-acoes"><button class="btn btn-secundario" type="button" data-science-close>Fechar</button><button id="science-confirm" class="btn btn-primario" type="button" disabled>Estou ciente dos scripts</button></div>
+    </div>
+  </dialog>
   <noscript><p>Ative JavaScript para navegar pelas etapas e consultar as conexões. O guia completo pode ser baixado pelo link no início da página.</p></noscript>
 </main>
 <script src="ui.js"></script>

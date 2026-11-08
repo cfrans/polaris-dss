@@ -325,3 +325,41 @@ def test_ssh_test_times_out_when_peer_never_reports_exit_status(monkeypatch):
     with pytest.raises(TimeoutError):
         connections.test_ssh("192.0.2.1", "polaris", "", "192.0.2.1 " + public, "/unused")
     assert closed == [True]
+
+
+def test_missing_server_host_explains_visible_name_case_and_permissions(setup_client, monkeypatch):
+    client, vault, _ = setup_client
+    similar = []
+    calls = []
+    class Zabbix:
+        def __init__(self, **kwargs): pass
+        def _chamar(self, method, params):
+            calls.append((method, params))
+            return [] if "filter" in params else similar
+    monkeypatch.setattr("src.api.setup_configuration.ZabbixClient", Zabbix)
+    vault.update(lambda data: data.update(validation={"zabbix": {"at": time.time()}}))
+    def message(name):
+        response = client.post("/api/v1/instalacao/servidor", json={"host": name}, headers=HEADERS)
+        assert response.status_code == 422
+        return response.json()["mensagem"]
+    assert "permissão de leitura" in message("polaris-server")
+    similar[:] = [{"host": "vm-polaris", "name": "Polaris Server"}]
+    assert "Use o nome técnico (Host name): vm-polaris" in message("Polaris Server")
+    similar[:] = [{"host": "VM-Polaris", "name": "VM-Polaris"}]
+    assert "Use exatamente: VM-Polaris" in message("vm-polaris")
+    similar[:] = [{"host": "polaris-a", "name": "a"}, {"host": "polaris-b", "name": "b"}]
+    assert "polaris-a, polaris-b" in message("polaris")
+    # Lookups are reads only: no create, update or delete method is ever called.
+    assert {method for method, _ in calls} == {"host.get"}
+    assert get_settings().polaris_zabbix_host == ""
+
+
+def test_server_host_status_reports_saved_host_without_secrets(setup_client, monkeypatch):
+    client, vault, _ = setup_client
+    monkeypatch.setattr("src.engine.server_metrics.get_server_metrics", lambda: {"estado": "sem_dados", "detalhe": "aguardando"})
+    data = client.get("/api/v1/instalacao/servidor").json()
+    assert data == {"host": "", "zabbix_saved": False, "state": "sem_dados", "detail": "aguardando"}
+    vault.update(lambda current: (current["settings"].update(polaris_zabbix_host="polaris-server"),
+                                  current.update(validation={"zabbix": {"at": time.time()}})))
+    data = client.get("/api/v1/instalacao/servidor").json()
+    assert data["host"] == "polaris-server" and data["zabbix_saved"] is True

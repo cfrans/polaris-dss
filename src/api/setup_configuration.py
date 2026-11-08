@@ -287,6 +287,36 @@ def configure_polling(body: PollingInput, session=Depends(authorize)):
             "message": "Intervalo salvo. O processo de reconciliação aplica a alteração no próximo ciclo."}
 
 
+def missing_host_message(client, name):
+    """Explain a failed exact lookup with the hosts this API user can read (read-only host.get)."""
+    try:
+        similar = client._chamar("host.get", {"output": ["host", "name"], "search": {"host": name, "name": name},
+                                              "searchByAny": True, "sortfield": "host", "limit": 5}) or []
+    except Exception:
+        similar = []
+    for host in similar:
+        if host.get("name") == name and host.get("host") != name:
+            return f"“{name}” é o nome visível. Use o nome técnico (Host name): {host.get('host')}."
+        if str(host.get("host", "")).lower() == name.lower():
+            return f"O nome técnico diferencia maiúsculas de minúsculas. Use exatamente: {host.get('host')}."
+    if similar:
+        names = ", ".join(str(host.get("host")) for host in similar)
+        return f"Host não encontrado com esse nome técnico. Hosts parecidos visíveis para o Polaris: {names}."
+    return ("Nenhum host com esse nome está visível para o usuário da API do Zabbix. Confira o nome técnico em "
+            "Data collection → Hosts e se o usuário do token tem permissão de leitura no grupo desse host.")
+
+
+@router.get("/servidor")
+def server_host_status(response: Response, session=Depends(authorize)):
+    """Current monitored host for the header indicator; read-only."""
+    from ..engine.server_metrics import get_server_metrics
+    response.headers["Cache-Control"] = "no-store"
+    data = vault_for_request().read()
+    metrics = get_server_metrics()
+    return {"host": get_settings().polaris_zabbix_host, "zabbix_saved": bool(data.get("validation", {}).get("zabbix")),
+            "state": metrics["estado"], "detail": metrics.get("detalhe", "")}
+
+
 @router.post("/servidor")
 def configure_server_host(body: ServerHostInput, session=Depends(authorize)):
     """Save the Zabbix host that monitors the Polaris server; display only, no remediation effect."""
@@ -306,7 +336,7 @@ def configure_server_host(body: ServerHostInput, session=Depends(authorize)):
         except Exception:
             raise HTTPException(422, "Não foi possível consultar o Zabbix. Confira a conexão salva na Etapa 3.") from None
         if len(hosts) != 1 or hosts[0].get("host") != name:
-            raise HTTPException(422, "Host não encontrado no Zabbix. Use o nome técnico (Host name), não o nome visível.")
+            raise HTTPException(422, missing_host_message(client, name))
         if str(hosts[0].get("status")) != "0":
             raise HTTPException(422, "O host existe, mas está desativado no Zabbix.")
     try:

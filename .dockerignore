@@ -41,6 +41,4 @@ experiment/analysis/
 .DS_Store
 Thumbs.db
 
-# Documentação que não é necessária em runtime
-CHANGELOG.md
-LICENSE
+# CHANGELOG.md e LICENSE entram na imagem: a seção Sobre exibe as notas da versão.

@@ -17,10 +17,11 @@ const good = () => ({checkedAt: now,
   diagnostic: {verificacoes: ["banco", "migracoes", "base", "alvo"].map(id => ({id, estado: "ok"}))},
   connectivity: {verificacoes: [{id: "zabbix", estado: "ok"}]},
   reconciliation: {status: "sucesso", operacional: true, habilitada: true,
-    intervalo_segundos: 30, ultimo_ciclo: {ts_conclusao: new Date(now - 1000).toISOString()}}});
+    intervalo_segundos: 30, ultimo_ciclo: {ts_conclusao: new Date(now - 1000).toISOString()}},
+  science: {acknowledged: true}});
 
 test("unknown or missing checks never complete server stages", () => {
-  assert.equal(evaluate({}, allManual, now).count, 2);
+  assert.equal(evaluate({}, allManual, now).count, 1);
   assert.equal(evaluate({checkedAt: now, diagnostic: {verificacoes: []}}, {}, now).count, 0);
 });
 
@@ -75,10 +76,11 @@ test("checks use GET only, handle partial failures and recover on next request",
   });
   assert.equal(partial.failed, 1);
   assert.equal(partial.reconciliation, null);
-  assert.equal(requested.length, 3);
+  assert.equal(requested.length, 4);
+  assert.ok(requested.some(item => item.url === "api/v1/auth/ciencia"));
   assert.ok(requested.every(item => item.method === "GET"));
   const failure = await readChecks(async () => ({ok: false}));
-  assert.equal(failure.failed, 3);
+  assert.equal(failure.failed, 4);
   assert.equal(failure.diagnostic, null);
   const recovery = await readChecks(async () => ({ok: true, json: async () => ({})}));
   assert.equal(recovery.failed, 0);
@@ -140,4 +142,12 @@ test("webhook URL and Trigger action payload match the bundled integration", () 
   assert.equal(params.operations[0].opmessage.default_msg, 1);
   assert.match(actionCurl("http://10.0.0.2/zabbix/api_jsonrpc.php"), /--data @polaris-action\.json http:\/\/10\.0\.0\.2\/zabbix\/api_jsonrpc\.php$/);
   assert.match(actionCurl(""), /<URL-da-API-do-Zabbix>/);
+});
+
+test("final review requires the account's script acknowledgement besides both confirmations", () => {
+  const withoutScience = {...good(), science: {acknowledged: false}};
+  assert.equal(evaluate(withoutScience, allManual, now).stages[5], "pendente");
+  assert.equal(evaluate({...good(), science: null}, allManual, now).count, 5);
+  assert.equal(evaluate(good(), {...allManual, review: false}, now).stages[5], "pendente");
+  assert.equal(evaluate(good(), allManual, now).stages[5], "manual");
 });

@@ -1255,7 +1255,8 @@ async function carregarDiagnostico() {
   for (const c of dados.configuracao) {
     const tr = document.createElement("tr");
     const classe = !c.definido ? "vazio-valor" : c.sensivel ? "mascarado" : "";
-    tr.innerHTML = `<td>${escapar(c.chave)}</td><td class="${classe}">${escapar(c.valor)}</td>`;
+    const origem = {assistente: "Configuração inicial (cofre)", ambiente: "Arquivo .env", "padrão": "Padrão do Polaris"}[c.origem] || "—";
+    tr.innerHTML = `<td>${escapar(c.chave)}</td><td class="${classe}">${escapar(c.valor)}</td><td class="diag-origem">${escapar(origem)}</td>`;
     corpo.appendChild(tr);
   }
 

@@ -242,18 +242,42 @@ def _verificar_alvo() -> Verificacao:
 
 
 def configuracao_efetiva() -> list[dict[str, Any]]:
-    """Configuração em vigor, com segredos mascarados."""
+    """Configuração em vigor, com segredos mascarados e a origem de cada valor."""
+    from .config import get_environment_settings
     s = get_settings()
+    ambiente = get_environment_settings()
+    valores = s.model_dump()
+    salvos = {chave for chave, valor in valores.items() if valor != getattr(ambiente, chave, None)}
     itens: list[dict[str, Any]] = []
-    for chave, valor in sorted(s.model_dump().items()):
+    for chave, valor in sorted(valores.items()):
         sensivel = any(termo in chave for termo in TERMOS_SENSIVEIS)
+        definido = bool(str(valor).strip())
+        if chave == "target_ssh_key_path" and str(valor).strip() == "@cofre":
+            apresentado, sensivel = "chave no cofre cifrado", False
+        elif not definido:
+            apresentado = _ausente(chave, s)
+        else:
+            apresentado = _mascarar(valor) if sensivel else _apresentar(valor)
         itens.append({
             "chave": chave.upper(),
-            "valor": _mascarar(valor) if sensivel else _apresentar(valor),
+            "valor": apresentado,
             "sensivel": sensivel,
-            "definido": bool(str(valor).strip()),
+            "definido": definido,
+            "origem": "assistente" if chave in salvos else
+                      "ambiente" if chave in ambiente.model_fields_set else "padrão",
         })
     return itens
+
+
+def _ausente(chave: str, s) -> str:
+    """Empty values that are expected for the chosen setup read as such, not as a missing setting."""
+    if chave in {"zabbix_user", "zabbix_password"} and s.zabbix_token:
+        return "não usado (acesso por token)"
+    if chave == "zabbix_token" and s.zabbix_user and s.zabbix_password:
+        return "não usado (acesso por usuário e senha)"
+    if chave == "polaris_zabbix_host":
+        return "opcional, não configurado"
+    return "não definido"
 
 
 def _mascarar(valor: Any) -> str:

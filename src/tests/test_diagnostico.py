@@ -209,3 +209,24 @@ def test_interface_expoe_a_tela_de_diagnostico(cliente):
     assert 'id="tela-diagnostico"' in pagina
     assert 'id="btn-diagnostico"' in pagina
     assert 'id="btn-recarregar-base"' in pagina
+
+
+def test_valores_vazios_esperados_explicam_o_motivo(ambiente):
+    ambiente(ZABBIX_TOKEN="t" * 32, ZABBIX_USER="", ZABBIX_PASSWORD="", POLARIS_ZABBIX_HOST="")
+    itens = {c["chave"]: c for c in configuracao_efetiva()}
+    assert itens["ZABBIX_USER"]["valor"] == "não usado (acesso por token)"
+    assert itens["ZABBIX_PASSWORD"]["valor"] == "não usado (acesso por token)"
+    assert itens["POLARIS_ZABBIX_HOST"]["valor"] == "opcional, não configurado"
+    assert itens["ZABBIX_TOKEN"]["origem"] == "ambiente"
+    ambiente(ZABBIX_TOKEN="", ZABBIX_USER="Admin", ZABBIX_PASSWORD="segredo")
+    itens = {c["chave"]: c for c in configuracao_efetiva()}
+    assert itens["ZABBIX_TOKEN"]["valor"] == "não usado (acesso por usuário e senha)"
+
+
+def test_valor_salvo_pelo_assistente_indica_a_origem(ambiente, monkeypatch):
+    from src.engine.config import Settings
+    ambiente(TARGET_SSH_KEY_PATH="")
+    salvo = lambda: Settings.model_validate({**Settings().model_dump(), "target_ssh_key_path": "@cofre"})
+    monkeypatch.setattr("src.engine.diagnostico.get_settings", salvo)
+    item = next(c for c in configuracao_efetiva() if c["chave"] == "TARGET_SSH_KEY_PATH")
+    assert item["valor"] == "chave no cofre cifrado" and item["origem"] == "assistente"

@@ -34,7 +34,24 @@
 .settings-page .account-row { align-items:start; flex-wrap:wrap; overflow-wrap:anywhere; font-size:.83rem; }
 .settings-page .account-row span { flex:1 1 160px; }
 .settings-page .auth-form { margin-top:1rem; }
+.settings-link { color:#a8caff; text-decoration:none; }
+.settings-link:hover { color:var(--texto); text-decoration:underline; text-underline-offset:3px; }
+.about-heading { display:flex; align-items:center; gap:1rem; }
+.about-heading img { flex-shrink:0; border-radius:14px; }
+.about-facts { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:1rem; margin:0 0 1.2rem; }
+.about-facts div { padding:.9rem 1rem; border:1px solid var(--borda); border-radius:9px; background:#0e142066; }
+.about-facts dt { color:var(--texto-suave); font-size:.75rem; margin-bottom:.35rem; }
+.about-facts dd { margin:0; font-size:.95rem; overflow-wrap:anywhere; }
+.about-links { display:flex; flex-wrap:wrap; gap:.6rem; margin-bottom:1.5rem; }
+.about-links .btn { text-decoration:none; }
+.about-notes { border-top:1px solid var(--borda); padding-top:1.2rem; }
+.about-notes h3 { font-size:1rem; margin-bottom:.4rem; }
+.about-notes details { margin-top:.8rem; border:1px solid var(--borda); border-radius:9px; padding:.7rem 1rem; }
+.about-notes summary { cursor:pointer; color:#bdc9dc; font-size:.9rem; }
+.about-notes ul { margin:.7rem 0 0 1.1rem; display:grid; gap:.55rem; color:var(--texto-suave); font-size:.84rem; line-height:1.55; }
+.about-notes code { font-family:"Cascadia Code",Consolas,monospace; font-size:.9em; color:#dfe7f3; }
+.about-notes strong { color:var(--texto); }
 @keyframes settings-reveal { from { opacity:0; transform:translateY(4px); } to { opacity:1; transform:translateY(0); } }
-@media(max-width:1050px) { .settings-layout { grid-template-columns:190px minmax(0,1fr); gap:1.2rem; }.settings-page .preferences-grid,.settings-page .account-grid,.display-grid { grid-template-columns:1fr; } }
+@media(max-width:1050px) { .about-facts { grid-template-columns:repeat(2,minmax(0,1fr)); } .settings-layout { grid-template-columns:190px minmax(0,1fr); gap:1.2rem; }.settings-page .preferences-grid,.settings-page .account-grid,.display-grid { grid-template-columns:1fr; } }
 @media(max-width:680px) { .settings-page { padding:1.5rem 1rem 3rem; }.settings-layout { grid-template-columns:1fr; }.settings-content { padding:1rem; }.settings-nav { display:flex; flex-wrap:wrap; gap:.4rem; }.settings-nav a { padding:.7rem .8rem; font-size:.8rem; }.settings-nav small { display:none; }.settings-page .account-panel { padding:1.2rem; } }
 @media(prefers-reduced-motion:reduce) { [data-settings-panel]:not([hidden]) { animation:none; }.settings-nav a { transition:none; } }

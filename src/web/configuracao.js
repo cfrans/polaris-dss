@@ -38,7 +38,8 @@
     const stages = [confirmations.environment ? "manual" : "pendente", services,
       zabbix === "ok" ? confirmations.zabbix ? "ok" : "pendente" : zabbix,
       ssh === "ok" ? confirmations.ssh ? "ok" : "pendente" : ssh,
-      reconciliation, confirmations.delivery && confirmations.review ? "manual" : "pendente"];
+      reconciliation,
+      confirmations.delivery && confirmations.review && snapshot.science?.acknowledged === true ? "manual" : "pendente"];
     if (savedAt) {
       for (const [stage, index] of [["zabbix", 2], ["ssh", 3]]) {
         if (!savedAt[stage]) stages[index] = "pendente";
@@ -162,7 +163,7 @@
   }
 
   async function readChecks(fetcher, signal) {
-    const paths = ["diagnostico", "conectividade", "reconciliacao"];
+    const paths = ["diagnostico", "conectividade", "reconciliacao", "auth/ciencia"];
     const results = await Promise.allSettled(paths.map(async path => {
       const response = await fetcher(`api/v1/${path}`, {method: "GET", cache: "no-store", signal});
       if (!response.ok) throw new Error("Consulta indisponível");
@@ -171,6 +172,7 @@
     return {checkedAt: Date.now(), diagnostic: results[0].status === "fulfilled" ? results[0].value : null,
       connectivity: results[1].status === "fulfilled" ? results[1].value : null,
       reconciliation: results[2].status === "fulfilled" ? results[2].value : null,
+      science: results[3].status === "fulfilled" ? results[3].value : null,
       failed: results.filter(result => result.status === "rejected").length};
   }
 
@@ -294,6 +296,7 @@
         $("setup-public-key").textContent = values.ssh.public_key || "Chave configurada no ambiente, ou ainda não gerada. A chave privada nunca é devolvida.";
       }
       $("setup-polling-interval").value = values.polling_interval ?? 30;
+      showPollingInForce(values.polling_interval);
       if (from === "saved") savedAt = values.validated || {};
       else if (stage) delete savedAt[stage];
       else savedAt = {};
@@ -304,6 +307,93 @@
       updateMode();
       updateCommands();
       render();
+    }
+
+    function showPollingInForce(interval) {
+      const seconds = Number(interval);
+      $("setup-polling-current").textContent = !Number.isFinite(seconds) ? ""
+        : seconds > 0 ? `Em vigor: consulta a cada ${seconds} segundos. Salve apenas se quiser mudar o intervalo.`
+          : "Em vigor: consultas pausadas. Informe um intervalo e salve para ativar.";
+    }
+
+    /* A first cycle can finish after the page loaded; follow it instead of asking for a new save. */
+    async function followReconciliation() {
+      if (refreshing || document.hidden || $("setup-workspace").hidden || current < 4 || !snapshot.checkedAt) return;
+      if (navigationModel().checks.reconciliation === "ok") return;
+      try {
+        const response = await fetch("api/v1/reconciliacao", {method: "GET", cache: "no-store"});
+        if (!response.ok) return;
+        snapshot.reconciliation = await response.json();
+        if (Date.now() - snapshot.checkedAt >= MAX_AGE - AUTO_REFRESH_MARGIN) await refreshChecks();
+        else render();
+      } catch {
+        /* Próxima tentativa no intervalo seguinte. */
+      }
+    }
+
+    function renderScience() {
+      const science = snapshot.science;
+      const status = $("setup-science-status");
+      if (!science) {
+        setStatus(status, "unknown", "Ciência ainda não consultada. Use Verificar conexões.");
+      } else if (science.acknowledged) {
+        const at = science.at ? ` em ${window.PolarisUI.formatTime(Date.parse(science.at))}` : "";
+        setStatus(status, "ok", `Ciência registrada na sua conta${at}, para a versão atual dos scripts.`);
+        $("setup-science-open").lastChild.textContent = "Ler os scripts novamente";
+      } else {
+        setStatus(status, "aviso", "Ainda não registrada para a sua conta nesta versão dos scripts.");
+      }
+    }
+
+    const science = {catalog: null, index: 0};
+    function showScript(index) {
+      const scripts = science.catalog?.scripts || [];
+      if (!scripts.length) return;
+      science.index = (index + scripts.length) % scripts.length;
+      const script = scripts[science.index];
+      const description = window.PolarisScriptViewer.describeScript(script.nome);
+      $("science-name").textContent = script.nome;
+      $("science-count").textContent = `${science.index + 1} de ${scripts.length}`;
+      $("science-purpose").textContent = `${description.purpose} Efeitos: ${description.effect}`;
+      window.PolarisScriptViewer.renderScript($("science-code"), script.conteudo, true);
+      $("science-code").scrollTop = 0;
+    }
+
+    async function openScience() {
+      const dialog = $("setup-science");
+      $("science-error").hidden = true;
+      $("science-confirm").disabled = true;
+      if (!dialog.open) dialog.showModal();
+      try {
+        const response = await fetch("api/v1/scripts-padrao", {cache: "no-store"});
+        if (!response.ok) throw new Error("Não foi possível carregar os scripts.");
+        science.catalog = await response.json();
+        showScript(0);
+        $("science-confirm").disabled = false;
+      } catch (error) {
+        $("science-error").textContent = error.message;
+        $("science-error").hidden = false;
+      }
+    }
+
+    async function confirmScience() {
+      if (!science.catalog) return;
+      $("science-confirm").disabled = true;
+      try {
+        const response = await fetch("api/v1/auth/ciencia", {method: "POST", cache: "no-store",
+          headers: {"Content-Type": "application/json", "X-Polaris-Auth": "1"},
+          body: JSON.stringify({version: science.catalog.versao})});
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(data.mensagem || "Não foi possível registrar a ciência.");
+        snapshot.science = {version: science.catalog.versao, acknowledged: true, at: new Date().toISOString()};
+        $("setup-science").close();
+        render();
+        window.PolarisToast?.("Ciência registrada na sua conta.");
+      } catch (error) {
+        $("science-error").textContent = error.message;
+        $("science-error").hidden = false;
+        $("science-confirm").disabled = false;
+      }
     }
 
     function updateMode() {
@@ -421,6 +511,7 @@
       $("setup-summary").textContent = model.count === 6
         ? "Conferência concluída: conexões verificadas e etapas manuais confirmadas por você. A operação continua exigindo aprovação por incidente."
         : `${model.count} de 6 etapas conferidas. Revise as pendências e confirme as etapas manuais antes de concluir.`;
+      renderScience();
       if (snapshot.checkedAt && !model.fresh) {
         $("setup-checked-at").textContent = "A verificação perdeu a validade. Consulte novamente para conferir o estado atual.";
       }
@@ -538,6 +629,7 @@
       runForm("polling", async target => {
         const result = await request("reconciliacao", {interval: Number($("setup-polling-interval").value)});
         adoptRevision(result.revision);
+        showPollingInForce(Number($("setup-polling-interval").value));
         await refreshChecks();
         setStatus(target, "ok", result.message);
       });
@@ -568,7 +660,13 @@
     $("setup-check").addEventListener("click", async () => {
       if (!$("setup-check").disabled) await refreshChecks();
     });
+    $("setup-science-open").addEventListener("click", openScience);
+    $("science-confirm").addEventListener("click", confirmScience);
+    $("science-previous").addEventListener("click", () => showScript(science.index - 1));
+    $("science-next").addEventListener("click", () => showScript(science.index + 1));
+    document.querySelectorAll("[data-science-close]").forEach(button => button.addEventListener("click", () => $("setup-science").close()));
     setInterval(() => { render(); refreshIfStale(); }, 15000);
+    setInterval(followReconciliation, 10000);
     document.addEventListener("visibilitychange", () => { if (!document.hidden) { render(); refreshIfStale(); } });
     show(0, false);
     render();

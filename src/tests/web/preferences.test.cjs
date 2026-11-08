@@ -47,8 +47,11 @@ test('operator can view operation settings, never loads other accounts, and cann
   assert.equal(f.get('operacao').hidden,false);
   assert.equal(f.get('pref-periodo-ocorrencias').value,30);
   await f.get('preferencias-form').listeners.submit({preventDefault(){}});
-  assert.equal(f.calls.length,1);
-  assert.equal(f.calls[0].options.method,'GET');
+  // The About section reads /api/v1/sobre; the operator triggers no other request, and nothing writes.
+  const calls=f.calls.filter(call=>call.route!=='/api/v1/sobre');
+  assert.equal(calls.length,1);
+  assert.equal(calls[0].options.method,'GET');
+  assert.ok(!f.calls.some(call=>String(call.route).includes('/instalacao/')));
 });
 
 test('admin cannot overwrite settings after a failed read and can retry then save',async()=>{
