@@ -66,6 +66,8 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
   migrações idempotentes e downloads idênticos ao checkout; limites externos documentados.
 
 ### Modificado
+- README com a marca do sistema (ícone e nome em Aptos), centralizada e com versões para os
+  temas claro e escuro do GitHub; tipografia vetorizada para preservar a aparência sem fonte instalada.
 - Assistente, a partir da segunda instalação limpa em VMs (07/Nov): a Etapa 3 detalha a mídia do
   destinatário (*Send to*, período, severidades e o *Update* do usuário), destaca o `polaris_token`
   com botão de cópia e usa *Send to media type* na operação da ação. A Etapa 5 mostra o intervalo

@@ -1,4 +1,10 @@
-# ⭐ Polaris DSS
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/polaris-logo-dark.svg">
+    <source media="(prefers-color-scheme: light)" srcset="docs/assets/polaris-logo-light.svg">
+    <img src="docs/assets/polaris-logo-light.svg" alt="Polaris DSS" width="360">
+  </picture>
+</p>
 
 ### Decision Support System for IT Infrastructure Incident Remediation
 
