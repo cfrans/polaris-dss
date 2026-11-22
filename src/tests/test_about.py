@@ -20,6 +20,22 @@ def test_release_notes_read_unreleased_section_for_development_builds(tmp_path, 
     about_routes.release_notes.cache_clear()
 
 
+def test_release_notes_prefer_named_prerelease_over_unreleased_notes(tmp_path, monkeypatch):
+    changelog = tmp_path / "CHANGELOG.md"
+    changelog.write_text(
+        "# Changelog\n\n## [Não lançado]\n\n### Adicionado\n- Próxima versão.\n\n"
+        "## [1.1.0-dev] — 2026-11-22\n\n### Adicionado\n- Login individual.\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(about_routes, "CHANGELOG", changelog)
+    about_routes.release_notes.cache_clear()
+    assert about_routes.release_notes("1.1.0-dev") == {
+        "title": "[1.1.0-dev] — 2026-11-22",
+        "groups": [{"name": "Adicionado", "items": ["Login individual."]}],
+    }
+    about_routes.release_notes.cache_clear()
+
+
 def test_release_notes_tolerate_missing_changelog(tmp_path, monkeypatch):
     monkeypatch.setattr(about_routes, "CHANGELOG", tmp_path / "ausente.md")
     about_routes.release_notes.cache_clear()

@@ -17,14 +17,15 @@ CHANGELOG = ROOT / "CHANGELOG.md"
 
 @lru_cache(maxsize=4)
 def release_notes(version: str) -> dict:
-    """Section of CHANGELOG.md for this version; development builds read the unreleased section."""
+    """Read the named release section, falling back to unreleased notes on development builds."""
     try:
         text = CHANGELOG.read_text(encoding="utf-8")
     except OSError:
         return {"title": "", "groups": []}
-    heading = "[Não lançado]" if version.endswith("-dev") else f"[{version}]"
     sections = re.split(r"(?m)^## ", text)
-    section = next((part for part in sections if part.startswith(heading)), "")
+    section = next((part for part in sections if part.startswith(f"[{version}]")), "")
+    if not section and version.endswith("-dev"):
+        section = next((part for part in sections if part.startswith("[Não lançado]")), "")
     if not section:
         return {"title": "", "groups": []}
     title, _, body = section.partition("\n")

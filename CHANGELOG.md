@@ -7,6 +7,10 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 
 ## [Não lançado]
 
+## [1.1.0-dev] — 2026-11-22
+
+Pré-release do desenvolvimento posterior à coleta.
+
 ### Adicionado
 - Seção **Sobre o Polaris** em Preferências (também no menu de ferramentas): versão, base de
   conhecimento, versão avaliada no experimento, licença, links para código, documentação e
@@ -149,6 +153,8 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
   valores contra um Zabbix 7.0 real e comandos do agente em Ubuntu real **[NÃO VERIFICADO]**.
 
 ### Corrigido
+- A seção Sobre lê as notas da versão quando há uma entrada correspondente no changelog.
+  Builds de desenvolvimento sem seção própria continuam a exibir as notas de Não lançado.
 - Comandos do agente Zabbix na Etapa 5 usam `polaris-server` quando não há nome válido
   informado e avisam o nome antes do código, evitando gravar um `Hostname` com `<...>`.
 - Etapas 5 e 6 continuam consultando a reconciliação a cada 10 segundos após o primeiro
@@ -765,7 +771,8 @@ ensaios e mantêm a marca onde o comportamento específico não foi observado no
 - Rascunho do esquema PostgreSQL de auditoria com views de KPI.
 - `docker-compose.yml` com PostgreSQL, Zabbix Server, Zabbix Web e Zabbix Agent.
 
-[Não lançado]: https://github.com/cfrans/polaris-dss/compare/v0.4.0...HEAD
+[Não lançado]: https://github.com/cfrans/polaris-dss/compare/v1.1.0-dev...HEAD
+[1.1.0-dev]: https://github.com/cfrans/polaris-dss/compare/v1.0.3-experimento...v1.1.0-dev
 [0.4.0]: https://github.com/cfrans/polaris-dss/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/cfrans/polaris-dss/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/cfrans/polaris-dss/compare/v0.1.1...v0.2.0
